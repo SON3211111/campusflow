@@ -164,8 +164,14 @@ git pull origin dev
 ```
 
 **3. 서버 실행**
+
 ```bash
+# 전체 실행 (Frontend + Backend + MySQL 모두)
 docker-compose --profile main up
+
+# 내 파트만 실행 (빠름)
+docker-compose --profile frontend up   # 프론트팀
+docker-compose --profile backend up    # 백엔드팀 (MySQL 포함)
 ```
 
 **4. 브라우저에서 확인**
