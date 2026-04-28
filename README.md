@@ -284,8 +284,14 @@ docker-compose --profile main down
 docker-compose logs -f frontend
 docker-compose logs -f backend
 
-# 서버 재시작
+# 백엔드 코드 변경 후 재시작 (이미지 재빌드 불필요)
+docker-compose restart backend
+
+# 전체 재시작
 docker-compose --profile main restart
+
+# build.gradle 변경 후 (이미지 재빌드 필요)
+docker-compose --profile backend up --build
 
 # DB 초기화 (주의: 데이터 전부 삭제됨)
 docker-compose --profile main down -v
