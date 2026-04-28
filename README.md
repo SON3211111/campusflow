@@ -49,6 +49,19 @@ git push origin feature/backend-init
 
 ---
 
+## 리더 체크리스트
+
+> 팀원들이 시작하기 전에 리더가 완료해야 할 항목
+
+- [ ] 팀원 GitHub 초대 (Settings → Collaborators)
+- [ ] `.env` 값 슬랙/노션으로 팀원 공유
+- [ ] AI팀에게 서버에서 `docker-compose.ai.yml` 실행 요청
+- [ ] 프론트 리드에게 `feature/frontend-init` PR 요청
+- [ ] 백엔드 리드에게 `feature/backend-init` PR 요청
+- [ ] 집에서 개발할 팀원 Tailscale 팀 초대
+
+---
+
 ## 사전 준비 (전원 필수)
 
 - [Docker Desktop](https://www.docker.com/products/docker-desktop/) 설치 후 실행
