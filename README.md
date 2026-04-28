@@ -13,7 +13,6 @@
 - [ ] AI팀에게 서버에서 `docker-compose.ai.yml` 실행 요청
 - [ ] 프론트 리드에게 `feature/frontend-init` PR 요청
 - [ ] 백엔드 리드에게 `feature/backend-init` PR 요청
-- [ ] 집에서 개발할 팀원 Tailscale 팀 초대
 
 ---
 
@@ -149,18 +148,6 @@ cp .env.example .env
 그 다음 `.env` 파일을 열어서 리더에게 공유받은 값을 입력하세요.
 
 > `.env` 파일에는 비밀번호 같은 민감한 정보가 담겨있어요. 절대 GitHub에 올리면 안 됩니다.
-
-집에서 개발할 경우 `.env` 파일 안에서 이 부분을 수정하세요:
-
-```env
-# 이 줄을 주석처리하고
-# AI_SERVER_URL=http://10.30.4.173:8000
-
-# 아래 줄의 주석을 해제 후 Tailscale IP로 교체
-AI_SERVER_URL=http://100.x.x.x:8000
-```
-
-> Tailscale IP는 리더에게 문의하세요.
 
 ---
 
@@ -324,16 +311,6 @@ docker-compose --profile main restart
 # DB 초기화 (주의: 데이터 전부 삭제됨)
 docker-compose --profile main down -v
 ```
-
----
-
-## 집에서 개발할 때 (Tailscale)
-
-Tailscale은 학교 밖에서도 AI 서버에 접속할 수 있게 해주는 프로그램입니다.
-
-1. [tailscale.com](https://tailscale.com) 에서 설치
-2. 리더에게 팀 초대 요청
-3. 초대 수락 후 `.env`의 `AI_SERVER_URL`을 Tailscale IP로 변경
 
 ---
 
