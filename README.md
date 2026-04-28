@@ -82,6 +82,8 @@ AI_SERVER_URL=http://10.30.4.173:8000
 
 ## 실행
 
+### 일반 팀원 (Frontend / Backend)
+
 ```bash
 # 전체 실행 (Frontend + Backend + MySQL)
 docker-compose --profile main up --build
@@ -95,7 +97,39 @@ docker-compose --profile main up
 | Frontend | http://localhost:3000 |
 | Backend | http://localhost:8080 |
 | MySQL | localhost:3306 |
-| AI 서버 | http://10.30.4.173:8000 |
+
+### AI 팀 (AI 서버 컴퓨터에서 실행)
+
+> AI 서버 컴퓨터에 SSH 접속 후 실행
+
+```bash
+# AI 서버 컴퓨터에서
+git clone https://github.com/SON3211111/campusflow.git
+cd campusflow
+cp .env.example .env   # .env 값 채우기
+
+# FastAPI + Ollama 실행
+docker-compose -f docker-compose.ai.yml up --build -d
+
+# Llama 모델 다운로드 (최초 1회만, 시간 소요)
+docker exec -it campusflow-ollama-1 ollama pull llama3
+```
+
+| 서비스 | 주소 |
+|--------|------|
+| FastAPI | http://10.30.4.173:8000 |
+| FastAPI 문서 | http://10.30.4.173:8000/docs |
+| Ollama | http://10.30.4.173:11434 |
+
+### AI 팀 개발 방법 (SSH)
+
+```bash
+# VS Code에서 Remote SSH 확장 설치 후
+# Host: 10.30.4.173 접속 → campusflow/ai/ 폴더에서 개발
+
+# 코드 수정 후 재시작
+docker-compose -f docker-compose.ai.yml up --build -d
+```
 
 ---
 
