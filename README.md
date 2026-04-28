@@ -146,6 +146,66 @@ docker-compose -f docker-compose.ai.yml up --build -d
 
 ---
 
+## 매일 개발 시작할 때
+
+### 일반 팀원 (Frontend / Backend)
+
+**순서대로 따라하세요**
+
+**1. Docker Desktop 실행**
+- 바탕화면 또는 시작 메뉴에서 Docker Desktop 실행
+- 트레이 아이콘이 초록색 되면 준비 완료
+
+**2. 최신 코드 받기**
+```bash
+cd campusflow
+git checkout dev
+git pull origin dev
+```
+
+**3. 서버 실행**
+```bash
+docker-compose --profile main up
+```
+
+**4. 브라우저에서 확인**
+- Frontend: http://localhost:3000
+- Backend: http://localhost:8080
+
+**5. 작업 브랜치 생성 후 개발 시작**
+```bash
+git checkout -b feature/내작업이름
+```
+
+---
+
+### AI 팀
+
+**1. VS Code에서 Remote SSH로 AI 서버 접속**
+- `10.30.4.173` 접속
+- `campusflow/ai/` 폴더 열기
+
+**2. AI 서버는 항상 켜져 있으므로 별도 실행 불필요**
+- FastAPI: http://10.30.4.173:8000/docs 에서 동작 확인
+
+**3. 코드 수정 후 재시작이 필요할 때만**
+```bash
+docker-compose -f docker-compose.ai.yml up --build -d
+```
+
+---
+
+### 개발 종료할 때
+
+```bash
+# 서버 끄기 (터미널에서)
+docker-compose --profile main down
+
+# Docker Desktop 종료 (트레이 아이콘 우클릭 → Quit)
+```
+
+---
+
 ## 브랜치 전략
 
 ```
