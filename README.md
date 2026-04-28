@@ -11,7 +11,7 @@
 - [ ] 팀원 GitHub 초대 (Settings → Collaborators)
 - [ ] `.env` 값 슬랙/노션으로 팀원 공유
 - [ ] AI팀에게 서버에서 `docker-compose.ai.yml` 실행 요청
-- [ ] 프론트 리드에게 `feature/frontend-init` PR 요청
+- [x] 프론트 리드 — `feature/frontend-init` PR 완료
 - [ ] 백엔드 리드에게 `feature/backend-init` PR 요청
 
 ---
@@ -30,31 +30,9 @@
 
 > 각 파트에서 한 명만 하면 됩니다. 나머지 팀원은 건너뛰세요.
 
-### 프론트엔드 리드
+### 프론트엔드 리드 — ✅ 완료
 
-터미널을 열고 아래 명령어를 순서대로 입력하세요.
-
-```bash
-# 1. dev 브랜치에서 새 브랜치 만들기
-git checkout dev
-git checkout -b feature/frontend-init
-
-# 2. frontend 폴더로 이동
-cd frontend
-
-# 3. React + TypeScript 프로젝트 생성
-npm create vite@latest . -- --template react-ts
-
-# 4. 패키지 설치
-npm install
-
-# 5. GitHub에 올리기
-git add .
-git commit -m "feat: frontend 초기 세팅"
-git push origin feature/frontend-init
-```
-
-6. GitHub 사이트에서 `feature/frontend-init` → `dev` 로 **Pull Request** 생성
+React + TypeScript (Vite) 초기 세팅이 완료되어 있습니다. 별도 작업 불필요.
 
 ---
 
@@ -179,7 +157,7 @@ git pull origin dev
 
 ```bash
 # 내 파트만 켤 때 (빠름, 추천)
-docker-compose --profile frontend up    # 프론트팀
+docker-compose --profile frontend up    # 프론트팀 (독립 실행 가능)
 docker-compose --profile backend up     # 백엔드팀 (MySQL 자동 포함)
 
 # 전체 다 켤 때
