@@ -107,7 +107,8 @@ cp .env.example .env
 
 docker-compose -f docker-compose.ai.yml up --build -d
 
-# Llama 모델 다운로드 (최초 1회, 수 분 소요)
+# Llama 모델 다운로드 (최초 1회만! 4~5GB, 수 분 소요)
+# 이 명령어 한 번만 실행하면 다음부터는 안 해도 됩니다
 docker exec -it campusflow-ollama-1 ollama pull llama3
 ```
 
