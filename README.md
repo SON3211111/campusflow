@@ -202,19 +202,74 @@ git checkout -b feature/내작업이름
 
 ### AI 팀
 
-**1. VS Code 열기**
+> AI 팀은 별도의 AI 서버 컴퓨터에서 개발합니다. 내 노트북에서 VS Code로 원격 접속해서 작업해요.
 
-VS Code에서 Remote-SSH 확장 프로그램으로 AI 서버 접속:
-- 왼쪽 아래 초록색 버튼 클릭 → `Connect to Host` → `10.30.4.173`
+---
 
-**2. AI 서버는 항상 켜져 있으므로 바로 개발 시작**
+**1단계 — Remote-SSH 확장 프로그램 설치 (최초 1회)**
 
-http://10.30.4.173:8000/docs 에서 API 동작 확인 가능
+1. VS Code 실행
+2. 왼쪽 사이드바 확장 프로그램 아이콘 클릭 (또는 `Ctrl+Shift+X`)
+3. `Remote - SSH` 검색 후 설치
 
-**3. 코드 수정 후 서버 재시작이 필요할 때**
+---
+
+**2단계 — AI 서버 접속**
+
+1. VS Code 왼쪽 아래 **초록색 버튼** 클릭
+2. `Connect to Host...` 선택
+3. `Add New SSH Host...` 선택
+4. 아래 입력 후 Enter
+
+```
+ssh 계정명@AI서버공인IP
+```
+
+5. 비밀번호 입력하면 접속 완료
+6. `Open Folder` → `campusflow/ai` 폴더 열기
+
+> 이제부터는 내 노트북에서 작업하는 것처럼 AI 서버의 파일을 바로 수정할 수 있어요.
+
+---
+
+**3단계 — 개발 시작**
+
+`ai/main.py` 파일에 기능을 추가하면 됩니다.
+
+현재 사용 가능한 엔드포인트:
+- `GET /health` — 서버 상태 확인
+- `POST /generate` — 프롬프트를 보내면 Llama3가 응답
+
+새 기능은 이 파일에 엔드포인트를 추가하는 방식으로 개발해요.
+
+---
+
+**4단계 — 코드 수정 후 서버 반영**
+
+VS Code 터미널(`Ctrl+`\`)을 열고:
 
 ```bash
 docker-compose -f docker-compose.ai.yml up --build -d
+```
+
+---
+
+**5단계 — 동작 확인**
+
+브라우저에서 아래 주소 접속:
+
+```
+http://AI서버공인IP:8000/docs
+```
+
+Swagger UI 페이지가 뜨면 API를 바로 테스트할 수 있어요. (코드 없이 버튼 클릭으로 테스트 가능)
+
+---
+
+**로그 확인 (오류 났을 때)**
+
+```bash
+docker-compose -f docker-compose.ai.yml logs -f ai
 ```
 
 ---
