@@ -57,7 +57,17 @@ React + TypeScript (Vite) 초기 세팅이 완료되어 있습니다. 별도 작
 
 4. **GENERATE** 버튼 클릭 → 압축 파일 다운로드
 
-**2단계: 파일 이동 및 push**
+**2단계: application.properties 설정**
+
+`src/main/resources/application.properties` 파일을 열어 아래 내용으로 교체하세요.
+
+```properties
+spring.jpa.hibernate.ddl-auto=update
+```
+
+> DB 접속 정보(URL, 계정, 비밀번호)는 `.env` 파일에 이미 설정되어 있어서 여기에 적으면 안 됩니다. Docker가 자동으로 주입해줍니다.
+
+**3단계: 파일 이동 및 push**
 
 다운로드된 압축 파일 안의 내용을 전부 `campusflow/backend/` 폴더에 붙여넣기
 
