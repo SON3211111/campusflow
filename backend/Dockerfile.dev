@@ -11,4 +11,4 @@ RUN chmod +x ./gradlew && ./gradlew dependencies --no-daemon
 
 EXPOSE 8080
 
-CMD ["./gradlew", "bootRun", "--no-daemon"]
+CMD ["sh", "-c", "chmod +x ./gradlew && ./gradlew bootRun --no-daemon"]
