@@ -82,7 +82,7 @@ AI는 협업을 대체하지 않고 협업을 더 빠르게 시작하게 만드�
 
 - [ ] 팀원 GitHub 초대 (Settings → Collaborators)
 - [ ] `.env` 값 슬랙/노션으로 팀원 공유
-- [ ] AI팀에게 서버에서 `docker-compose.ai.yml` 실행 요청
+- [ ] AI팀에게 서버에서 AI 서버 실행 요청 (`--profile ai`)
 - [x] 프론트 리드 — `feature/frontend-init` PR 완료
 - [ ] 백엔드 리드에게 `feature/backend-init` PR 요청
 
@@ -165,11 +165,11 @@ cd campusflow
 cp .env.example .env
 # .env 파일 열어서 값 채우기
 
-docker-compose -f docker-compose.ai.yml up --build -d
+docker-compose --profile ai up --build -d
 
 # Llama 모델 다운로드 (최초 1회만! 4~5GB, 수 분 소요)
 # 이 명령어 한 번만 실행하면 다음부터는 안 해도 됩니다
-docker exec -it campusflow-ollama-1 ollama pull llama3
+docker exec -it campusflow-ai-1 ollama pull llama3
 ```
 
 ---
@@ -239,11 +239,13 @@ git pull origin dev
 
 ```bash
 # 내 파트만 켤 때 (빠름, 추천)
-docker-compose --profile frontend up    # 프론트팀 (독립 실행 가능)
-docker-compose --profile backend up     # 백엔드팀 (MySQL 자동 포함)
+docker-compose --profile frontend up          # 프론트팀
+docker-compose --profile backend up           # 백엔드팀 (MySQL 자동 포함)
+docker-compose --profile ai up                # AI팀
 
 # 전체 다 켤 때
-docker-compose --profile main up
+docker-compose --profile main up              # frontend + backend + mysql
+docker-compose --profile main --profile ai up # 전체 (AI 포함)
 ```
 
 처음 실행할 때는 다운로드가 있어서 3~5분 걸릴 수 있어요.
@@ -257,7 +259,7 @@ docker-compose --profile main up
 |--------|------|
 | Frontend | http://localhost:3000 |
 | Backend | http://localhost:8080 |
-| AI 서버 | http://10.30.4.173:8000/docs |
+| AI 서버 | http://localhost:8000/docs |
 
 ---
 
@@ -321,7 +323,7 @@ ssh 계정명@AI서버공인IP
 VS Code 터미널(`Ctrl+`\`)을 열고:
 
 ```bash
-docker-compose -f docker-compose.ai.yml up --build -d
+docker-compose --profile ai up --build -d
 ```
 
 ---
@@ -341,7 +343,8 @@ Swagger UI 페이지가 뜨면 API를 바로 테스트할 수 있어요. (코드
 **로그 확인 (오류 났을 때)**
 
 ```bash
-docker-compose -f docker-compose.ai.yml logs -f ai
+docker-compose logs -f ai
+docker-compose logs -f ollama
 ```
 
 ---
@@ -351,9 +354,11 @@ docker-compose -f docker-compose.ai.yml logs -f ai
 ```bash
 # 서버 끄기
 docker-compose --profile main down
+docker-compose --profile main --profile ai down  # AI까지 포함해서 끌 때
 # 또는
 docker-compose --profile frontend down
 docker-compose --profile backend down
+docker-compose --profile ai down
 ```
 
 Docker Desktop은 그냥 켜둬도 되고, 종료하려면 트레이 아이콘 우클릭 → `Quit Docker Desktop`
@@ -412,14 +417,18 @@ GitHub 사이트에서 **Pull Request** 생성 → 팀원 1명 확인 후 `dev`�
 
 ```bash
 # 서버 시작
-docker-compose --profile main up
+docker-compose --profile main up                       # frontend + backend + mysql
+docker-compose --profile main --profile ai up          # 전체 (AI 포함)
 
 # 서버 종료
 docker-compose --profile main down
+docker-compose --profile main --profile ai down        # AI까지 포함해서 끌 때
 
 # 로그 보기 (오류 확인할 때)
 docker-compose logs -f frontend
 docker-compose logs -f backend
+docker-compose logs -f ai
+docker-compose logs -f ollama
 
 # 백엔드 코드 변경 후 재시작 (이미지 재빌드 불필요)
 docker-compose restart backend

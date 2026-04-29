@@ -10,6 +10,8 @@ services:
       - /app/node_modules
     env_file:
       - .env
+    networks:
+      - campusflow-net
     profiles:
       - main
       - frontend
@@ -28,6 +30,8 @@ services:
     depends_on:
       mysql:
         condition: service_healthy
+    networks:
+      - campusflow-net
     profiles:
       - main
       - backend
@@ -48,10 +52,45 @@ services:
       interval: 10s
       timeout: 5s
       retries: 5
+    networks:
+      - campusflow-net
     profiles:
       - main
       - backend
 
+  ollama:
+    image: ollama/ollama
+    ports:
+      - "11434:11434"
+    volumes:
+      - ollama_data:/root/.ollama
+    networks:
+      - campusflow-net
+    restart: unless-stopped
+    profiles:
+      - ai
+
+  ai:
+    build:
+      context: ./ai
+    ports:
+      - "8000:8000"
+    env_file:
+      - .env
+    depends_on:
+      - ollama
+    volumes:
+      - ./ai:/app
+    networks:
+      - campusflow-net
+    restart: unless-stopped
+    profiles:
+      - ai
+
 volumes:
   mysql_data:
   gradle_cache:
+  ollama_data:
+
+networks:
+  campusflow-net:
