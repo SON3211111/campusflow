@@ -13,7 +13,7 @@ frontend/build/
 backend/.gradle/
 backend/build/
 backend/out/
-*.jar
+backend/build/*.jar
 *.war
 
 # ─── AI ──────────────────────────────────────────────

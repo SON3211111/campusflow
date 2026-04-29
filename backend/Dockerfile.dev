@@ -7,8 +7,8 @@ COPY gradle gradle
 COPY build.gradle .
 COPY settings.gradle .
 
-RUN chmod +x ./gradlew && ./gradlew dependencies --no-daemon
+RUN sed -i 's/\r$//' gradlew && chmod +x ./gradlew && ./gradlew dependencies --no-daemon
 
 EXPOSE 8080
 
-CMD ["sh", "-c", "chmod +x ./gradlew && ./gradlew bootRun --no-daemon"]
+CMD ["sh", "-c", "sed -i 's/\\r$//' gradlew && chmod +x ./gradlew && ./gradlew bootRun --no-daemon"]
