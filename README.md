@@ -80,11 +80,11 @@ AI는 협업을 대체하지 않고 협업을 더 빠르게 시작하게 만드�
 
 > 팀원들이 시작하기 전에 리더가 완료해야 할 항목
 
-- [ ] 팀원 GitHub 초대 (Settings → Collaborators)
-- [ ] `.env` 값 슬랙/노션으로 팀원 공유
+- [x] 팀원 GitHub 초대 (Settings → Collaborators)
+- [x] `.env` 값 슬랙/노션으로 팀원 공유
 - [ ] AI팀에게 서버에서 AI 서버 실행 요청 (`--profile ai`)
 - [x] 프론트 리드 — `feature/frontend-init` PR 완료
-- [ ] 백엔드 리드에게 `feature/backend-init` PR 요청
+- [x] 백엔드 리드에게 `feature/backend-init` PR 요청
 
 ---
 
