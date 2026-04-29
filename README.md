@@ -259,7 +259,7 @@ docker-compose --profile main --profile ai up # 전체 (AI 포함)
 |--------|------|
 | Frontend | http://localhost:3000 |
 | Backend | http://localhost:8080 |
-| AI 서버 | http://localhost:8000/docs |
+| AI 서버 | http://10.30.4.173:8000/docs |
 
 ---
 
