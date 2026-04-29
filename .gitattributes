@@ -1,0 +1,5 @@
+# 기본: 텍스트 파일은 Git이 자동 처리
+* text=auto
+
+# gradlew는 Linux 컨테이너에서 실행되므로 반드시 LF
+gradlew text eol=lf
