@@ -1,0 +1,143 @@
+.mailcode-container {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  width: 100vw;
+  height: 100vh;
+  padding: 0 60px;
+  background-color: #f8f9fa;
+  box-sizing: border-box;
+  position: fixed;
+  top: 0;
+  left: 0;
+}
+
+/* 광고 사이드바 스타일 (기존 유지) */
+.ad-sidebar {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  width: 240px;
+  height: 90vh;
+  padding: 20px;
+  background-color: #e0e0e0;
+  border-radius: 12px;
+  box-sizing: border-box;
+  flex-shrink: 0;
+}
+
+.ad-box {
+  background-color: #B2A3A0;
+  border-radius: 8px;
+  width: 100%;
+  flex-grow: 1;
+}
+
+.box-1 { flex-grow: 2.5; }
+.box-2 { flex-grow: 1.5; }
+.box-3 { flex-grow: 1; }
+.box-4 { flex-grow: 3; }
+.box-5 { flex-grow: 0; height: 40px; }
+
+/* 중앙 카드 스타일 */
+.mailcode-card {
+  width: 450px;
+  padding: 50px 40px;
+  background: white;
+  border-radius: 20px;
+  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.15);
+  text-align: center;
+  box-sizing: border-box;
+  flex-shrink: 0;
+}
+
+.logo-wrapper {
+  margin-bottom: 20px;
+  display: flex;
+  justify-content: center;
+}
+
+.mailcode-logo-img {
+  width: 250px;
+  height: auto;
+}
+
+.mailcode-title {
+  font-size: 20px;
+  font-weight: 800;
+  color: #333;
+  margin-bottom: 30px;
+}
+
+.mailcode-desc {
+  font-size: 13px;
+  color: #999;
+  margin-bottom: 5px;
+}
+
+.user-email {
+  font-size: 16px;
+  font-weight: bold;
+  color: #000;
+  margin-bottom: 30px;
+}
+
+/* 인증 코드 입력칸 */
+.code-input-group {
+  display: flex;
+  justify-content: center;
+  gap: 15px;
+  margin-bottom: 30px;
+}
+
+.code-box {
+  width: 45px;
+  height: 55px;
+  border: 1.5px solid #7B92F7;
+  border-radius: 4px;
+  font-size: 24px;
+  text-align: center;
+  font-weight: bold;
+  outline: none;
+}
+
+.submit-btn {
+  width: 100%;
+  padding: 14px;
+  background-color: #84A1F4;
+  color: white;
+  border: none;
+  border-radius: 8px;
+  font-size: 18px;
+  font-weight: bold;
+  cursor: pointer;
+  margin-bottom: 20px;
+}
+
+.resend-wrapper {
+  text-align: left;
+  margin-bottom: 80px;
+}
+
+.resend-link {
+  font-size: 14px;
+  color: #4A69FF;
+  text-decoration: underline;
+  cursor: pointer;
+  font-weight: bold;
+}
+
+/* 하단 디자인 */
+.footer-line {
+  border: none;
+  border-top: 1px solid #eee;
+  margin-bottom: 20px;
+}
+
+.footer-text {
+  text-align: left;
+  font-size: 14px;
+  font-weight: bold;
+  text-decoration: underline;
+  color: #000;
+}
