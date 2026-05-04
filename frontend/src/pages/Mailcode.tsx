@@ -1,7 +1,7 @@
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import './MailCode.css';
-import logoImg from '../assets/Logo.png'; // 형이 직접 딴 로고 파일
+import logoImg from '../assets/Logo.png'; 
 
 const MailCode: React.FC = () => {
   const navigate = useNavigate();

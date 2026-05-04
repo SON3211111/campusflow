@@ -62,11 +62,10 @@
 
 .pw-wrapper { position: relative; display: flex; align-items: center; }
 
-/* 인풋 박스 안쪽 PNG 아이콘 (형님이 가져온 PNG) */
 .eye-inside-img { 
   position: absolute; 
   right: 12px; 
-  width: 20px; /* 형 눈에 보기 좋게 조절 가능 */
+  width: 20px; 
   height: auto; 
   cursor: pointer; 
   opacity: 0.8;
