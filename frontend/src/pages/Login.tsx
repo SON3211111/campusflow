@@ -2,7 +2,7 @@ import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import './Login.css';
 import eyeIcon from '../assets/icons-eye.png';
-import logoImg from '../assets/Logo.png'; // 형이 넣어둔 로고 이미지
+import logoImg from '../assets/Logo.png'; 
 
 const Login: React.FC = () => {
   const navigate = useNavigate();
@@ -42,7 +42,7 @@ const Login: React.FC = () => {
             </label>
           </div>
 
-          <button className="submit-btn">완료</button>
+          <button className="submit-btn" onClick={() => navigate('/workspace')}>완료</button>
         </div>
 
         <div className="social-login">

@@ -2,7 +2,7 @@ import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import './UserSetup.css';
 import logoImg from '../assets/Logo.png';
-import eyeIcon from '../assets/icons-eye.png'; // 형님이 직접 가져오신 PNG
+import eyeIcon from '../assets/icons-eye.png'; 
 
 const UserSetup: React.FC = () => {
   const navigate = useNavigate();
@@ -49,7 +49,7 @@ const UserSetup: React.FC = () => {
             </div>
             <div className="pw-wrapper">
               <input type="password" />
-              {/* 무서운 눈 대신 형님의 PNG 적용 */}
+          
               <img src={eyeIcon} alt="toggle view" className="eye-inside-img" />
             </div>
           </div>

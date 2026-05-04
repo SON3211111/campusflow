@@ -7,12 +7,13 @@ import Login from './pages/Login';     // 로그인페이지
 import Signup from './pages/Signup';   // 회원가입페이지
 import MailCode from './pages/Mailcode'; // 메일인증페이지
 import UserSetup from './pages/UserSetup';
+import WorkspaceList from './pages/WorkspaceList';
 
 function App() {
   return (
     <Router>
       <Routes>
-        {/* 1. 기본 경로(/)를 메인페이지로 연결 (이게 빠졌던 겁니다) */}
+        {/* 1. 기본 경로(/)를 메인페이지로 연결  */}
         <Route path="/" element={<Main />} />
         
         {/* 2. 로그인 페이지 */}
@@ -24,7 +25,8 @@ function App() {
         {/* 4. 메일 인증 페이지 */}
         <Route path="/mailcode" element={<MailCode />} />
 
-        <Route path="/usersetup" element={<UserSetup />} /> {/* 이 줄 추가 */}
+        <Route path="/usersetup" element={<UserSetup />} />
+        <Route path="/workspace" element={<WorkspaceList />} />
       </Routes>
     </Router>
   );
