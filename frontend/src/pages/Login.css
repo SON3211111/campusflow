@@ -145,3 +145,4 @@
   font-weight: bold;
   text-decoration: underline;
 }
+.error-msg { color: #e33; font-size: 12px; margin: 4px 0 0 0; }

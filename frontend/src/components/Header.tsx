@@ -3,6 +3,7 @@ import "./Header.css";
 
 export default function Header() {
   const navigate = useNavigate();
+  const userName = localStorage.getItem('userName') ?? '사용자';
 
   return (
     <header className="header">
@@ -21,7 +22,7 @@ export default function Header() {
         <button className="header-icon-btn">🔔</button>
         <div className="header-user">
           <div className="user-avatar"></div>
-          <span>김명자</span>
+          <span>{userName}</span>
           <span className="dropdown-arrow">▾</span>
         </div>
       </div>
