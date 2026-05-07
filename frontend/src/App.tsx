@@ -1,4 +1,3 @@
-import React from 'react';
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 
 // 컴포넌트들 임포트
@@ -7,7 +6,8 @@ import Login from './pages/Login';     // 로그인페이지
 import Signup from './pages/Signup';   // 회원가입페이지
 import MailCode from './pages/Mailcode'; // 메일인증페이지
 import UserSetup from './pages/UserSetup';
-import WorkspaceList from './pages/WorkspaceList';
+import WorkspaceList from './ListPages/WorkspaceList';
+import BoardPage from './ListPages/BoardPage';
 
 function App() {
   return (
@@ -27,6 +27,7 @@ function App() {
 
         <Route path="/usersetup" element={<UserSetup />} />
         <Route path="/workspace" element={<WorkspaceList />} />
+        <Route path="/board" element={<BoardPage />} />
       </Routes>
     </Router>
   );

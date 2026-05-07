@@ -1,7 +1,7 @@
 import axios from 'axios';
 
 const client = axios.create({
-  baseURL: 'http://localhost:8080/api', // 명세서 [1]의 Base URL
+  baseURL: '/api',
   headers: {
     'Content-Type': 'application/json',
   },
