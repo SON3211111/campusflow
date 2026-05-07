@@ -11,7 +11,6 @@ import org.springframework.security.web.SecurityFilterChain;
 @EnableWebSecurity
 public class SecurityConfig {
 
-    // 비밀번호 암호화 빈 등록
     @Bean
     public BCryptPasswordEncoder passwordEncoder() {
         return new BCryptPasswordEncoder();
@@ -20,12 +19,15 @@ public class SecurityConfig {
     @Bean
     public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
         http
-                .csrf(csrf -> csrf.disable()) // 테스트를 위해 CSRF 비활성화
+                .csrf(csrf -> csrf.disable())
                 .authorizeHttpRequests(auth -> auth
-                        .requestMatchers("/api/auth/**").permitAll() // /api/auth로 시작하는 건 모두 허용
-                        .anyRequest().authenticated() // 그 외 나머지는 인증 필요
+                        .requestMatchers("/api/auth/**").permitAll()
+                        .requestMatchers("/v3/api-docs/**", "/swagger-ui/**", "/swagger-ui.html").permitAll()
+                        // 3. [핵심 추가] 워크스페이스 API를 인증 없이 허용 (테스트용)
+                        .requestMatchers("/api/workspaces/**").permitAll()
+                        //.anyRequest().authenticated()
+                        .anyRequest().permitAll()
                 );
-
         return http.build();
     }
 }
