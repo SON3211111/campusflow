@@ -20,10 +20,11 @@ public class SecurityConfig {
     @Bean
     public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
         http
-                .csrf(csrf -> csrf.disable()) // 테스트를 위해 CSRF 비활성화
+                .csrf(csrf -> csrf.disable())
                 .authorizeHttpRequests(auth -> auth
-                        .requestMatchers("/api/auth/**").permitAll() // /api/auth로 시작하는 건 모두 허용
-                        .anyRequest().authenticated() // 그 외 나머지는 인증 필요
+                        .requestMatchers("/api/auth/**").permitAll() // 기존 허용 경로
+                        .requestMatchers("/api/ai/**").permitAll()   // AI 관련 경로 추가 허용!
+                        .anyRequest().authenticated()
                 );
 
         return http.build();
