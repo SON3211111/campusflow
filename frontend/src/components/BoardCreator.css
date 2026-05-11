@@ -1,0 +1,90 @@
+.board-creator {
+  background: #fff;
+  border-radius: 12px;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.18);
+  padding: 16px;
+  width: 210px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.bc-heading {
+  font-size: 13px;
+  font-weight: 600;
+  color: #222;
+  margin: 0;
+  text-align: center;
+}
+
+.bc-preview {
+  width: 100%;
+  height: 80px;
+  border-radius: 8px;
+}
+
+.bc-section-label {
+  font-size: 11px;
+  color: #888;
+  margin: 0;
+}
+
+.bc-color-grid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.bc-swatch {
+  width: 40px;
+  height: 28px;
+  border-radius: 6px;
+  cursor: pointer;
+  border: 2px solid transparent;
+  transition: border-color 0.15s;
+  box-sizing: border-box;
+}
+
+.bc-swatch.active {
+  border-color: #4f7cff;
+}
+
+.bc-field {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.bc-field-label {
+  font-size: 11px;
+  color: #888;
+}
+
+.bc-input {
+  border: 1px solid #d0d0d0;
+  border-radius: 6px;
+  padding: 6px 8px;
+  font-size: 13px;
+  outline: none;
+  transition: border-color 0.15s;
+}
+
+.bc-input:focus {
+  border-color: #4f7cff;
+}
+
+.bc-create-btn {
+  background: #b0b0b0;
+  color: #fff;
+  border: none;
+  border-radius: 6px;
+  padding: 8px;
+  font-size: 13px;
+  cursor: not-allowed;
+  transition: background 0.15s;
+}
+
+.bc-create-btn:not(:disabled) {
+  background: #4f7cff;
+  cursor: pointer;
+}

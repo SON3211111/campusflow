@@ -1,0 +1,155 @@
+/* ===== 메인 콘텐츠 ===== */
+.board-main {
+  flex: 1;
+  padding: 30px 24px;
+  overflow-y: auto;
+  text-align: left;
+}
+
+/* ===== 워크스페이스 헤더 ===== */
+.board-ws-header {
+  display: flex;
+  align-items: center;
+  gap: 18px;
+  margin-bottom: 24px;
+}
+
+.board-ws-icon {
+  width: 72px;
+  height: 72px;
+  border-radius: 14px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.board-ws-icon-inner {
+  width: 34px;
+  height: 34px;
+  background: rgba(255, 255, 255, 0.85);
+  border-radius: 6px;
+}
+
+.board-ws-info {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.board-ws-name-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.board-ws-name {
+  font-size: 18px;
+  font-weight: 700;
+  color: #1a1a1a;
+}
+
+.board-ws-edit {
+  font-size: 14px;
+  cursor: pointer;
+  opacity: 0.6;
+}
+
+.board-ws-private {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 13px;
+  color: #666;
+}
+
+/* ===== 구분선 ===== */
+.board-divider {
+  border: none;
+  border-top: 1px solid #e0e0e0;
+  margin: 8px 0 28px 0;
+}
+
+/* ===== 섹션 ===== */
+.board-section {
+  margin-bottom: 32px;
+}
+
+.board-section-title {
+  font-size: 15px;
+  font-weight: 600;
+  color: #222;
+  margin: 0 0 8px 0;
+}
+
+.board-section-sub {
+  font-size: 12px;
+  color: #888;
+  margin: 0 0 14px 0;
+}
+
+/* ===== 템플릿 그리드 ===== */
+.template-grid {
+  display: flex;
+  gap: 14px;
+  flex-wrap: wrap;
+}
+
+.template-card {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  cursor: pointer;
+}
+
+.template-thumb {
+  width: 160px;
+  height: 100px;
+  border-radius: 10px;
+  transition: opacity 0.15s;
+}
+
+.template-thumb:hover {
+  opacity: 0.85;
+}
+
+.template-name {
+  font-size: 12px;
+  color: #444;
+  text-align: center;
+}
+
+.template-more {
+  margin-top: 12px;
+  font-size: 13px;
+  color: #4f7cff;
+  cursor: pointer;
+  text-decoration: underline;
+}
+
+/* 템플릿 선택됨 */
+.template-card.selected .template-thumb {
+  outline: 3px solid #4f7cff;
+  outline-offset: 2px;
+}
+
+/* 이름 편집 인풋 */
+.board-ws-name-input {
+  font-size: 18px;
+  font-weight: 700;
+  color: #1a1a1a;
+  border: none;
+  border-bottom: 2px solid #4f7cff;
+  outline: none;
+  background: transparent;
+  width: 180px;
+  padding: 0 2px;
+}
+
+/* 활성 사이드바 서브아이템 */
+.active-subitem {
+  background: rgba(79, 124, 255, 0.15);
+  color: #4f7cff;
+  font-weight: 600;
+  border-radius: 10px;
+}

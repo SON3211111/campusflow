@@ -5,7 +5,7 @@
   background: #f4f6fb;
 }
 
-/* ===== BODY (사이드바 + 메인) ===== */
+/* ===== BODY ===== */
 .workspace-body {
   display: flex;
   flex: 1;
@@ -74,6 +74,64 @@
   color: #fff;
 }
 
+.sidebar-item-name {
+  flex: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* 아코디언 화살표 */
+.sidebar-arrow {
+  font-size: 10px;
+  color: #888;
+  transition: transform 0.25s ease;
+  flex-shrink: 0;
+}
+
+.sidebar-arrow.open {
+  transform: rotate(180deg);
+}
+
+/* 아코디언 서브메뉴 */
+.sidebar-submenu {
+  max-height: 0;
+  overflow: hidden;
+  transition: max-height 0.25s ease;
+}
+
+.sidebar-submenu.open {
+  max-height: 120px;
+}
+
+.sidebar-subitem {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 7px 10px 7px 38px;
+  font-size: 12px;
+  color: #444;
+  cursor: pointer;
+  border-radius: 10px;
+}
+
+.sidebar-subitem:hover {
+  background: rgba(255, 255, 255, 0.5);
+}
+
+.subitem-icon {
+  font-size: 13px;
+  width: 16px;
+  text-align: center;
+}
+
+/* ===== SIDEBAR BOTTOM ===== */
+.sidebar-divider {
+  border: none;
+  border-top: 1px solid rgba(0, 0, 0, 0.1);
+  margin: 6px 0;
+}
+
 .sidebar-bottom {
   margin-top: auto;
   display: flex;
@@ -139,58 +197,6 @@
   display: flex;
   flex-wrap: wrap;
   gap: 16px;
-}
-
-/* ===== CARD ===== */
-.ws-card {
-  display: flex;
-  flex-direction: column;
-  width: 200px;
-}
-
-.card-thumb {
-  width: 200px;
-  height: 130px;
-  border-radius: 12px;
-  position: relative;
-}
-
-.star {
-  position: absolute;
-  top: 8px;
-  right: 8px;
-  font-size: 16px;
-  color: #ffd700;
-}
-
-.card-label {
-  position: absolute;
-  bottom: 10px;
-  left: 10px;
-  right: 10px;
-  background: #fff;
-  border-radius: 6px;
-  padding: 6px 10px;
-  font-size: 12px;
-  color: #333;
-  font-weight: 500;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.gray-thumb {
-  background: #d8d8d8;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 200px;
-  height: 130px;
-}
-
-.new-label {
-  font-size: 13px;
-  color: #666;
 }
 
 .divider {

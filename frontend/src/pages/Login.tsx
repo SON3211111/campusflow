@@ -1,37 +1,78 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import './Login.css';
 import eyeIcon from '../assets/icons-eye.png';
-import logoImg from '../assets/Logo.png'; 
+import logoImg from '../assets/Logo.png';
 
 const Login: React.FC = () => {
   const navigate = useNavigate();
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [errorMsg, setErrorMsg] = useState('');
+
+  const handleLogin = async () => {
+    setErrorMsg('');
+
+    try {
+      const res = await fetch('http://localhost:8080/api/auth/login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email, password }),
+      });
+
+      if (res.status === 404) {
+        setErrorMsg('계정이 없습니다.');
+        return;
+      }
+      if (res.status === 401) {
+        setErrorMsg('비밀번호가 일치하지 않습니다.');
+        return;
+      }
+
+      if (res.ok) {
+        const data = await res.json();
+        localStorage.setItem('accessToken', data.data.accessToken);
+        localStorage.setItem('userId', data.data.userId);
+        localStorage.setItem('userName', data.data.name);
+        navigate('/workspace');
+      }
+    } catch {
+      setErrorMsg('서버에 연결할 수 없습니다.');
+    }
+  };
 
   return (
     <div className="login-container">
-      {/* 왼쪽 광고 영역 */}
       <aside className="ad-sidebar left">
         <div className="ad-box box-1"></div>
         <div className="ad-box box-2"></div>
       </aside>
 
-      {/* 중앙 로그인 카드 */}
       <div className="login-card">
-        {/* ★ 로고 부분: h1 대신 이미지로 교체 */}
         <div className="logo-wrapper">
-          <img src={logoImg} alt="C’flow" className="login-logo-img" />
+          <img src={logoImg} alt="C'flow" className="login-logo-img" />
         </div>
-        
+
         <div className="login-form">
           <div className="input-group">
             <label>이메일</label>
-            <input type="email" placeholder="hong@gmail.com" />
+            <input
+              type="email"
+              placeholder="hong@gmail.com"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+            />
+            {errorMsg && <p className="error-msg">{errorMsg}</p>}
           </div>
 
           <div className="input-group">
             <label>비밀번호</label>
             <div className="pw-input-wrapper">
-              <input type="password" />
+              <input
+                type="password"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+              />
               <img src={eyeIcon} className="pw-toggle-icon" alt="보기" />
             </div>
           </div>
@@ -42,7 +83,7 @@ const Login: React.FC = () => {
             </label>
           </div>
 
-          <button className="submit-btn" onClick={() => navigate('/workspace')}>완료</button>
+          <button className="submit-btn" onClick={handleLogin}>완료</button>
         </div>
 
         <div className="social-login">
@@ -56,8 +97,8 @@ const Login: React.FC = () => {
 
         <div className="login-footer-links">
           <span>비밀번호가 생각나지 않으세요?</span>
-          <span 
-            style={{ cursor: 'pointer', textDecoration: 'underline' }} 
+          <span
+            style={{ cursor: 'pointer', textDecoration: 'underline' }}
             onClick={() => navigate('/signup')}
           >
             계정 새로 만들기
@@ -65,7 +106,6 @@ const Login: React.FC = () => {
         </div>
       </div>
 
-      {/* 오른쪽 광고 영역 */}
       <aside className="ad-sidebar right">
         <div className="ad-box box-3"></div>
         <div className="ad-box box-4"></div>
