@@ -22,10 +22,9 @@ public class SecurityConfig {
                 .csrf(csrf -> csrf.disable())
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers("/api/auth/**").permitAll()
-                        .requestMatchers("/v3/api-docs/**", "/swagger-ui/**", "/swagger-ui.html").permitAll()
-                        // 3. [핵심 추가] 워크스페이스 API를 인증 없이 허용 (테스트용)
+                        .requestMatchers("/api/ai/**").permitAll()
                         .requestMatchers("/api/workspaces/**").permitAll()
-                        //.anyRequest().authenticated()
+                        .requestMatchers("/v3/api-docs/**", "/swagger-ui/**", "/swagger-ui.html").permitAll()
                         .anyRequest().permitAll()
                 );
         return http.build();
