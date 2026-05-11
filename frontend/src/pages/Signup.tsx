@@ -34,7 +34,7 @@ const Signup: React.FC = () => {
 
       <div className="signup-card">
         <div className="logo-wrapper">
-          <img src={logoImg} alt="C'flow" className="signup-logo-img" />
+          <img src={logoImg} alt="C'flow" className="signup-logo-img" onClick={() => navigate('/')} style={{ cursor: 'pointer' }} />
         </div>
 
         <p className="signup-subtitle">이메일로 가입하기</p>

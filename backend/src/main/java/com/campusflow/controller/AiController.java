@@ -1,6 +1,6 @@
-package com.campusflow.backend.controller;
+package com.campusflow.controller;
 
-import com.campusflow.backend.service.AiService;
+import com.campusflow.service.AiService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;

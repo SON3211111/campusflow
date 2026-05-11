@@ -1,8 +1,9 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import './UserSetup.css';
 import logoImg from '../assets/Logo.png';
 import eyeIcon from '../assets/icons-eye.png';
+import { signup, login } from '../api/auth';
 
 const UserSetup: React.FC = () => {
   const navigate = useNavigate();
@@ -10,8 +11,16 @@ const UserSetup: React.FC = () => {
   const [name, setName] = useState('');
   const [password, setPassword] = useState('');
   const [passwordConfirm, setPasswordConfirm] = useState('');
-  const [agreed, setAgreed] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
+  const [showConfirm, setShowConfirm] = useState(false);
   const [errorMsg, setErrorMsg] = useState('');
+  const [loading, setLoading] = useState(false);
+
+  useEffect(() => {
+    if (!email) {
+      navigate('/signup');
+    }
+  }, [email, navigate]);
 
   const handleComplete = async () => {
     setErrorMsg('');
@@ -28,29 +37,28 @@ const UserSetup: React.FC = () => {
       setErrorMsg('비밀번호가 일치하지 않습니다.');
       return;
     }
-    if (!agreed) {
-      setErrorMsg('동의해주세요.');
-      return;
-    }
 
+    setLoading(true);
     try {
-      const res = await fetch('http://localhost:8080/api/auth/signup', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email, password, name, role: 'STUDENT' }),
-      });
+      await signup({ email, password, name, role: 'STUDENT' });
+      localStorage.removeItem('signupEmail');
 
-      if (res.status === 409) {
+      // 가입 직후 자동 로그인
+      const loginRes = await login({ email, password });
+      const data = loginRes.data.data;
+      localStorage.setItem('accessToken', data.accessToken);
+      localStorage.setItem('userId', String(data.userId));
+      localStorage.setItem('userName', data.name);
+      navigate('/workspace');
+    } catch (err: any) {
+      const status = err.response?.status;
+      if (status === 409) {
         setErrorMsg('이미 존재하는 이메일입니다.');
-        return;
+      } else {
+        setErrorMsg('서버에 연결할 수 없습니다.');
       }
-
-      if (res.ok) {
-        localStorage.removeItem('signupEmail');
-        navigate('/login');
-      }
-    } catch {
-      setErrorMsg('서버에 연결할 수 없습니다.');
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -63,7 +71,7 @@ const UserSetup: React.FC = () => {
 
       <div className="setup-card">
         <div className="logo-wrapper">
-          <img src={logoImg} alt="C'flow" className="setup-logo-img" />
+          <img src={logoImg} alt="C'flow" className="setup-logo-img" onClick={() => navigate('/')} style={{ cursor: 'pointer' }} />
         </div>
 
         <h2 className="setup-title">회원가입 유저 정보 기입</h2>
@@ -86,17 +94,20 @@ const UserSetup: React.FC = () => {
           </div>
 
           <div className="input-group">
-            <div className="label-row">
-              <label>비밀번호</label>
-              <img src={eyeIcon} alt="view" className="eye-label-icon" />
-            </div>
+            <label>비밀번호</label>
             <div className="pw-wrapper">
               <input
-                type="password"
+                type={showPassword ? 'text' : 'password'}
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
               />
-              <img src={eyeIcon} alt="toggle view" className="eye-inside-img" />
+              <img
+                src={eyeIcon}
+                alt="toggle view"
+                className="eye-inside-img"
+                onClick={() => setShowPassword((v) => !v)}
+                style={{ cursor: 'pointer' }}
+              />
             </div>
           </div>
 
@@ -104,29 +115,25 @@ const UserSetup: React.FC = () => {
             <label>비밀번호 재입력</label>
             <div className="pw-wrapper">
               <input
-                type="password"
+                type={showConfirm ? 'text' : 'password'}
                 value={passwordConfirm}
                 onChange={(e) => setPasswordConfirm(e.target.value)}
               />
-              <img src={eyeIcon} alt="toggle view" className="eye-inside-img" />
+              <img
+                src={eyeIcon}
+                alt="toggle view"
+                className="eye-inside-img"
+                onClick={() => setShowConfirm((v) => !v)}
+                style={{ cursor: 'pointer' }}
+              />
             </div>
           </div>
 
-          <div className="agree-row">
-            <label className="checkbox-container">
-              <input type="checkbox" checked={agreed} onChange={(e) => setAgreed(e.target.checked)} />
-              <span className="checkmark"></span>
-              동의
-            </label>
-            {errorMsg && <p className="error-msg">{errorMsg}</p>}
-          </div>
+          {errorMsg && <p className="error-msg">{errorMsg}</p>}
 
-          <button className="submit-btn" onClick={handleComplete}>완료</button>
-        </div>
-
-        <div className="setup-footer">
-          <hr />
-          <p className="footer-link">어쩌구저쩌구</p>
+          <button className="submit-btn" onClick={handleComplete} disabled={loading}>
+            {loading ? '처리 중...' : '완료'}
+          </button>
         </div>
       </div>
 

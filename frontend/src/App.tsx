@@ -1,33 +1,29 @@
-import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
+import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 
-// 컴포넌트들 임포트
-import Main from './pages/MainPage';       // 메인페이지 (비디오/광고 있는 거)
-import Login from './pages/Login';     // 로그인페이지
-import Signup from './pages/Signup';   // 회원가입페이지
-import MailCode from './pages/Mailcode'; // 메일인증페이지
+import Main from './pages/MainPage';
+import Login from './pages/Login';
+import Signup from './pages/Signup';
+import MailCode from './pages/Mailcode';
 import UserSetup from './pages/UserSetup';
 import WorkspaceList from './ListPages/WorkspaceList';
 import BoardPage from './ListPages/BoardPage';
+
+function PrivateRoute({ children }: { children: React.ReactNode }) {
+  const token = localStorage.getItem('accessToken');
+  return token ? <>{children}</> : <Navigate to="/login" replace />;
+}
 
 function App() {
   return (
     <Router>
       <Routes>
-        {/* 1. 기본 경로(/)를 메인페이지로 연결  */}
         <Route path="/" element={<Main />} />
-        
-        {/* 2. 로그인 페이지 */}
         <Route path="/login" element={<Login />} />
-        
-        {/* 3. 회원가입 페이지 */}
         <Route path="/signup" element={<Signup />} />
-        
-        {/* 4. 메일 인증 페이지 */}
         <Route path="/mailcode" element={<MailCode />} />
-
         <Route path="/usersetup" element={<UserSetup />} />
-        <Route path="/workspace" element={<WorkspaceList />} />
-        <Route path="/board" element={<BoardPage />} />
+        <Route path="/workspace" element={<PrivateRoute><WorkspaceList /></PrivateRoute>} />
+        <Route path="/board" element={<PrivateRoute><BoardPage /></PrivateRoute>} />
       </Routes>
     </Router>
   );

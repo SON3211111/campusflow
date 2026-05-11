@@ -8,6 +8,8 @@ services:
     volumes:
       - ./frontend:/app
       - /app/node_modules
+    environment:
+      - API_TARGET=http://backend:8080
     env_file:
       - .env
     networks:

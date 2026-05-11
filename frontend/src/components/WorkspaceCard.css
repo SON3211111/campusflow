@@ -30,6 +30,27 @@
   opacity: 0.5;
 }
 
+.card-delete-btn {
+  position: absolute;
+  top: 8px;
+  left: 8px;
+  font-size: 13px;
+  color: #fff;
+  background: rgba(0, 0, 0, 0.45);
+  border-radius: 50%;
+  width: 22px;
+  height: 22px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+
+.card-delete-btn:hover {
+  background: rgba(220, 53, 53, 0.85);
+}
+
 .card-label {
   position: absolute;
   bottom: 10px;

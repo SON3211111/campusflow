@@ -1,8 +1,9 @@
 import { useState, useRef, useEffect } from "react";
-import { useNavigate, useLocation } from "react-router-dom";
+import { useNavigate } from "react-router-dom";
 import Header from "../components/Header";
 import WorkspaceCard from "../components/WorkspaceCard";
 import BoardCreator from "../components/BoardCreator";
+import client from "../api/client";
 import "./WorkspaceList.css";
 
 interface Workspace {
@@ -10,27 +11,51 @@ interface Workspace {
   name: string;
   gradient: string;
   starred?: boolean;
+  type?: string;
 }
 
-let nextId = 10;
-
-const DEFAULT_TEAM: Workspace[] = [
-  { id: 1, name: "ㅁㄴㅇㄹ", gradient: "linear-gradient(135deg, #74aaff, #a8d0ff)", starred: true },
-  { id: 2, name: "ㅂㅈㄷㄱㅂㅈㄷㄱㅂㅈㄷㄱ", gradient: "linear-gradient(135deg, #ff7070, #ffb0b0)", starred: true },
+const GRADIENTS = [
+  "linear-gradient(135deg, #74aaff, #a8d0ff)",
+  "linear-gradient(135deg, #ff7070, #ffb0b0)",
+  "linear-gradient(135deg, #7ed957, #b8f0a0)",
+  "linear-gradient(135deg, #ffb347, #ffcc80)",
+  "linear-gradient(135deg, #a78bfa, #c4b5fd)",
 ];
+
+function randomGradient(id: string | number) {
+  let sum = 0;
+  for (const char of String(id)) sum += char.charCodeAt(0);
+  return GRADIENTS[sum % GRADIENTS.length];
+}
 
 export default function WorkspaceList() {
   const navigate = useNavigate();
-  const location = useLocation();
-  const locState = location.state as { teamWorkspaces?: Workspace[]; personalWorkspaces?: Workspace[] } | null;
+  const userId = localStorage.getItem('userId') ?? '';
 
-  const [teamWorkspaces, setTeamWorkspaces] = useState<Workspace[]>(locState?.teamWorkspaces ?? DEFAULT_TEAM);
-  const [personalWorkspaces, setPersonalWorkspaces] = useState<Workspace[]>(locState?.personalWorkspaces ?? []);
-
+  const [teamWorkspaces, setTeamWorkspaces] = useState<Workspace[]>([]);
+  const [personalWorkspaces, setPersonalWorkspaces] = useState<Workspace[]>([]);
   const [expandedId, setExpandedId] = useState<number | null>(null);
   const [creatorRect, setCreatorRect] = useState<DOMRect | null>(null);
   const [creatorSection, setCreatorSection] = useState<'team' | 'personal' | null>(null);
+  const [deleteTarget, setDeleteTarget] = useState<{ id: any; section: 'team' | 'personal'; name: string } | null>(null);
   const creatorRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (!userId) return;
+    client.get(`/workspaces?userId=${userId}`)
+      .then((res) => {
+        const list: Workspace[] = (res.data.data ?? []).map((ws: any) => ({
+          id: ws.id,
+          name: ws.name,
+          gradient: randomGradient(ws.id),
+          starred: false,
+          type: ws.type,
+        }));
+        setTeamWorkspaces(list.filter((ws) => ws.type === 'TEAM'));
+        setPersonalWorkspaces(list.filter((ws) => ws.type !== 'TEAM'));
+      })
+      .catch(() => {});
+  }, [userId]);
 
   const handleNewCardClick = (section: 'team' | 'personal') => (e: React.MouseEvent<HTMLDivElement>) => {
     if (creatorRect && creatorSection === section) {
@@ -43,15 +68,47 @@ export default function WorkspaceList() {
     setCreatorSection(section);
   };
 
-  const handleCreate = (name: string, gradient: string) => {
-    const newWs: Workspace = { id: nextId++, name, gradient, starred: false };
-    if (creatorSection === 'team') {
-      setTeamWorkspaces((prev) => [...prev, newWs]);
-    } else {
-      setPersonalWorkspaces((prev) => [...prev, newWs]);
+  const handleCreate = async (name: string, gradient: string) => {
+    const type = creatorSection === 'team' ? 'TEAM' : 'PERSONAL';
+    const allNames = [...teamWorkspaces, ...personalWorkspaces].map((ws) => ws.name);
+    if (allNames.includes(name.trim())) {
+      alert(`"${name}" 이름의 워크스페이스가 이미 존재합니다.`);
+      return;
+    }
+    try {
+      const res = await client.post(`/workspaces?userId=${userId}`, { name, type });
+      const created = res.data.data;
+      const newWs: Workspace = {
+        id: created.id,
+        name: created.name,
+        gradient,
+        starred: false,
+        type: created.type,
+      };
+      if (creatorSection === 'team') {
+        setTeamWorkspaces((prev) => [...prev, newWs]);
+      } else {
+        setPersonalWorkspaces((prev) => [...prev, newWs]);
+      }
+    } catch {
+      alert('워크스페이스 생성에 실패했습니다.');
     }
     setCreatorRect(null);
     setCreatorSection(null);
+  };
+
+  const confirmDelete = async () => {
+    if (!deleteTarget) return;
+    const { id, section } = deleteTarget;
+    try {
+      await client.delete(`/workspaces/${id}`);
+      if (section === 'team') setTeamWorkspaces((prev) => prev.filter((ws) => ws.id !== id));
+      else setPersonalWorkspaces((prev) => prev.filter((ws) => ws.id !== id));
+    } catch {
+      alert('삭제에 실패했습니다.');
+    } finally {
+      setDeleteTarget(null);
+    }
   };
 
   const toggleStar = (id: number, section: 'team' | 'personal') => {
@@ -99,6 +156,7 @@ export default function WorkspaceList() {
           <div className="sidebar-subitem" onClick={() => navigate('/board', { state: { workspace: ws, teamWorkspaces, personalWorkspaces } })}><span className="subitem-icon">□</span> Board</div>
           <div className="sidebar-subitem"><span className="subitem-icon">👥</span> Members</div>
           <div className="sidebar-subitem"><span className="subitem-icon">⚙</span> Setting</div>
+          <div className="sidebar-subitem delete" onClick={() => setDeleteTarget({ id: ws.id, section, name: ws.name })}><span className="subitem-icon">🗑</span> 삭제</div>
         </div>
       </div>
     ));
@@ -108,7 +166,6 @@ export default function WorkspaceList() {
       <Header workspaces={allWorkspaces} />
 
       <div className="workspace-body">
-        {/* 사이드바 */}
         <aside className="sidebar">
           <div className="sidebar-menu-icon">≡</div>
 
@@ -138,7 +195,6 @@ export default function WorkspaceList() {
           </div>
         </aside>
 
-        {/* 메인 콘텐츠 */}
         <main className="main-content">
           <section className="ws-section">
             <h3 className="section-title">팀 Work Space</h3>
@@ -150,6 +206,7 @@ export default function WorkspaceList() {
                   gradient={ws.gradient}
                   starred={ws.starred}
                   onToggleStar={() => toggleStar(ws.id, 'team')}
+                  onDelete={() => setDeleteTarget({ id: ws.id, section: 'team', name: ws.name })}
                 />
               ))}
               <div
@@ -176,6 +233,7 @@ export default function WorkspaceList() {
                   gradient={ws.gradient}
                   starred={ws.starred}
                   onToggleStar={() => toggleStar(ws.id, 'personal')}
+                  onDelete={() => setDeleteTarget({ id: ws.id, section: 'personal', name: ws.name })}
                 />
               ))}
               <div
@@ -208,7 +266,6 @@ export default function WorkspaceList() {
         </main>
       </div>
 
-      {/* 보드 만들기 팝업 */}
       {creatorRect && (
         <div
           ref={creatorRef}
@@ -219,6 +276,22 @@ export default function WorkspaceList() {
       )}
 
       <button className="settings-btn">⚙</button>
+
+      {deleteTarget && (
+        <div className="modal-overlay" onClick={() => setDeleteTarget(null)}>
+          <div className="modal-box" onClick={(e) => e.stopPropagation()}>
+            <p className="modal-title">워크스페이스 삭제</p>
+            <p className="modal-desc">
+              <strong>{deleteTarget.name}</strong>을(를) 삭제하시겠습니까?<br />
+              삭제된 워크스페이스는 복구할 수 없습니다.
+            </p>
+            <div className="modal-actions">
+              <button className="modal-btn cancel" onClick={() => setDeleteTarget(null)}>취소</button>
+              <button className="modal-btn confirm" onClick={confirmDelete}>삭제</button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

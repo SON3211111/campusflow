@@ -1,3 +1,3 @@
-package com.campusflow.backend.dto;
+package com.campusflow.dto;
 
 public record AiResponseDto(String result) {}

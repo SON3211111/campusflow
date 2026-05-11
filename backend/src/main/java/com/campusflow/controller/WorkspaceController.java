@@ -18,7 +18,6 @@ import java.util.List;
 @RestController
 @RequestMapping("/api/workspaces")
 @RequiredArgsConstructor
-@CrossOrigin(origins = "http://localhost:3000")
 public class WorkspaceController {
 
     private final WorkspaceService workspaceService;
@@ -30,20 +29,36 @@ public class WorkspaceController {
         return ResponseEntity.ok(ApiResponse.success(200, "조회 성공", workspaces));
     }
 
-    @Operation(summary = "새 워크스페이스 생성", description = "새로운 팀 워크스페이스를 생성합니다.")
+    @Operation(summary = "새 워크스페이스 생성", description = "팀 또는 개인 워크스페이스를 생성합니다.")
     @PostMapping
     public ResponseEntity<ApiResponse<Workspace>> createWorkspace(
             @RequestParam String userId,
-            @RequestBody WorkspaceRequest request) { // Map 대신 전용 클래스 사용
+            @RequestBody WorkspaceRequest request) {
 
-        Workspace newWorkspace = workspaceService.createTeamWorkspace(userId, request.getName());
+        Workspace newWorkspace = workspaceService.createWorkspace(userId, request.getName(), request.getType());
         return ResponseEntity.ok(ApiResponse.success(201, "워크스페이스 생성 성공", newWorkspace));
     }
 
-    // 데이터 전송을 위한 간단한 DTO 클래스 추가
+    @Operation(summary = "워크스페이스 이름 수정")
+    @PatchMapping("/{workspaceId}")
+    public ResponseEntity<ApiResponse<Workspace>> renameWorkspace(
+            @PathVariable String workspaceId,
+            @RequestBody WorkspaceRequest request) {
+        Workspace updated = workspaceService.renameWorkspace(workspaceId, request.getName());
+        return ResponseEntity.ok(ApiResponse.success(200, "수정 성공", updated));
+    }
+
+    @Operation(summary = "워크스페이스 삭제")
+    @DeleteMapping("/{workspaceId}")
+    public ResponseEntity<ApiResponse<Void>> deleteWorkspace(@PathVariable String workspaceId) {
+        workspaceService.deleteWorkspace(workspaceId);
+        return ResponseEntity.ok(ApiResponse.success(200, "삭제 성공", null));
+    }
+
     @Getter @Setter
     @NoArgsConstructor
     public static class WorkspaceRequest {
         private String name;
+        private String type; // "TEAM" 또는 "PERSONAL"
     }
 }

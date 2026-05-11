@@ -34,17 +34,25 @@ async def generate(req: PromptRequest):
     if model not in OLLAMA_MODELS:
         raise HTTPException(status_code=400, detail=f"지원하지 않는 모델: {model}. 사용 가능: {OLLAMA_MODELS}")
 
-    async with httpx.AsyncClient(timeout=120.0) as client:  # 타임아웃 120초로 늘림
+    async with httpx.AsyncClient(timeout=300.0) as client:
         try:
             response = await client.post(
                 f"{OLLAMA_URL}/api/generate",
-                json={"model": model, "prompt": req.prompt, "stream": False},
+                json={
+                    "model": model,
+                    "prompt": req.prompt,
+                    "stream": False,
+                    "options": {"num_predict": 200}
+                },
             )
             response.raise_for_status()
             data = response.json()
 
-            # 백엔드 AiResponseDto {"result": "..."} 형식으로 반환
-            return {"result": data.get("response", "")}  # ← 핵심 수정!
+            return {"result": data.get("response", "")}
 
         except httpx.HTTPError as e:
-            raise HTTPException(status_code=502, detail=str(e))
+            import traceback; traceback.print_exc()
+            raise HTTPException(status_code=502, detail=repr(e))
+        except Exception as e:
+            import traceback; traceback.print_exc()
+            raise HTTPException(status_code=500, detail=repr(e))
