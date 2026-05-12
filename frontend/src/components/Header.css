@@ -24,10 +24,10 @@
   display: flex;
   align-items: center;
   gap: 8px;
-  width: 1100px;
-  position: absolute;
-  left: 50%;
-  transform: translateX(-50%);
+  flex: 1;
+  min-width: 0;
+  max-width: 700px;
+  margin: 0 auto;
 }
 
 .search-input-wrap {
@@ -213,9 +213,9 @@
 }
 
 /* ===== 반응형 ===== */
-@media (max-width: 1024px) {
-  .header-search {
-    width: 600px;
+@media (max-width: 900px) {
+  .user-name {
+    display: none;
   }
 }
 

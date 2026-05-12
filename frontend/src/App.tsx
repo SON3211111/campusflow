@@ -7,6 +7,9 @@ import MailCode from './pages/Mailcode';
 import UserSetup from './pages/UserSetup';
 import WorkspaceList from './ListPages/WorkspaceList';
 import BoardPage from './ListPages/BoardPage';
+import MemberPage from './ListPages/MemberPage';
+import SettingPage from './ListPages/SettingPage';
+import TemplatePage from './ListPages/TemplatePage';
 
 function PrivateRoute({ children }: { children: React.ReactNode }) {
   const token = localStorage.getItem('accessToken');
@@ -24,6 +27,9 @@ function App() {
         <Route path="/usersetup" element={<UserSetup />} />
         <Route path="/workspace" element={<PrivateRoute><WorkspaceList /></PrivateRoute>} />
         <Route path="/board" element={<PrivateRoute><BoardPage /></PrivateRoute>} />
+        <Route path="/members" element={<PrivateRoute><MemberPage /></PrivateRoute>} />
+        <Route path="/settings" element={<PrivateRoute><SettingPage /></PrivateRoute>} />
+        <Route path="/templates" element={<PrivateRoute><TemplatePage /></PrivateRoute>} />
       </Routes>
     </Router>
   );

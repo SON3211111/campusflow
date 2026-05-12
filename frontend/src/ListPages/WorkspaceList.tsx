@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 import Header from "../components/Header";
 import WorkspaceCard from "../components/WorkspaceCard";
 import BoardCreator from "../components/BoardCreator";
+import JoinModal from "../components/JoinModal";
 import client from "../api/client";
 import "./WorkspaceList.css";
 
@@ -38,6 +39,7 @@ export default function WorkspaceList() {
   const [creatorRect, setCreatorRect] = useState<DOMRect | null>(null);
   const [creatorSection, setCreatorSection] = useState<'team' | 'personal' | null>(null);
   const [deleteTarget, setDeleteTarget] = useState<{ id: any; section: 'team' | 'personal'; name: string } | null>(null);
+  const [joinOpen, setJoinOpen] = useState(false);
   const creatorRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -154,9 +156,8 @@ export default function WorkspaceList() {
         </div>
         <div className={`sidebar-submenu ${expandedId === ws.id ? 'open' : ''}`}>
           <div className="sidebar-subitem" onClick={() => navigate('/board', { state: { workspace: ws, teamWorkspaces, personalWorkspaces } })}><span className="subitem-icon">□</span> Board</div>
-          <div className="sidebar-subitem"><span className="subitem-icon">👥</span> Members</div>
-          <div className="sidebar-subitem"><span className="subitem-icon">⚙</span> Setting</div>
-          <div className="sidebar-subitem delete" onClick={() => setDeleteTarget({ id: ws.id, section, name: ws.name })}><span className="subitem-icon">🗑</span> 삭제</div>
+          <div className="sidebar-subitem" onClick={() => navigate('/members', { state: { workspace: ws, teamWorkspaces, personalWorkspaces } })}><span className="subitem-icon">👥</span> Members</div>
+          <div className="sidebar-subitem" onClick={() => navigate('/settings', { state: { workspace: ws, teamWorkspaces, personalWorkspaces } })}><span className="subitem-icon">⚙</span> Setting</div>
         </div>
       </div>
     ));
@@ -191,7 +192,7 @@ export default function WorkspaceList() {
               <span className="nav-icon">🖥</span>
               <span>Board</span>
             </div>
-            <button className="join-btn">워크스페이스 참여 !</button>
+            <button className="join-btn" onClick={() => setJoinOpen(true)}>워크스페이스 참여 !</button>
           </div>
         </aside>
 
@@ -276,6 +277,7 @@ export default function WorkspaceList() {
       )}
 
       <button className="settings-btn">⚙</button>
+      {joinOpen && <JoinModal onClose={() => setJoinOpen(false)} />}
 
       {deleteTarget && (
         <div className="modal-overlay" onClick={() => setDeleteTarget(null)}>

@@ -99,7 +99,7 @@ export default function Header({ workspaces = [], showSearch = true, onLogout }:
             style={{ position: 'relative' }}
           >
             <div className="user-avatar" />
-            <span>{userName}님</span>
+            <span className="user-name">{userName}님</span>
             <span className="dropdown-arrow">▾</span>
 
             {userMenuOpen && (
