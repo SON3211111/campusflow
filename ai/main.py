@@ -149,7 +149,7 @@ async def generate_tasks(req: TaskGenerateRequest):
                     "model": model,
                     "prompt": prompt,
                     "stream": False,
-                    "options": {"num_predict": 1200, "temperature": 0.3},
+                    "options": {"num_predict": 2500, "temperature": 0.3},
                 },
             )
             response.raise_for_status()
