@@ -247,4 +247,3 @@
 - **이메일 인증**: `/mailcode` 라우트가 있으나 회원가입 플로우에 미연결
 - **소셜 로그인**: Google / Naver / Microsoft 버튼 UI만 있고 기능 없음
 - **워크스페이스 참여 기능**: "워크스페이스 참여 !" 버튼 UI만 존재
-- **AI 서비스 GPU 가속**: ollama가 CPU 모드로 동작 중. RTX 2060 GPU Docker 설정 미적용
