@@ -39,12 +39,12 @@ public class WorkspaceController {
         return ResponseEntity.ok(ApiResponse.success(201, "워크스페이스 생성 성공", newWorkspace));
     }
 
-    @Operation(summary = "워크스페이스 이름 수정")
+    @Operation(summary = "워크스페이스 수정")
     @PatchMapping("/{workspaceId}")
-    public ResponseEntity<ApiResponse<Workspace>> renameWorkspace(
+    public ResponseEntity<ApiResponse<Workspace>> updateWorkspace(
             @PathVariable String workspaceId,
             @RequestBody WorkspaceRequest request) {
-        Workspace updated = workspaceService.renameWorkspace(workspaceId, request.getName());
+        Workspace updated = workspaceService.updateWorkspace(workspaceId, request.getName(), request.getGradient());
         return ResponseEntity.ok(ApiResponse.success(200, "수정 성공", updated));
     }
 
@@ -60,5 +60,6 @@ public class WorkspaceController {
     public static class WorkspaceRequest {
         private String name;
         private String type; // "TEAM" 또는 "PERSONAL"
+        private String gradient;
     }
 }

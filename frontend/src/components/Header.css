@@ -211,3 +211,44 @@
 .header-login-btn:hover {
   background: #3a65e0;
 }
+
+/* ===== 반응형 ===== */
+@media (max-width: 1024px) {
+  .header-search {
+    width: 600px;
+  }
+}
+
+@media (max-width: 768px) {
+  .header {
+    padding: 0 12px;
+    gap: 10px;
+  }
+
+  .header-search {
+    position: static;
+    transform: none;
+    width: auto;
+    flex: 1;
+  }
+
+  .header-myprojects span:last-child,
+  .header-create-btn {
+    display: none;
+  }
+
+  .header-logo {
+    min-width: unset;
+    font-size: 14px;
+  }
+}
+
+@media (max-width: 480px) {
+  .header-search {
+    display: none;
+  }
+
+  .header-right {
+    gap: 10px;
+  }
+}

@@ -164,3 +164,58 @@
   color: #555;
   cursor: pointer;
 }
+
+/* ===== 반응형 ===== */
+@media (max-width: 1024px) {
+  .signup-container {
+    padding: 0 30px;
+  }
+
+  .ad-sidebar {
+    width: 180px;
+  }
+
+  .signup-card {
+    width: 400px;
+  }
+}
+
+@media (max-width: 768px) {
+  .signup-container {
+    justify-content: center;
+    padding: 0 20px;
+    position: static;
+    height: auto;
+    min-height: 100vh;
+  }
+
+  .ad-sidebar {
+    display: none;
+  }
+
+  .signup-card {
+    width: 100%;
+    max-width: 420px;
+    padding: 40px 28px;
+  }
+
+  .signup-logo-img {
+    width: 180px;
+  }
+}
+
+@media (max-width: 480px) {
+  .signup-container {
+    padding: 0 12px;
+  }
+
+  .signup-card {
+    padding: 32px 20px;
+    border-radius: 14px;
+  }
+
+  .submit-btn {
+    font-size: 16px;
+    padding: 12px;
+  }
+}

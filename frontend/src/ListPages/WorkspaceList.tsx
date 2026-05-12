@@ -47,7 +47,7 @@ export default function WorkspaceList() {
         const list: Workspace[] = (res.data.data ?? []).map((ws: any) => ({
           id: ws.id,
           name: ws.name,
-          gradient: randomGradient(ws.id),
+          gradient: ws.gradient || randomGradient(ws.id),
           starred: false,
           type: ws.type,
         }));

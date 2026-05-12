@@ -302,3 +302,80 @@
 .modal-btn.confirm:hover {
   background: #c53030;
 }
+
+/* ===== 반응형 ===== */
+@media (max-width: 1024px) {
+  .sidebar {
+    width: 180px;
+    min-width: 180px;
+  }
+
+  .main-content {
+    padding: 24px 24px;
+  }
+}
+
+@media (max-width: 768px) {
+  .workspace-body {
+    flex-direction: column;
+  }
+
+  .sidebar {
+    width: auto;
+    min-width: unset;
+    margin: 8px 8px 0 8px;
+    border-radius: 12px;
+    flex-direction: row;
+    flex-wrap: wrap;
+    padding: 10px 12px;
+    gap: 8px;
+    overflow-y: visible;
+  }
+
+  .sidebar-section {
+    display: none;
+  }
+
+  .sidebar-bottom {
+    margin-top: 0;
+    flex-direction: row;
+    gap: 8px;
+    width: 100%;
+  }
+
+  .sidebar-nav-item {
+    padding: 7px 10px;
+    font-size: 12px;
+  }
+
+  .join-btn {
+    margin-top: 0;
+    padding: 7px 10px;
+    font-size: 11px;
+  }
+
+  .main-content {
+    padding: 20px 16px;
+  }
+
+  .card-grid {
+    gap: 12px;
+  }
+
+  .modal-box {
+    min-width: unset;
+    width: calc(100vw - 40px);
+    padding: 22px 20px 18px;
+  }
+}
+
+@media (max-width: 480px) {
+  .main-content {
+    padding: 16px 12px;
+  }
+
+  .settings-btn {
+    bottom: 16px;
+    right: 16px;
+  }
+}

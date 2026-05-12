@@ -46,10 +46,11 @@ public class WorkspaceService {
     }
 
     @Transactional
-    public Workspace renameWorkspace(String workspaceId, String newName) {
+    public Workspace updateWorkspace(String workspaceId, String newName, String newGradient) {
         Workspace workspace = workspaceRepository.findById(workspaceId)
                 .orElseThrow(() -> new IllegalArgumentException("존재하지 않는 워크스페이스입니다."));
-        workspace.setName(newName);
+        if (newName != null && !newName.isBlank()) workspace.setName(newName);
+        if (newGradient != null && !newGradient.isBlank()) workspace.setGradient(newGradient);
         return workspaceRepository.save(workspace);
     }
 

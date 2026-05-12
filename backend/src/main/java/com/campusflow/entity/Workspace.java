@@ -31,6 +31,9 @@ public class Workspace {
     @Column(name = "created_at")
     private LocalDateTime createdAt = LocalDateTime.now();
 
+    @Column(name = "gradient", length = 512)
+    private String gradient;
+
     @PrePersist
     public void prePersist() {
         if (this.workspaceId == null) {
@@ -53,4 +56,7 @@ public class Workspace {
     public void setOwner(User owner) { this.owner = owner; }
 
     public LocalDateTime getCreatedAt() { return createdAt; }
+
+    public String getGradient() { return gradient; }
+    public void setGradient(String gradient) { this.gradient = gradient; }
 }

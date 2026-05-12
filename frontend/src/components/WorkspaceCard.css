@@ -85,3 +85,36 @@
 .new-card {
   cursor: pointer;
 }
+
+/* ===== 반응형 ===== */
+@media (max-width: 768px) {
+  .ws-card {
+    width: 160px;
+  }
+
+  .card-thumb {
+    width: 160px;
+    height: 104px;
+  }
+
+  .gray-thumb {
+    width: 160px;
+    height: 104px;
+  }
+}
+
+@media (max-width: 480px) {
+  .ws-card {
+    width: 140px;
+  }
+
+  .card-thumb {
+    width: 140px;
+    height: 90px;
+  }
+
+  .gray-thumb {
+    width: 140px;
+    height: 90px;
+  }
+}

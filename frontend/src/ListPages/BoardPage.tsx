@@ -92,9 +92,9 @@ export default function BoardPage() {
   };
 
   const saveChanges = async (): Promise<boolean> => {
-    if (wsName === workspace.name) return true;
+    if (!isDirty) return true;
     try {
-      await client.patch(`/workspaces/${workspace.id}`, { name: wsName });
+      await client.patch(`/workspaces/${workspace.id}`, { name: wsName, gradient: wsBg });
       return true;
     } catch {
       alert('저장에 실패했습니다.');

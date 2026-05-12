@@ -166,15 +166,50 @@
 
 ---
 
+### 2026-05-12 추가 수정
+
+#### 28. 보드 템플릿 변경 시 색상이 저장되지 않는 버그
+- **파일**: 아래 표 참고
+- **원인**:
+  - 백엔드 `Workspace` 엔티티에 `gradient` 컬럼 자체가 없어 저장 불가
+  - `saveChanges()`가 이름이 바뀌지 않으면 즉시 `return true` 종료 → 색상만 변경 시 아무것도 저장 안 됨
+  - 저장 API body에 `gradient` 미포함
+  - `WorkspaceList.tsx`에서 gradient를 백엔드에서 읽지 않고 ID 기반으로 클라이언트에서 임의 생성
+
+| 파일 | 변경 사항 |
+|---|---|
+| `backend/.../entity/Workspace.java` | `gradient` 컬럼 추가 (varchar 512), getter/setter 추가 |
+| `backend/.../controller/WorkspaceController.java` | `WorkspaceRequest`에 `gradient` 필드 추가, PATCH 핸들러를 `updateWorkspace`로 변경 |
+| `backend/.../service/WorkspaceService.java` | `renameWorkspace` → `updateWorkspace`로 변경, name·gradient 동시 업데이트 지원 |
+| `frontend/.../ListPages/BoardPage.tsx` | `saveChanges()`에서 `isDirty` 기반 체크로 변경, `gradient: wsBg` 포함해서 API 전송 |
+| `frontend/.../ListPages/WorkspaceList.tsx` | 워크스페이스 목록 조회 시 백엔드 `gradient` 우선 사용, 없을 경우에만 랜덤 생성 |
+
+> `spring.jpa.hibernate.ddl-auto=update` 설정으로 백엔드 재시작 시 `workspaces` 테이블에 `gradient` 컬럼이 자동 추가됩니다.
+
+#### 29. 전체 페이지 반응형 웹 적용
+- **브레이크포인트**: `≤ 1024px` (소형 데스크탑), `≤ 768px` (태블릿), `≤ 480px` (모바일)
+
+| 파일 | 반응형 처리 내용 |
+|---|---|
+| `Header.css` | 검색창 너비 축소 (1024px), static 배치로 전환 (768px), 모바일에서 검색창 숨김 (480px) |
+| `WorkspaceList.css` | 사이드바 너비 축소 (1024px), 768px 이하에서 상단 수평 바로 전환, 카드 간격 조정, 모달 너비 유동화 |
+| `BoardPage.css` | 템플릿 썸네일 단계별 축소, 액션바·헤더·섹션 타이틀 폰트·패딩 조정 |
+| `WorkspaceCard.css` | 카드 너비 200 → 160px (768px) → 140px (480px) |
+| `Login.css` | 768px 이하에서 광고 사이드바 숨김, 로그인 카드 전체 너비 전환 |
+| `Signup.css` | 768px 이하에서 광고 사이드바 숨김, `position: fixed` 해제, 카드 전체 너비 전환 |
+| `MainPage.css` | 버튼 그룹 세로 정렬, 섹션 너비 유동화, 업무분담 박스 세로 스택 전환, 푸터 패딩 조정 |
+
+---
+
 ## 변경 파일 목록
 
 ### 백엔드
 | 파일 | 변경 내용 |
 |---|---|
-| `entity/Workspace.java` | `@JsonProperty("id")`, `@JsonIgnoreProperties` 추가 |
+| `entity/Workspace.java` | `@JsonProperty("id")`, `@JsonIgnoreProperties` 추가, `gradient` 컬럼 추가 |
 | `repository/WorkspaceMemberRepository.java` | `findAllByUser_UserId()`, `deleteAllByWorkspace_WorkspaceId()` 추가 |
-| `service/WorkspaceService.java` | `@Transactional` 추가, owner 설정, 멤버 기반 조회, `createWorkspace()` 통합, `renameWorkspace()` 추가 |
-| `controller/WorkspaceController.java` | `type` 파라미터 추가, `PATCH /{id}` 추가, `DELETE /{id}` 추가, `@CrossOrigin` 제거 |
+| `service/WorkspaceService.java` | `@Transactional` 추가, owner 설정, 멤버 기반 조회, `createWorkspace()` 통합, `updateWorkspace()` 추가 |
+| `controller/WorkspaceController.java` | `type`·`gradient` 파라미터 추가, `PATCH /{id}` 추가, `DELETE /{id}` 추가, `@CrossOrigin` 제거 |
 | `controller/AuthController.java` | `@CrossOrigin` 제거 |
 
 ### 프론트엔드
@@ -185,15 +220,18 @@
 | `src/pages/Signup.tsx` | 로고 클릭 네비게이션 추가 |
 | `src/pages/UserSetup.tsx` | `client.ts` 사용, 이메일 가드, 자동 로그인, 눈 아이콘 토글, 로고 클릭 네비게이션 |
 | `src/pages/MainPage.tsx` | 공용 `Header` 컴포넌트 교체, 로그인 세션 반영 |
-| `src/ListPages/WorkspaceList.tsx` | API 연결, CRUD, 삭제 모달, 중복 이름 방지, 색상 수정 |
-| `src/ListPages/WorkspaceList.css` | 삭제 모달 CSS, 사이드바 삭제 항목 CSS 추가 |
-| `src/ListPages/BoardPage.tsx` | 뒤로가기/저장/삭제 버튼, 변경사항 감지 모달, 다른 보드 이동 시 state 초기화 |
-| `src/ListPages/BoardPage.css` | 액션바, 삭제 버튼 CSS 추가 |
+| `src/ListPages/WorkspaceList.tsx` | API 연결, CRUD, 삭제 모달, 중복 이름 방지, 색상 수정, 백엔드 gradient 우선 사용 |
+| `src/ListPages/WorkspaceList.css` | 삭제 모달 CSS, 사이드바 삭제 항목 CSS, 반응형 미디어 쿼리 추가 |
+| `src/ListPages/BoardPage.tsx` | 뒤로가기/저장/삭제 버튼, 변경사항 감지 모달, 다른 보드 이동 시 state 초기화, gradient 저장 수정 |
+| `src/ListPages/BoardPage.css` | 액션바, 삭제 버튼 CSS, 반응형 미디어 쿼리 추가 |
 | `src/components/Header.tsx` | 유저 드롭다운 + 로그아웃, 로그인/비로그인 분기 |
-| `src/components/Header.css` | 드롭다운, 로그인 버튼 CSS 추가 |
+| `src/components/Header.css` | 드롭다운, 로그인 버튼 CSS, 반응형 미디어 쿼리 추가 |
 | `src/components/WorkspaceCard.tsx` | 호버 시 삭제(✕) 버튼 추가 |
-| `src/components/WorkspaceCard.css` | 삭제 버튼 CSS 추가 |
+| `src/components/WorkspaceCard.css` | 삭제 버튼 CSS, 반응형 미디어 쿼리 추가 |
 | `src/api/project.ts` | 이중 `/api` 경로 수정 |
+| `src/pages/Login.css` | 반응형 미디어 쿼리 추가 |
+| `src/pages/Signup.css` | 반응형 미디어 쿼리 추가 |
+| `src/pages/MainPage.css` | 반응형 미디어 쿼리 추가 |
 | `vite.config.ts` | 프록시 타겟 환경변수화 |
 
 ### Docker
@@ -209,5 +247,4 @@
 - **이메일 인증**: `/mailcode` 라우트가 있으나 회원가입 플로우에 미연결
 - **소셜 로그인**: Google / Naver / Microsoft 버튼 UI만 있고 기능 없음
 - **워크스페이스 참여 기능**: "워크스페이스 참여 !" 버튼 UI만 존재
-- **보드 배경 테마 DB 저장**: 템플릿 선택 시 색상이 프론트 state에만 존재. 재접속 시 초기화됨 (백엔드 컬럼 추가 필요)
 - **AI 서비스 GPU 가속**: ollama가 CPU 모드로 동작 중. RTX 2060 GPU Docker 설정 미적용
