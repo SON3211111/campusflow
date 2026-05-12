@@ -39,10 +39,12 @@ class TaskGenerateResponse(BaseModel):
 
 
 def _extract_json(text: str) -> dict:
-    match = re.search(r"```(?:json)?\s*(\{[\s\S]*?\})\s*```", text)
-    if match:
-        return json.loads(match.group(1))
+    # 마크다운 코드블록이 있으면 내용만 추출 후 depth 방식으로 파싱
+    code_block = re.search(r"```(?:json)?\s*([\s\S]*?)\s*```", text)
+    if code_block:
+        text = code_block.group(1)
 
+    # 중첩 괄호 추적으로 가장 바깥 {} 추출
     start = text.find("{")
     if start != -1:
         depth = 0
