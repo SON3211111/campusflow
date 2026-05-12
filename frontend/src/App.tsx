@@ -6,6 +6,8 @@ import Signup from './pages/Signup';
 import MailCode from './pages/Mailcode';
 import UserSetup from './pages/UserSetup';
 import WorkspaceList from './ListPages/WorkspaceList';
+import TaskBreakdownPage from './WorkspacePages/TaskBreakdownPage';
+import AiTaskPage from './WorkspacePages/AiTaskPage';
 import BoardPage from './ListPages/BoardPage';
 import MemberPage from './ListPages/MemberPage';
 import SettingPage from './ListPages/SettingPage';
@@ -30,6 +32,8 @@ function App() {
         <Route path="/members" element={<PrivateRoute><MemberPage /></PrivateRoute>} />
         <Route path="/settings" element={<PrivateRoute><SettingPage /></PrivateRoute>} />
         <Route path="/templates" element={<PrivateRoute><TemplatePage /></PrivateRoute>} />
+        <Route path="/task-breakdown" element={<PrivateRoute><TaskBreakdownPage /></PrivateRoute>} />
+        <Route path="/ai-task" element={<PrivateRoute><AiTaskPage /></PrivateRoute>} />
       </Routes>
     </Router>
   );

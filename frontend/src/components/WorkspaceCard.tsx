@@ -7,9 +7,10 @@ interface Props {
   starred?: boolean;
   onToggleStar?: () => void;
   onDelete?: () => void;
+  onClick?: () => void;
 }
 
-export default function WorkspaceCard({ name, gradient, starred, onToggleStar, onDelete }: Props) {
+export default function WorkspaceCard({ name, gradient, starred, onToggleStar, onDelete, onClick }: Props) {
   const [hovered, setHovered] = useState(false);
 
   return (
@@ -17,6 +18,7 @@ export default function WorkspaceCard({ name, gradient, starred, onToggleStar, o
       className="ws-card"
       onMouseEnter={() => setHovered(true)}
       onMouseLeave={() => setHovered(false)}
+      onClick={onClick}
     >
       <div className="card-thumb" style={{ background: gradient }}>
         <span

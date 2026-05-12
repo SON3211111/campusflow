@@ -1,5 +1,6 @@
 import { useState, useRef, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
+import AITaskModal from "./AITaskModal";
 import "./Header.css";
 
 interface WorkspaceItem {
@@ -21,6 +22,7 @@ export default function Header({ workspaces = [], showSearch = true, onLogout }:
   const [query, setQuery] = useState('');
   const [searchOpen, setSearchOpen] = useState(false);
   const [userMenuOpen, setUserMenuOpen] = useState(false);
+  const [aiTaskOpen, setAiTaskOpen] = useState(false);
   const searchRef = useRef<HTMLDivElement>(null);
   const userMenuRef = useRef<HTMLDivElement>(null);
 
@@ -50,6 +52,7 @@ export default function Header({ workspaces = [], showSearch = true, onLogout }:
   };
 
   return (
+    <>
     <header className="header">
       <div className="header-logo" onClick={() => navigate("/")}>CAMPUS_FLOW</div>
 
@@ -68,7 +71,7 @@ export default function Header({ workspaces = [], showSearch = true, onLogout }:
               <div className="search-dropdown">
                 <p className="search-dropdown-category">Board</p>
                 {filtered.map((ws) => (
-                  <div key={ws.id} className="search-result-item">
+                  <div key={ws.id} className="search-result-item" onClick={() => { setSearchOpen(false); setQuery(''); setAiTaskOpen(true); }}>
                     <div className="search-result-thumb" style={{ background: ws.gradient }} />
                     <span className="search-result-name">{ws.name}</span>
                   </div>
@@ -132,5 +135,7 @@ export default function Header({ workspaces = [], showSearch = true, onLogout }:
         )}
       </div>
     </header>
+    {aiTaskOpen && <AITaskModal onClose={() => setAiTaskOpen(false)} />}
+    </>
   );
 }
