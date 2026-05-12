@@ -1,36 +1,41 @@
 package com.campusflow.entity;
 
-import com.fasterxml.jackson.annotation.JsonIgnore;
-import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
-import com.fasterxml.jackson.annotation.JsonProperty;
+import com.campusflow.entity.enums.WorkspaceType;
 import jakarta.persistence.*;
-import lombok.NoArgsConstructor;
+import lombok.*;
+import org.hibernate.annotations.CreationTimestamp;
+
 import java.time.LocalDateTime;
 
 @Entity
 @Table(name = "workspaces")
-@NoArgsConstructor
-@JsonIgnoreProperties({"hibernateLazyInitializer", "handler"})
+@Getter @Setter
+@Builder
+@NoArgsConstructor(access = AccessLevel.PROTECTED)
+@AllArgsConstructor
 public class Workspace {
 
     @Id
-    @Column(name = "workspace_id")
+    @Column(name = "workspace_id", length = 50)
     private String workspaceId;
 
-    @Column(nullable = false)
+    @Column(nullable = false, length = 100)
     private String name;
 
-    @Column(nullable = false)
-    private String type = "PERSONAL"; // PERSONAL 또는 TEAM
+    @Enumerated(EnumType.STRING)
+    @Builder.Default
+    @Column(columnDefinition = "ENUM('PERSONAL', 'TEAM') DEFAULT 'PERSONAL'")
+    private WorkspaceType type = WorkspaceType.PERSONAL;
 
-    @JsonIgnore // 순환 참조 및 보안을 위해 JSON 변환 시 제외
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "owner_id")
     private User owner;
 
-    @Column(name = "created_at")
-    private LocalDateTime createdAt = LocalDateTime.now();
+    @CreationTimestamp
+    @Column(name = "created_at", updatable = false)
+    private LocalDateTime createdAt;
 
+    // UI 디자인을 위한 필드 (DB에 추가 필수)
     @Column(name = "gradient", length = 512)
     private String gradient;
 
@@ -40,23 +45,4 @@ public class Workspace {
             this.workspaceId = java.util.UUID.randomUUID().toString();
         }
     }
-
-    // --- 직접 작성한 Getter/Setter (컴파일 에러 방지용) ---
-    @JsonProperty("id")
-    public String getWorkspaceId() { return workspaceId; }
-    public void setWorkspaceId(String workspaceId) { this.workspaceId = workspaceId; }
-
-    public String getName() { return name; }
-    public void setName(String name) { this.name = name; }
-
-    public String getType() { return type; }
-    public void setType(String type) { this.type = type; }
-
-    public User getOwner() { return owner; }
-    public void setOwner(User owner) { this.owner = owner; }
-
-    public LocalDateTime getCreatedAt() { return createdAt; }
-
-    public String getGradient() { return gradient; }
-    public void setGradient(String gradient) { this.gradient = gradient; }
 }
