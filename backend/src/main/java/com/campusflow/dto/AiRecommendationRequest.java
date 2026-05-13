@@ -1,6 +1,11 @@
 package com.campusflow.dto;
 
-public record AiRecommendationRequest(
-        String title,
-        String description
-) {}
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+
+@Getter
+@NoArgsConstructor
+public class AiRecommendationRequest {
+    private String title;
+    private String description;
+}

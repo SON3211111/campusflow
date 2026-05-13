@@ -3,8 +3,7 @@ package com.campusflow.service;
 import com.campusflow.dto.AiRecommendationRequest;
 import com.campusflow.dto.AiResponseDto;
 import com.campusflow.dto.TaskListDto;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.*;
 import org.springframework.http.client.SimpleClientHttpRequestFactory;
@@ -15,9 +14,8 @@ import java.util.List;
 import java.util.Map;
 
 @Service
+@Slf4j
 public class AiService {
-
-    private static final Logger log = LoggerFactory.getLogger(AiService.class);
 
     private final RestTemplate restTemplate;
     private final String aiServerUrl;
@@ -31,11 +29,13 @@ public class AiService {
     }
 
     public String getAiRecommendation(AiRecommendationRequest requestDto) {
-        String prompt = requestDto.title() + " : " + requestDto.description();
+        String prompt = requestDto.getTitle() + " : " + requestDto.getDescription();
         try {
             HttpHeaders headers = new HttpHeaders();
             headers.setContentType(MediaType.APPLICATION_JSON);
             HttpEntity<Map<String, String>> request = new HttpEntity<>(Map.of("prompt", prompt), headers);
+
+            log.info("AI 서버 호출 시작: {}", aiServerUrl + "/generate");
 
             ResponseEntity<AiResponseDto> response = restTemplate.exchange(
                     aiServerUrl + "/generate",
