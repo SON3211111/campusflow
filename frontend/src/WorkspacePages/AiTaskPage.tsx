@@ -108,8 +108,9 @@ title은 프로젝트 내용을 잘 나타내는 15자 이내 한국어로 작�
       setTasks(buildTasks(json));
       setBasket([]);
       setSaved(false);
-    } catch {
-      alert("다시 설정에 실패했습니다.");
+    } catch (err: any) {
+      console.error("[AI reset]", err);
+      alert(`다시 설정에 실패했습니다: ${err?.response?.data?.detail ?? err?.message ?? err}`);
     } finally {
       setResetLoading(false);
     }
@@ -142,8 +143,9 @@ title은 프로젝트 내용을 잘 나타내는 15자 이내 한국어로 작�
         next.splice(idx, 1, ...newTasks);
         return next;
       });
-    } catch {
-      alert("세부 분할에 실패했습니다.");
+    } catch (err: any) {
+      console.error("[AI subdivide]", err);
+      alert(`세부 분할에 실패했습니다: ${err?.response?.data?.detail ?? err?.message ?? err}`);
     } finally {
       setLoadingId(null);
     }

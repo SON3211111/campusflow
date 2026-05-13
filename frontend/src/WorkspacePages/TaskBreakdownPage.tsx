@@ -89,8 +89,10 @@ title은 프로젝트 내용을 잘 나타내는 15자 이내 한국어로 작�
       if (!match) throw new Error("파싱 실패");
       const json: BreakdownResult = JSON.parse(match[0]);
       setResult(json);
-    } catch {
-      setError("AI 서버에 연결할 수 없습니다. 서버가 실행 중인지 확인해주세요.");
+    } catch (err: any) {
+      const detail = err?.response?.data?.detail ?? err?.message ?? String(err);
+      setError(`AI 오류: ${detail}`);
+      console.error("[AI] error:", err);
     } finally {
       setLoading(false);
     }
