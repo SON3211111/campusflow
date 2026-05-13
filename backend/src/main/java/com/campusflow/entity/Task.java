@@ -11,7 +11,9 @@ import java.util.List;
 
 @Entity
 @Getter @Setter
+@Builder
 @NoArgsConstructor
+@AllArgsConstructor
 @JsonIgnoreProperties({"hibernateLazyInitializer", "handler"})
 public class Task {
     @Id
