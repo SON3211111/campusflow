@@ -9,7 +9,7 @@ import client from "../api/client";
 import "./WorkspaceList.css";
 
 interface Workspace {
-  id: number;
+  id: string;
   name: string;
   gradient: string;
   starred?: boolean;
@@ -49,9 +49,9 @@ export default function WorkspaceList() {
     client.get(`/workspaces?userId=${userId}`)
       .then((res) => {
         const list: Workspace[] = (res.data.data ?? []).map((ws: any) => ({
-          id: ws.id,
+          id: ws.workspaceId,
           name: ws.name,
-          gradient: ws.gradient || randomGradient(ws.id),
+          gradient: ws.gradient || randomGradient(ws.workspaceId),
           starred: false,
           type: ws.type,
         }));
@@ -148,7 +148,7 @@ export default function WorkspaceList() {
 
   const renderSidebarItems = (workspaces: Workspace[], section: 'team' | 'personal') =>
     workspaces.map((ws) => (
-      <div key={ws.id}>
+      <div key={`${section}-${ws.id}`}>
         <div className="sidebar-item" onClick={() => toggleSidebar(ws.id)}>
           <div className="sidebar-item-icon" style={{ background: ws.gradient }}>
             {ws.name[0]}

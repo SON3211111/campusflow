@@ -7,7 +7,7 @@ import "./WorkspaceList.css";
 import "./SettingPage.css";
 
 interface Workspace {
-  id: number;
+  id: string;
   name: string;
   gradient: string;
   starred?: boolean;
@@ -26,7 +26,7 @@ export default function SettingPage() {
 
   const savedVisibility = (localStorage.getItem(`visibility_${workspace.id}`) ?? "private") as "private" | "public";
 
-  const [expandedId, setExpandedId]     = useState<number>(workspace.id);
+  const [expandedId, setExpandedId]     = useState<string>(workspace.id);
   const [wsName, setWsName]             = useState(workspace.name);
   const [nameInput, setNameInput]       = useState(workspace.name);
   const [visibility, setVisibility]     = useState<"private" | "public">(savedVisibility);
@@ -41,8 +41,8 @@ export default function SettingPage() {
     personalWorkspaces: personalWs,
   });
 
-  const toggleSidebar = (id: number) =>
-    setExpandedId((prev) => (prev === id ? -1 : id));
+  const toggleSidebar = (id: string) =>
+    setExpandedId((prev) => (prev === id ? "" : id));
 
 const handleSaveAll = async () => {
     setSaving(true);
@@ -70,9 +70,9 @@ const handleSaveAll = async () => {
     }
   };
 
-  const renderSidebarItems = (list: Workspace[]) =>
+  const renderSidebarItems = (list: Workspace[], section: string) =>
     list.map((ws) => (
-      <div key={ws.id}>
+      <div key={`${section}-${ws.id}`}>
         <div className="sidebar-item" onClick={() => toggleSidebar(ws.id)}>
           <div className="sidebar-item-icon" style={{ background: ws.gradient }}>
             {ws.name[0]}
@@ -105,14 +105,14 @@ const handleSaveAll = async () => {
 
           <div className="sidebar-section">
             <p className="sidebar-label">팀 워크스페이스</p>
-            {renderSidebarItems(teamWs)}
+            {renderSidebarItems(teamWs, 'team')}
           </div>
 
           <hr className="sidebar-divider" />
 
           <div className="sidebar-section">
             <p className="sidebar-label">개인 워크스페이스</p>
-            {renderSidebarItems(personalWs)}
+            {renderSidebarItems(personalWs, 'personal')}
           </div>
 
           <div className="sidebar-bottom">

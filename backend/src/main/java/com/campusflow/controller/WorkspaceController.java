@@ -54,11 +54,7 @@ public class WorkspaceController {
             @PathVariable String workspaceId,
             @RequestBody WorkspaceRequest request) {
 
-        /* * [에러 수정 포인트]
-         * 서비스 클래스의 updateWorkspace가 (String, String, String) 3개를 요구하므로
-         * 마지막 인자에 빈 값("") 혹은 request에서 제공하는 다른 필드를 넣어줍니다.
-         */
-        Workspace updated = workspaceService.updateWorkspace(workspaceId, request.getName(), "");
+        Workspace updated = workspaceService.updateWorkspace(workspaceId, request.getName(), request.getGradient());
 
         return ResponseEntity.ok(ApiResponse.success(200, "수정 성공", WorkspaceResponse.from(updated)));
     }

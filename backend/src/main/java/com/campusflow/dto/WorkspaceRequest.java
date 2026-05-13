@@ -8,5 +8,6 @@ public class WorkspaceRequest {
     private String name;
     private WorkspaceType type;
     private String description;
-    private String userId; // 생성자 ID
+    private String gradient;
+    private String userId;
 }

@@ -15,11 +15,13 @@ client.interceptors.request.use((config) => {
   return config;
 });
 
-// JWT 만료(401) 시 자동 로그아웃
+// JWT 만료(401) 시 자동 로그아웃 (로그인/회원가입 요청 제외)
 client.interceptors.response.use(
   (response) => response,
   (error) => {
-    if (error.response?.status === 401) {
+    const url = error.config?.url ?? '';
+    const isAuthRequest = url.includes('/auth/login') || url.includes('/auth/signup');
+    if (error.response?.status === 401 && !isAuthRequest) {
       localStorage.removeItem('accessToken');
       localStorage.removeItem('userId');
       localStorage.removeItem('userName');

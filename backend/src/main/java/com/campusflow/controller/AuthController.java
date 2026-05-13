@@ -8,6 +8,7 @@ import com.campusflow.entity.User;
 import com.campusflow.entity.enums.UserStatus; // [추가] Enum 관리
 import com.campusflow.repository.UserRepository;
 import com.campusflow.service.WorkspaceService;
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -30,7 +31,7 @@ public class AuthController {
 
     // 1-1. 회원가입 (워크스페이스 자동 생성 로직 포함)
     @PostMapping("/signup")
-    public ResponseEntity<ApiResponse<?>> signup(@RequestBody SignupRequest signupRequest) {
+    public ResponseEntity<ApiResponse<?>> signup(@Valid @RequestBody SignupRequest signupRequest) {
         // 1. 이메일 중복 체크
         if (userRepository.findByEmail(signupRequest.getEmail()).isPresent()) {
             return ResponseEntity.status(HttpStatus.CONFLICT)
