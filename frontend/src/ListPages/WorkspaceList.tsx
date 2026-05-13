@@ -86,7 +86,7 @@ export default function WorkspaceList() {
       const res = await client.post(`/workspaces?userId=${userId}`, { name, type });
       const created = res.data.data;
       const newWs: Workspace = {
-        id: created.id,
+        id: created.workspaceId,
         name: created.name,
         gradient,
         starred: false,
