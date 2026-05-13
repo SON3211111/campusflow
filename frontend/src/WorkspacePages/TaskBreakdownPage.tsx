@@ -42,7 +42,21 @@ const TASK_COLORS = [
   "#d8a8f8",
 ];
 
-const AI_SERVER_URL = "/ai";
+function convertToBreakdownResult(data: any, prompt: string): BreakdownResult {
+  const categoryMap = new Map<string, string[]>();
+  (data.tasks ?? []).forEach((task: any) => {
+    if (!categoryMap.has(task.category)) categoryMap.set(task.category, []);
+    categoryMap.get(task.category)!.push(task.title);
+  });
+  return {
+    title: prompt.slice(0, 15),
+    categories: Array.from(categoryMap.entries()).map(([name, tasks], i) => ({
+      id: `c${i + 1}`,
+      name,
+      tasks,
+    })),
+  };
+}
 
 export default function TaskBreakdownPage() {
   const { state } = useLocation() as {
@@ -76,19 +90,10 @@ export default function TaskBreakdownPage() {
   const callAI = async () => {
     setLoading(true);
     setError("");
-    const systemPrompt = `반드시 한국어로만 답하세요. 단, UI/UX, API 등 영어 전문용어는 그대로 써도 됩니다.
-다음 프로젝트 업무를 JSON으로 분해해주세요. 반드시 아래 형식의 JSON만 반환하세요. 다른 설명은 절대 쓰지 마세요:
-{"title":"프로젝트명","categories":[{"id":"c1","name":"카테고리명","tasks":["업무1","업무2","업무3"]}]}
-title은 프로젝트 내용을 잘 나타내는 15자 이내 한국어로 작성하세요. 프로젝트 규모와 내용에 맞게 카테고리 수와 각 카테고리의 업무 수를 자유롭게 결정해주세요.
-프로젝트: ${prompt}`;
-
     try {
-      const res = await axios.post(`${AI_SERVER_URL}/generate`, { prompt: systemPrompt }, { timeout: 60000 });
-      const text: string = res.data.result ?? "";
-      const match = text.match(/\{[\s\S]*\}/);
-      if (!match) throw new Error("파싱 실패");
-      const json: BreakdownResult = JSON.parse(match[0]);
-      setResult(json);
+      const params = new URLSearchParams({ title: prompt, description: prompt });
+      const res = await axios.post(`/api/ai/generate-tasks?${params}`, {}, { timeout: 120000 });
+      setResult(convertToBreakdownResult(res.data, prompt));
     } catch {
       setError("AI 서버에 연결할 수 없습니다. 서버가 실행 중인지 확인해주세요.");
     } finally {

@@ -93,17 +93,23 @@ export default function AiTaskPage() {
     }
     setResetLoading(true);
     try {
-      const systemPrompt = `반드시 한국어로만 답하세요. 단, UI/UX, API 등 영어 전문용어는 그대로 써도 됩니다.
-다음 프로젝트 업무를 JSON으로 분해해주세요. 반드시 아래 형식의 JSON만 반환하세요. 다른 설명은 절대 쓰지 마세요:
-{"title":"프로젝트명","categories":[{"id":"c1","name":"카테고리명","tasks":["업무1","업무2","업무3"]}]}
-title은 프로젝트 내용을 잘 나타내는 15자 이내 한국어로 작성하세요.
-프로젝트: ${origPrompt}`;
-      const res = await axios.post("/ai/generate", { prompt: systemPrompt }, { timeout: 60000 });
-      const text: string = res.data.result ?? "";
-      const match = text.match(/\{[\s\S]*\}/);
-      if (!match) return;
-      const json = JSON.parse(match[0]);
-      setTitle(json.title ?? "");
+      const params = new URLSearchParams({ title: origPrompt, description: origPrompt });
+      const res = await axios.post(`/api/ai/generate-tasks?${params}`, {}, { timeout: 120000 });
+      const data = res.data;
+      const categoryMap = new Map<string, string[]>();
+      (data.tasks ?? []).forEach((task: any) => {
+        if (!categoryMap.has(task.category)) categoryMap.set(task.category, []);
+        categoryMap.get(task.category)!.push(task.title);
+      });
+      const json = {
+        title: origPrompt.slice(0, 15),
+        categories: Array.from(categoryMap.entries()).map(([name, tasks], i) => ({
+          id: `c${i + 1}`,
+          name,
+          tasks,
+        })),
+      };
+      setTitle(json.title);
       setCategories(buildCategories(json));
       setTasks(buildTasks(json));
       setBasket([]);
