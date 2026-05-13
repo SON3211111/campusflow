@@ -3,6 +3,7 @@
   flex-direction: column;
   height: 100vh;
   background: #f0f2f8;
+  isolation: isolate;
 }
 
 .dbp-body {
@@ -13,6 +14,8 @@
   flex-direction: column;
   gap: 20px;
   background: #f0f2f8;
+  position: relative;
+  z-index: 0;
 }
 
 /* ===== 카드 공통 ===== */

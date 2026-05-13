@@ -11,6 +11,8 @@
   overflow: hidden;
   gap: 12px;
   padding: 12px;
+  position: relative;
+  z-index: 0;
 }
 
 /* ===== 슬라이드 패널 ===== */
