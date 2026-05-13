@@ -29,7 +29,8 @@ export default function TemplatePage() {
   };
   const navigate = useNavigate();
 
-  const workspace  = state?.workspace         ?? { id: "", name: "워크스페이스", gradient: "#ccc" };
+  const savedWs    = JSON.parse(localStorage.getItem("clickedWorkspace") ?? "null");
+  const workspace  = state?.workspace ?? savedWs ?? { id: "", name: "워크스페이스", gradient: "#ccc" };
   const teamWs     = state?.teamWorkspaces     ?? [];
   const personalWs = state?.personalWorkspaces ?? [];
   const allWorkspaces = [...teamWs, ...personalWs];
@@ -51,24 +52,24 @@ export default function TemplatePage() {
   });
 
   const handleApplyTemplate = async (gradient: string) => {
-    if (!workspace.id) {
-      navigate("/workspace-board", { state: { workspace: { ...workspace, gradient }, workspaces: allWorkspaces } });
-      return;
+    const updated = { ...workspace, gradient };
+    localStorage.setItem("clickedWorkspace", JSON.stringify(updated));
+
+    if (workspace.id) {
+      setApplying(true);
+      try {
+        await client.patch(`/workspaces/${workspace.id}`, {
+          name: workspace.name,
+          gradient,
+        });
+      } catch {
+        // 로컬에는 저장됨 - API 실패해도 계속 진행
+      } finally {
+        setApplying(false);
+      }
     }
-    setApplying(true);
-    try {
-      await client.patch(`/workspaces/${workspace.id}`, {
-        name: workspace.name,
-        gradient,
-      });
-      const updated = { ...workspace, gradient };
-      localStorage.setItem("clickedWorkspace", JSON.stringify(updated));
-      navigate("/workspace-board", { state: { workspace: updated, workspaces: allWorkspaces } });
-    } catch {
-      alert("템플릿 적용에 실패했습니다.");
-    } finally {
-      setApplying(false);
-    }
+
+    navigate("/workspace-board", { state: { workspace: updated, workspaces: allWorkspaces } });
   };
 
   const renderSidebarItems = (list: Workspace[]) =>
