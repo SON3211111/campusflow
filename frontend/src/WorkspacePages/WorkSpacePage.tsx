@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from "react";
-import { useLocation, useNavigate } from "react-router-dom";
+import { useLocation } from "react-router-dom";
 import Header from "../components/Header";
 import BoardSubHeader from "../components/BoardSubHeader";
 import WorkspaceTabBar from "../components/WorkspaceTabBar";
@@ -68,7 +68,6 @@ export default function WorkSpacePage() {
       basketTasks?: CardItem[];
     };
   };
-  const navigate = useNavigate();
 
   const savedWs    = JSON.parse(localStorage.getItem("clickedWorkspace") ?? "null");
   const workspace  = state?.workspace ?? state?.workspaces?.[0] ?? savedWs;
@@ -78,7 +77,7 @@ export default function WorkSpacePage() {
 
   const basketTasks = (state?.basketTasks ?? []) as CardItem[];
 
-  const [tab, setTab]                     = useState<"board" | "planner" | "community">("board");
+  const [tab, setTab]                     = useState<"board" | "planner" | "community" | "personal">("board");
   const [showPlanner, setShowPlanner]     = useState(true);
   const [showCommunity, setShowCommunity] = useState(true);
   const [showBoardView, setShowBoardView] = useState(basketTasks.length > 0);

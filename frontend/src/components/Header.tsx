@@ -4,7 +4,7 @@ import AITaskModal from "./AITaskModal";
 import "./Header.css";
 
 interface WorkspaceItem {
-  id: number;
+  id: string;
   name: string;
   gradient: string;
 }

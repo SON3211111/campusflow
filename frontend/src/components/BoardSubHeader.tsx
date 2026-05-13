@@ -5,8 +5,8 @@ import "./BoardSubHeader.css";
 interface Props {
   wsName?: string;
   memberCount?: number;
-  workspace?: { id: number; name: string; gradient: string };
-  workspaces?: { id: number; name: string; gradient: string }[];
+  workspace?: { id: string; name: string; gradient: string };
+  workspaces?: { id: string; name: string; gradient: string }[];
   initialSelected?: string;
 }
 
