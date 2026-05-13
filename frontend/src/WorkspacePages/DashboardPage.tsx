@@ -33,20 +33,18 @@ export default function DashboardPage() {
   const userName  = localStorage.getItem("userName") ?? "나";
 
   const [donut, setDonut] = useState({ progress: 0, done: 0, hold: 0, notStarted: 0, todo: 0 });
-  const [activityLog, setActivityLog] = useState<{ icon: string; type: string; desc: string }[]>([
-    { icon: "👥", type: "참여함",  desc: "워크스페이스에 참여하였습니다." },
-    { icon: "▶",  type: "시작됨",  desc: "태스크 작업이 시작되었습니다." },
-    { icon: "✓",  type: "완료됨",  desc: "태스크 작업이 완료되었습니다." },
-  ]);
 
   useEffect(() => {
-    if (!workspace?.id) return;
+    if (!workspace?.id) {
+      navigate("/workspace", { replace: true });
+      return;
+    }
     client.get(`/workspaces/${workspace.id}/tasks`)
       .then((res) => {
         const tasks: { status: string }[] = res.data ?? [];
         const counts = { progress: 0, done: 0, hold: 0, notStarted: 0, todo: 0 };
         for (const t of tasks) {
-          if (t.status === "DOING")  counts.progress++;
+          if (t.status === "DOING")       counts.progress++;
           else if (t.status === "DONE")   counts.done++;
           else if (t.status === "ISSUE")  counts.hold++;
           else if (t.status === "REVIEW") counts.notStarted++;
@@ -74,7 +72,23 @@ export default function DashboardPage() {
       });
   }, [workspace?.id]);
 
-  const TOTAL = donut.progress + donut.done + donut.hold + donut.notStarted + donut.todo || 1;
+  const total = donut.progress + donut.done + donut.hold + donut.notStarted + donut.todo;
+  const activityLog = (() => {
+    const log: { icon: string; type: string; desc: string }[] = [];
+    if (donut.done > 0)
+      log.push({ icon: "✓", type: "완료됨", desc: `${donut.done}개의 태스크가 완료되었습니다.` });
+    if (donut.progress > 0)
+      log.push({ icon: "▶", type: "진행 중", desc: `${donut.progress}개의 태스크가 진행 중입니다.` });
+    if (donut.hold > 0)
+      log.push({ icon: "⏸", type: "보류 중", desc: `${donut.hold}개의 태스크가 보류 중입니다.` });
+    if (donut.notStarted + donut.todo > 0)
+      log.push({ icon: "○", type: "미시작", desc: `${donut.notStarted + donut.todo}개의 태스크가 대기 중입니다.` });
+    if (log.length === 0)
+      log.push({ icon: "👥", type: "워크스페이스", desc: "보드에 태스크를 추가하면 현황이 표시됩니다." });
+    return log;
+  })();
+
+  const TOTAL = total || 1;
   const GRAPH = [{ name: userName, value: TOTAL > 0 ? Math.round((donut.done / TOTAL) * 100) : 0 }];
 
   const doneDash       = arc(donut.done,       0,                                                                    TOTAL);
@@ -115,7 +129,7 @@ export default function DashboardPage() {
                   strokeDashoffset={notStartedDash.strokeDashoffset}
                   strokeLinecap="butt" />
                 <text x="50" y="55" textAnchor="middle" fontSize="20" fontWeight="bold" fill="#333"
-                  transform="rotate(90 50 50)">{TOTAL === 1 && donut.progress + donut.done + donut.hold + donut.notStarted + donut.todo === 0 ? 0 : TOTAL}</text>
+                  transform="rotate(90 50 50)">{total}</text>
               </svg>
             </div>
             <div className="dbp-stat-list">
@@ -222,7 +236,7 @@ export default function DashboardPage() {
           {/* 마감 임박 */}
           <div className="dbp-card">
             <h3 className="dbp-card-title">마감 임박</h3>
-            {donut.progress + donut.done + donut.hold + donut.notStarted + donut.todo === 0 ? (
+            {total === 0 ? (
               <div className="dbp-empty-msg">등록된 마감 업무가 없습니다.</div>
             ) : (
               <>
@@ -253,7 +267,6 @@ export default function DashboardPage() {
       </div>
 
       <WorkspaceTabBar
-        active="board"
         onTabChange={(t) => {
           if (t === "board") navigate("/workspace-board", { state: { workspace, workspaces } });
           if (t === "planner") navigate("/workspace-board", { state: { workspace, workspaces } });

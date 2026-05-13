@@ -48,13 +48,16 @@ export default function WorkspaceList() {
     if (!userId) return;
     client.get(`/workspaces?userId=${userId}`)
       .then((res) => {
-        const list: Workspace[] = (res.data.data ?? []).map((ws: any) => ({
-          id: ws.workspaceId,
-          name: ws.name,
-          gradient: ws.gradient || randomGradient(ws.workspaceId),
-          starred: false,
-          type: ws.type,
-        }));
+        const list: Workspace[] = (res.data.data ?? []).map((ws: any) => {
+          const localGradient = localStorage.getItem(`ws_gradient_${ws.workspaceId}`);
+          return {
+            id: ws.workspaceId,
+            name: ws.name,
+            gradient: localGradient || ws.gradient || randomGradient(ws.workspaceId),
+            starred: false,
+            type: ws.type,
+          };
+        });
         setTeamWorkspaces(list.filter((ws) => ws.type === 'TEAM'));
         setPersonalWorkspaces(list.filter((ws) => ws.type !== 'TEAM'));
       })

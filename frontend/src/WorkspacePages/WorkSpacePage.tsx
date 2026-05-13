@@ -352,20 +352,6 @@ export default function WorkSpacePage() {
                   <span className="wsp-lbtn-title">바로 시작하기</span>
                   <span className="wsp-lbtn-desc">빈 보드에서 직접 업무를 추가합니다</span>
                 </button>
-                <button className="wsp-landing-btn basket"
-                  onClick={() => {
-                    const saved = JSON.parse(localStorage.getItem("saved_ai_tasks") ?? "[]");
-                    if (saved.length > 0) {
-                      const latest = saved[saved.length - 1];
-                      navigate("/ai-task", { state: { workspaces, workspace, result: latest.result, prompt: latest.prompt } });
-                    } else {
-                      setAiTaskOpen(true);
-                    }
-                  }}>
-                  <span className="wsp-lbtn-icon">🧺</span>
-                  <span className="wsp-lbtn-title">AI 업무 장바구니</span>
-                  <span className="wsp-lbtn-desc">저장된 AI 업무를 불러옵니다</span>
-                </button>
               </div>
             </div>
           )}
