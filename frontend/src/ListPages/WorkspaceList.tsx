@@ -282,7 +282,7 @@ export default function WorkspaceList() {
 
       <button className="settings-btn">⚙</button>
       {joinOpen && <JoinModal onClose={() => setJoinOpen(false)} />}
-      {aiTaskOpen && <AITaskModal onClose={() => setAiTaskOpen(false)} />}
+      {aiTaskOpen && <AITaskModal onClose={() => setAiTaskOpen(false)} workspaces={allWorkspaces} />}
 
       {deleteTarget && (
         <div className="modal-overlay" onClick={() => setDeleteTarget(null)}>

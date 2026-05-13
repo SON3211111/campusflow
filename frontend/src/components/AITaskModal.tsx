@@ -75,7 +75,7 @@ export default function AITaskModal({ onClose, workspaces = [] }: Props) {
                   <span className="ai-option-desc">기존 작업을 가져오기</span>
                 </div>
               </div>
-              <div className="ai-option-card">
+              <div className="ai-option-card" onClick={() => { onClose(); navigate("/workspace-board", { state: { workspaces } }); }}>
                 <div className="ai-option-icon orange">🚀</div>
                 <div className="ai-option-info">
                   <span className="ai-option-name">바로 워크스페이스로 이동</span>
