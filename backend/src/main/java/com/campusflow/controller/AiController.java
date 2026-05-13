@@ -1,5 +1,6 @@
 package com.campusflow.controller;
 
+import com.campusflow.dto.AiRecommendationRequest;
 import com.campusflow.dto.TaskListDto;
 import com.campusflow.service.AiService;
 import lombok.RequiredArgsConstructor;
@@ -13,17 +14,12 @@ public class AiController {
 
     private final AiService aiService;
 
-    // 기존 범용 텍스트 추천 (그대로 유지)
     @PostMapping("/recommend")
-    public String recommendTasks(
-            @RequestParam("title") String title,
-            @RequestParam("desc") String desc) {
-        return aiService.getAiRecommendation(title, desc);
+    public ResponseEntity<String> recommendTasks(@RequestBody AiRecommendationRequest request) {
+        String result = aiService.getAiRecommendation(request);
+        return ResponseEntity.ok(result);
     }
 
-    // 장바구니용 업무 카드 생성
-    // 프론트엔드에서 팀장이 프로젝트 정보 입력 시 호출
-    // 응답: { "tasks": [ { title, description, category, priority, estimatedHours } ] }
     @PostMapping("/generate-tasks")
     public ResponseEntity<TaskListDto> generateTasks(
             @RequestParam("title") String title,

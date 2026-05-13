@@ -2,28 +2,41 @@ package com.campusflow.dto;
 
 import lombok.*;
 
-@Getter @Setter
-@NoArgsConstructor // 기본 생성자 필수
-@Builder
+@Getter
+@NoArgsConstructor(access = AccessLevel.PROTECTED) // 외부에서 기본 생성자 호출 방지 (안전성)
+@AllArgsConstructor // 모든 필드를 인자로 받는 생성자 자동 생성
+@Builder // 빌더 패턴 적용
 public class ApiResponse<T> {
     private int status;
     private String message;
     private T data;
 
-    // 명시적 생성자 추가 (컴파일러 추론 에러 방지)
-    public ApiResponse(int status, String message, T data) {
-        this.status = status;
-        this.message = message;
-        this.data = data;
-    }
-
+    /**
+     * 성공 응답 생성 (Static Factory Method)
+     */
     public static <T> ApiResponse<T> success(int status, String message, T data) {
-        // 명시적으로 타입을 지정해줍니다 <T>
-        return new ApiResponse<T>(status, message, data);
+        return ApiResponse.<T>builder()
+                .status(status)
+                .message(message)
+                .data(data)
+                .build();
     }
 
+    /**
+     * 데이터가 없는 성공 응답 (오버로딩)
+     */
+    public static <T> ApiResponse<T> success(int status, String message) {
+        return success(status, message, null);
+    }
+
+    /**
+     * 에러 응답 생성
+     */
     public static <T> ApiResponse<T> error(int status, String message) {
-        // 명시적으로 타입을 지정해줍니다 <T>
-        return new ApiResponse<T>(status, message, null);
+        return ApiResponse.<T>builder()
+                .status(status)
+                .message(message)
+                .data(null)
+                .build();
     }
 }

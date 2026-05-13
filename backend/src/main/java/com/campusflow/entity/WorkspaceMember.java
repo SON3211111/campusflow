@@ -1,33 +1,39 @@
 package com.campusflow.entity;
 
-import com.fasterxml.jackson.annotation.JsonIgnore;
+import com.campusflow.entity.enums.WorkspaceRole; // Enum 추가 필요
 import jakarta.persistence.*;
-import lombok.NoArgsConstructor;
+import lombok.*;
+import org.hibernate.annotations.CreationTimestamp;
+
 import java.time.LocalDateTime;
 
 @Entity
 @Table(name = "workspace_members")
-@NoArgsConstructor
+@Getter @Setter
+@Builder
+@NoArgsConstructor(access = AccessLevel.PROTECTED)
+@AllArgsConstructor
 public class WorkspaceMember {
 
     @Id
-    @Column(name = "member_id")
+    @Column(name = "member_id", length = 50)
     private String memberId;
 
-    @JsonIgnore // 무한 루프 방지
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "workspace_id")
+    @JoinColumn(name = "workspace_id", foreignKey = @ForeignKey(name = "fk_ws_member_workspace"))
     private Workspace workspace;
 
-    @JsonIgnore // 무한 루프 방지
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "user_id")
+    @JoinColumn(name = "user_id", foreignKey = @ForeignKey(name = "fk_ws_member_user"))
     private User user;
 
-    private String role; // OWNER, MEMBER, OBSERVER
+    @Enumerated(EnumType.STRING)
+    @Column(columnDefinition = "ENUM('OWNER', 'MEMBER', 'OBSERVER')")
+    private WorkspaceRole role;
 
-    @Column(name = "joined_at")
-    private LocalDateTime joinedAt = LocalDateTime.now();
+    @CreationTimestamp
+    @Column(name = "joined_at", updatable = false)
+    private LocalDateTime joinedAt;
 
     @PrePersist
     public void prePersist() {
@@ -35,19 +41,4 @@ public class WorkspaceMember {
             this.memberId = java.util.UUID.randomUUID().toString();
         }
     }
-
-    // --- 직접 작성한 Getter/Setter ---
-    public String getMemberId() { return memberId; }
-    public void setMemberId(String memberId) { this.memberId = memberId; }
-
-    public Workspace getWorkspace() { return workspace; }
-    public void setWorkspace(Workspace workspace) { this.workspace = workspace; }
-
-    public User getUser() { return user; }
-    public void setUser(User user) { this.user = user; }
-
-    public String getRole() { return role; }
-    public void setRole(String role) { this.role = role; }
-
-    public LocalDateTime getJoinedAt() { return joinedAt; }
 }

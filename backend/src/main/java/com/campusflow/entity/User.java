@@ -1,31 +1,57 @@
 package com.campusflow.entity;
 
-import com.fasterxml.jackson.annotation.JsonIgnore;
+import com.campusflow.entity.enums.UserRole;   // Enum 패키지 생성 권장
+import com.campusflow.entity.enums.UserStatus; // Enum 패키지 생성 권장
 import jakarta.persistence.*;
-import lombok.NoArgsConstructor;
+import lombok.*;
+import org.hibernate.annotations.CreationTimestamp;
+
+import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 
 @Entity
 @Table(name = "users")
-@NoArgsConstructor
+@Getter @Setter  // Lombok 정상 작동 시 사용 (IntelliJ 설정 확인 필수)
+@Builder         // 생성자 대신 객체 생성을 안전하게 함
+@NoArgsConstructor(access = AccessLevel.PROTECTED)
+@AllArgsConstructor
 public class User {
 
     @Id
-    @Column(name = "user_id")
+    @Column(name = "user_id", length = 50)
     private String userId;
 
+    @Column(nullable = false, length = 100)
     private String name;
 
-    @Column(unique = true)
+    @Column(unique = true, nullable = false, length = 100)
     private String email;
 
+    @Column(nullable = false) // 비밀번호는 암호화되어 저장되므로 길게 잡힘
     private String password;
 
-    private String role; // 예: ROLE_USER, ROLE_ADMIN
+    @Enumerated(EnumType.STRING) // DB의 ENUM과 매핑 핵심!
+    @Column(columnDefinition = "ENUM('STUDENT', 'PROFESSOR')")
+    private UserRole role;
 
-    // [핵심] 순환 참조 방지: 유저를 조회할 때 연관된 워크스페이스 목록이 JSON에 포함되지 않도록 차단
-    @JsonIgnore
+    @Enumerated(EnumType.STRING)
+    @Builder.Default
+    @Column(columnDefinition = "ENUM('ACTIVE', 'INACTIVE') DEFAULT 'ACTIVE'")
+    private UserStatus status = UserStatus.ACTIVE;
+
+    private String oauthProvider;
+
+    private LocalDateTime lastLoginAt;
+
+    private LocalDateTime deletedAt;
+
+    @CreationTimestamp // INSERT 시 자동으로 현재 시간 저장
+    @Column(updatable = false)
+    private LocalDateTime createdAt;
+
+    // [핵심] 순환 참조 방지: 연관관계 편의 메서드와 DTO 사용을 권장하므로 @JsonIgnore는 유지하거나 제거 가능 (DTO 사용 시 불필요)
+    @Builder.Default
     @OneToMany(mappedBy = "owner", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<Workspace> workspaces = new ArrayList<>();
 
@@ -35,23 +61,4 @@ public class User {
             this.userId = java.util.UUID.randomUUID().toString();
         }
     }
-
-    // --- 직접 작성한 Getter/Setter (Lombok 인식 문제 해결용) ---
-    public String getUserId() { return userId; }
-    public void setUserId(String userId) { this.userId = userId; }
-
-    public String getName() { return name; }
-    public void setName(String name) { this.name = name; }
-
-    public String getEmail() { return email; }
-    public void setEmail(String email) { this.email = email; }
-
-    public String getPassword() { return password; }
-    public void setPassword(String password) { this.password = password; }
-
-    public String getRole() { return role; }
-    public void setRole(String role) { this.role = role; }
-
-    public List<Workspace> getWorkspaces() { return workspaces; }
-    public void setWorkspaces(List<Workspace> workspaces) { this.workspaces = workspaces; }
 }
