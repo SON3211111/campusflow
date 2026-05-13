@@ -1,6 +1,7 @@
 import { useState, useRef, useEffect } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import Header from "../components/Header";
+import JoinModal from "../components/JoinModal";
 import WorkspaceCard from "../components/WorkspaceCard";
 import client from "../api/client";
 import "./WorkspaceList.css";
@@ -42,6 +43,7 @@ export default function BoardPage() {
   const [saving, setSaving]           = useState(false);
   const [pendingNav, setPendingNav]   = useState<PendingNav>(null);
   const [confirmDelete, setConfirmDelete] = useState(false);
+  const [joinOpen, setJoinOpen] = useState(false);
 
   const inputRef = useRef<HTMLInputElement>(null);
 
@@ -158,8 +160,22 @@ export default function BoardPage() {
           >
             <span className="subitem-icon">□</span> Board
           </div>
-          <div className="sidebar-subitem"><span className="subitem-icon">👥</span> Members</div>
-          <div className="sidebar-subitem"><span className="subitem-icon">⚙</span> Setting</div>
+          <div
+            className="sidebar-subitem"
+            onClick={() =>
+              tryNavigate("/members", { workspace: ws, teamWorkspaces: teamWs, personalWorkspaces: personalWs })
+            }
+          >
+            <span className="subitem-icon">👥</span> Members
+          </div>
+          <div
+            className="sidebar-subitem"
+            onClick={() =>
+              tryNavigate("/settings", { workspace: ws, teamWorkspaces: teamWs, personalWorkspaces: personalWs })
+            }
+          >
+            <span className="subitem-icon">⚙</span> Setting
+          </div>
         </div>
       </div>
     ));
@@ -195,7 +211,7 @@ export default function BoardPage() {
               <span className="nav-icon">🖥</span>
               <span>Board</span>
             </div>
-            <button className="join-btn">워크스페이스 참여 !</button>
+            <button className="join-btn" onClick={() => setJoinOpen(true)}>워크스페이스 참여 !</button>
           </div>
         </aside>
 
@@ -234,8 +250,9 @@ export default function BoardPage() {
                 <span className="board-ws-edit" onClick={startEdit}>✏️</span>
               </div>
               <div className="board-ws-private">
-                <span>🔒</span>
-                <span>private</span>
+                {localStorage.getItem(`visibility_${workspace.id}`) === "public"
+                  ? <><span>🌐</span><span>public</span></>
+                  : <><span>🔒</span><span>private</span></>}
               </div>
             </div>
           </div>
@@ -258,7 +275,7 @@ export default function BoardPage() {
                 </div>
               ))}
             </div>
-            <p className="template-more">전체 템플릿으로 찾아보기</p>
+            <p className="template-more" onClick={() => tryNavigate("/templates", { workspace, teamWorkspaces: teamWs, personalWorkspaces: personalWs })}>전체 템플릿으로 찾아보기</p>
           </div>
 
           <hr className="board-divider" />
@@ -304,6 +321,8 @@ export default function BoardPage() {
           </div>
         </div>
       )}
+
+      {joinOpen && <JoinModal onClose={() => setJoinOpen(false)} />}
 
       {/* 변경사항 저장 확인 모달 */}
       {pendingNav && (
