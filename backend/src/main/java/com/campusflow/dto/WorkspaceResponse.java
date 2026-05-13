@@ -11,17 +11,19 @@ import lombok.NoArgsConstructor;
 @NoArgsConstructor
 @AllArgsConstructor
 public class WorkspaceResponse {
-    private String workspaceId; // DB 설계에 따라 String
+    private String workspaceId;
     private String name;
     private String type;
+    private String gradient;
 
     public static WorkspaceResponse from(Workspace workspace) {
         if (workspace == null) return null;
 
         return WorkspaceResponse.builder()
-                .workspaceId(workspace.getWorkspaceId()) // 여기서 반환 타입이 String이어야 함
+                .workspaceId(workspace.getWorkspaceId())
                 .name(workspace.getName())
                 .type(workspace.getType() != null ? workspace.getType().name() : null)
+                .gradient(workspace.getGradient())
                 .build();
     }
 }

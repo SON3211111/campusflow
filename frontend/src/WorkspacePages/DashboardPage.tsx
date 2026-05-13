@@ -1,11 +1,13 @@
-import { useLocation } from "react-router-dom";
+import { useState, useEffect } from "react";
+import { useLocation, useNavigate } from "react-router-dom";
 import Header from "../components/Header";
 import BoardSubHeader from "../components/BoardSubHeader";
 import WorkspaceTabBar from "../components/WorkspaceTabBar";
+import client from "../api/client";
 import "./DashboardPage.css";
 
 interface Workspace {
-  id: number;
+  id: string;
   name: string;
   gradient: string;
 }
@@ -18,38 +20,67 @@ function arc(value: number, offset: number, total: number) {
   return { strokeDasharray: `${dash} ${CIRC}`, strokeDashoffset: -offset };
 }
 
-const ACTIVITY = [
-  { icon: "👥", type: "참여함", desc: "OOO님이 참여하였습니다." },
-  { icon: "▶", type: "시작됨", desc: "OO님 태스크 작업이 시작되었습니다." },
-  { icon: "✓", type: "완료됨", desc: "OO미마다 작업이 완료되었습니다." },
-];
-
-
 export default function DashboardPage() {
   const { state } = useLocation() as {
     state: { workspace?: Workspace; workspaces?: Workspace[] };
   };
+  const navigate = useNavigate();
 
   const savedWs   = JSON.parse(localStorage.getItem("clickedWorkspace") ?? "null");
   const workspace = state?.workspace ?? state?.workspaces?.[0] ?? savedWs;
   const workspaces = state?.workspaces ?? [];
   const wsName    = workspace?.name ?? "워크스페이스";
   const userName  = localStorage.getItem("userName") ?? "나";
-  const GRAPH     = [{ name: userName, value: 50 }];
 
-  const savedStats = JSON.parse(localStorage.getItem("board_stats") ?? "null");
-  const DONUT = {
-    progress:   savedStats?.inProgress  ?? 0,
-    done:       savedStats?.done        ?? 0,
-    hold:       savedStats?.hold        ?? 0,
-    notStarted: savedStats?.notStarted  ?? 0,
-  };
-  const TOTAL = DONUT.progress + DONUT.done + DONUT.hold + DONUT.notStarted || 1;
+  const [donut, setDonut] = useState({ progress: 0, done: 0, hold: 0, notStarted: 0, todo: 0 });
+  const [activityLog, setActivityLog] = useState<{ icon: string; type: string; desc: string }[]>([
+    { icon: "👥", type: "참여함",  desc: "워크스페이스에 참여하였습니다." },
+    { icon: "▶",  type: "시작됨",  desc: "태스크 작업이 시작되었습니다." },
+    { icon: "✓",  type: "완료됨",  desc: "태스크 작업이 완료되었습니다." },
+  ]);
 
-  const doneDash        = arc(DONUT.done,       0,                                                           TOTAL);
-  const progressDash    = arc(DONUT.progress,   (DONUT.done / TOTAL) * CIRC,                                TOTAL);
-  const holdDash        = arc(DONUT.hold,       ((DONUT.done + DONUT.progress) / TOTAL) * CIRC,             TOTAL);
-  const notStartedDash  = arc(DONUT.notStarted, ((DONUT.done + DONUT.progress + DONUT.hold) / TOTAL) * CIRC, TOTAL);
+  useEffect(() => {
+    if (!workspace?.id) return;
+    client.get(`/workspaces/${workspace.id}/tasks`)
+      .then((res) => {
+        const tasks: { status: string }[] = res.data ?? [];
+        const counts = { progress: 0, done: 0, hold: 0, notStarted: 0, todo: 0 };
+        for (const t of tasks) {
+          if (t.status === "DOING")  counts.progress++;
+          else if (t.status === "DONE")   counts.done++;
+          else if (t.status === "ISSUE")  counts.hold++;
+          else if (t.status === "REVIEW") counts.notStarted++;
+          else if (t.status === "TODO")   counts.todo++;
+        }
+        setDonut(counts);
+        localStorage.setItem("board_stats", JSON.stringify({
+          inProgress: counts.progress,
+          done: counts.done,
+          hold: counts.hold,
+          notStarted: counts.notStarted + counts.todo,
+        }));
+      })
+      .catch(() => {
+        const saved = JSON.parse(localStorage.getItem("board_stats") ?? "null");
+        if (saved) {
+          setDonut({
+            progress: saved.inProgress ?? 0,
+            done: saved.done ?? 0,
+            hold: saved.hold ?? 0,
+            notStarted: saved.notStarted ?? 0,
+            todo: 0,
+          });
+        }
+      });
+  }, [workspace?.id]);
+
+  const TOTAL = donut.progress + donut.done + donut.hold + donut.notStarted + donut.todo || 1;
+  const GRAPH = [{ name: userName, value: TOTAL > 0 ? Math.round((donut.done / TOTAL) * 100) : 0 }];
+
+  const doneDash       = arc(donut.done,       0,                                                                    TOTAL);
+  const progressDash   = arc(donut.progress,   (donut.done / TOTAL) * CIRC,                                         TOTAL);
+  const holdDash       = arc(donut.hold,       ((donut.done + donut.progress) / TOTAL) * CIRC,                      TOTAL);
+  const notStartedDash = arc(donut.notStarted + donut.todo, ((donut.done + donut.progress + donut.hold) / TOTAL) * CIRC, TOTAL);
 
   return (
     <div className="dbp-page">
@@ -84,29 +115,29 @@ export default function DashboardPage() {
                   strokeDashoffset={notStartedDash.strokeDashoffset}
                   strokeLinecap="butt" />
                 <text x="50" y="55" textAnchor="middle" fontSize="20" fontWeight="bold" fill="#333"
-                  transform="rotate(90 50 50)">{DONUT.progress + DONUT.done + DONUT.hold + DONUT.notStarted}</text>
+                  transform="rotate(90 50 50)">{TOTAL === 1 && donut.progress + donut.done + donut.hold + donut.notStarted + donut.todo === 0 ? 0 : TOTAL}</text>
               </svg>
             </div>
             <div className="dbp-stat-list">
               <div className="dbp-stat-row">
                 <span className="dbp-stat-dot" style={{ background: "#aaa" }} />
                 <span className="dbp-stat-label">시작하지 않음</span>
-                <span className="dbp-stat-val">{DONUT.notStarted}건</span>
+                <span className="dbp-stat-val">{donut.notStarted + donut.todo}건</span>
               </div>
               <div className="dbp-stat-row">
                 <span className="dbp-stat-dot" style={{ background: "#6ab4f8" }} />
                 <span className="dbp-stat-label">진행중</span>
-                <span className="dbp-stat-val">{DONUT.progress}건</span>
+                <span className="dbp-stat-val">{donut.progress}건</span>
               </div>
               <div className="dbp-stat-row">
                 <span className="dbp-stat-dot" style={{ background: "#7de89a" }} />
                 <span className="dbp-stat-label">완료</span>
-                <span className="dbp-stat-val">{DONUT.done}건</span>
+                <span className="dbp-stat-val">{donut.done}건</span>
               </div>
               <div className="dbp-stat-row">
                 <span className="dbp-stat-dot" style={{ background: "#f8d08a" }} />
                 <span className="dbp-stat-label">보류</span>
-                <span className="dbp-stat-val">{DONUT.hold}건</span>
+                <span className="dbp-stat-val">{donut.hold}건</span>
               </div>
             </div>
           </div>
@@ -118,11 +149,11 @@ export default function DashboardPage() {
               <span className="dbp-activity-user-label">유저</span>
             </div>
             <div className="dbp-timeline">
-              {ACTIVITY.map((a, i) => (
+              {activityLog.map((a, i) => (
                 <div key={i} className="dbp-timeline-item">
                   <div className="dbp-timeline-left">
                     <div className="dbp-timeline-icon">{a.icon}</div>
-                    {i < ACTIVITY.length - 1 && <div className="dbp-timeline-line" />}
+                    {i < activityLog.length - 1 && <div className="dbp-timeline-line" />}
                   </div>
                   <div className="dbp-timeline-content">
                     <span className="dbp-timeline-type">{a.type}</span>
@@ -134,7 +165,7 @@ export default function DashboardPage() {
           </div>
         </div>
 
-        {/* 하단: 그라프 목록 */}
+        {/* 하단: 그래프 목록 */}
         <div className="dbp-card dbp-graph-card">
           <h3 className="dbp-card-title">그래프 목록</h3>
           <div className="dbp-graph-list">
@@ -144,6 +175,7 @@ export default function DashboardPage() {
                 <div className="dbp-graph-track">
                   <div className="dbp-graph-fill" style={{ width: `${g.value}%` }} />
                 </div>
+                <span className="dbp-graph-pct">{g.value}%</span>
               </div>
             ))}
           </div>
@@ -164,19 +196,20 @@ export default function DashboardPage() {
                 ))}
               </div>
               <div className="dbp-bars">
-                {[
-                  { name: userName, done: 60, progress: 25, hold: 15 },
-                ].map((m) => (
-                  <div key={m.name} className="dbp-bar-col">
-                    <div className="dbp-bar-track">
-                      <div className="dbp-bar-seg hold"   style={{ height: `${m.hold}%` }} />
-                      <div className="dbp-bar-seg progress" style={{ height: `${m.progress}%` }} />
-                      <div className="dbp-bar-seg done"   style={{ height: `${m.done}%` }} />
+                {[{ name: userName, done: donut.done, progress: donut.progress, hold: donut.hold }].map((m) => {
+                  const total = m.done + m.progress + m.hold || 1;
+                  return (
+                    <div key={m.name} className="dbp-bar-col">
+                      <div className="dbp-bar-track">
+                        <div className="dbp-bar-seg hold"     style={{ height: `${(m.hold / total) * 100}%` }} />
+                        <div className="dbp-bar-seg progress" style={{ height: `${(m.progress / total) * 100}%` }} />
+                        <div className="dbp-bar-seg done"     style={{ height: `${(m.done / total) * 100}%` }} />
+                      </div>
+                      <div className="dbp-bar-avatar">{m.name[0]}</div>
+                      <span className="dbp-bar-name">{m.name}</span>
                     </div>
-                    <div className="dbp-bar-avatar">{m.name[0]}</div>
-                    <span className="dbp-bar-name">{m.name}</span>
-                  </div>
-                ))}
+                  );
+                })}
               </div>
             </div>
             <div className="dbp-bar-legend">
@@ -189,34 +222,44 @@ export default function DashboardPage() {
           {/* 마감 임박 */}
           <div className="dbp-card">
             <h3 className="dbp-card-title">마감 임박</h3>
-
-            <div className="dbp-warning">⚠️ 경보</div>
-            <div className="dbp-dl-row">
-              <span className="dbp-dl-name">예시</span>
-              <div className="dbp-dl-bar"><div className="dbp-dl-fill striped" style={{ width: "95%" }} /></div>
-            </div>
-            <div className="dbp-dl-row">
-              <span className="dbp-dl-name">예시</span>
-              <div className="dbp-dl-bar"><div className="dbp-dl-fill striped" style={{ width: "72%" }} /></div>
-            </div>
-
-            <div className="dbp-dl-divider" />
-
-            <div className="dbp-request-row">
-              <span className="dbp-request-num">2</span>
-              <span className="dbp-request-label">보통</span>
-            </div>
-            <div className="dbp-dl-row">
-              <span className="dbp-dl-name">예시</span>
-              <div className="dbp-dl-bar"><div className="dbp-dl-fill" style={{ width: "40%" }} /></div>
-            </div>
+            {donut.progress + donut.done + donut.hold + donut.notStarted + donut.todo === 0 ? (
+              <div className="dbp-empty-msg">등록된 마감 업무가 없습니다.</div>
+            ) : (
+              <>
+                <div className="dbp-warning">⚠️ 경보</div>
+                <div className="dbp-dl-row">
+                  <span className="dbp-dl-name">진행중 업무</span>
+                  <div className="dbp-dl-bar">
+                    <div className="dbp-dl-fill striped" style={{ width: `${Math.min((donut.progress / TOTAL) * 100 + 20, 100)}%` }} />
+                  </div>
+                </div>
+                <div className="dbp-dl-divider" />
+                <div className="dbp-request-row">
+                  <span className="dbp-request-num">{donut.notStarted + donut.todo}</span>
+                  <span className="dbp-request-label">미시작</span>
+                </div>
+                <div className="dbp-dl-row">
+                  <span className="dbp-dl-name">미시작 업무</span>
+                  <div className="dbp-dl-bar">
+                    <div className="dbp-dl-fill" style={{ width: `${Math.min(((donut.notStarted + donut.todo) / TOTAL) * 100, 100)}%` }} />
+                  </div>
+                </div>
+              </>
+            )}
           </div>
 
         </div>
 
       </div>
 
-      <WorkspaceTabBar active="board" />
+      <WorkspaceTabBar
+        active="board"
+        onTabChange={(t) => {
+          if (t === "board") navigate("/workspace-board", { state: { workspace, workspaces } });
+          if (t === "planner") navigate("/workspace-board", { state: { workspace, workspaces } });
+          if (t === "community") navigate("/workspace-board", { state: { workspace, workspaces } });
+        }}
+      />
     </div>
   );
 }

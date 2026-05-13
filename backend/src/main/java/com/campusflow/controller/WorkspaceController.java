@@ -65,4 +65,13 @@ public class WorkspaceController {
         workspaceService.deleteWorkspace(workspaceId);
         return ResponseEntity.ok(ApiResponse.success(200, "삭제 성공", null));
     }
+
+    @Operation(summary = "워크스페이스 참여 (초대 코드/ID 입력)")
+    @PostMapping("/{workspaceId}/join")
+    public ResponseEntity<ApiResponse<WorkspaceResponse>> joinWorkspace(
+            @PathVariable String workspaceId,
+            @RequestParam String userId) {
+        var workspace = workspaceService.joinWorkspace(workspaceId, userId);
+        return ResponseEntity.ok(ApiResponse.success(200, "참여 성공", WorkspaceResponse.from(workspace)));
+    }
 }

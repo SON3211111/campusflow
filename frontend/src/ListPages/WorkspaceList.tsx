@@ -157,7 +157,7 @@ export default function WorkspaceList() {
           <span className={`sidebar-arrow ${expandedId === ws.id ? 'open' : ''}`}>▾</span>
         </div>
         <div className={`sidebar-submenu ${expandedId === ws.id ? 'open' : ''}`}>
-          <div className="sidebar-subitem" onClick={() => navigate('/board', { state: { workspace: ws, teamWorkspaces, personalWorkspaces } })}><span className="subitem-icon">□</span> Board</div>
+          <div className="sidebar-subitem" onClick={() => navigate('/workspace-board', { state: { workspace: ws, workspaces: [...teamWorkspaces, ...personalWorkspaces] } })}><span className="subitem-icon">□</span> Board</div>
           <div className="sidebar-subitem" onClick={() => navigate('/members', { state: { workspace: ws, teamWorkspaces, personalWorkspaces } })}><span className="subitem-icon">👥</span> Members</div>
           <div className="sidebar-subitem" onClick={() => navigate('/settings', { state: { workspace: ws, teamWorkspaces, personalWorkspaces } })}><span className="subitem-icon">⚙</span> Setting</div>
         </div>
@@ -210,7 +210,10 @@ export default function WorkspaceList() {
                   starred={ws.starred}
                   onToggleStar={() => toggleStar(ws.id, 'team')}
                   onDelete={() => setDeleteTarget({ id: ws.id, section: 'team', name: ws.name })}
-                  onClick={() => setAiTaskOpen(true)}
+                  onClick={() => {
+                    localStorage.setItem("clickedWorkspace", JSON.stringify(ws));
+                    navigate('/workspace-board', { state: { workspace: ws, workspaces: [...teamWorkspaces, ...personalWorkspaces] } });
+                  }}
                 />
               ))}
               <div
@@ -238,7 +241,10 @@ export default function WorkspaceList() {
                   starred={ws.starred}
                   onToggleStar={() => toggleStar(ws.id, 'personal')}
                   onDelete={() => setDeleteTarget({ id: ws.id, section: 'personal', name: ws.name })}
-                  onClick={() => setAiTaskOpen(true)}
+                  onClick={() => {
+                    localStorage.setItem("clickedWorkspace", JSON.stringify(ws));
+                    navigate('/workspace-board', { state: { workspace: ws, workspaces: [...teamWorkspaces, ...personalWorkspaces] } });
+                  }}
                 />
               ))}
               <div

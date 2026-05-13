@@ -1,5 +1,7 @@
 package com.campusflow.controller;
 
+import com.campusflow.dto.TaskCreateRequest;
+import com.campusflow.dto.TaskResponse;
 import com.campusflow.entity.Task;
 import com.campusflow.entity.enums.TaskStatus;
 import com.campusflow.service.TaskService;
@@ -16,6 +18,24 @@ import java.util.Map;
 public class TaskController {
 
     private final TaskService taskService;
+
+    @GetMapping
+    public ResponseEntity<List<TaskResponse>> getAllTasks(@PathVariable String workspaceId) {
+        return ResponseEntity.ok(taskService.getAllTasks(workspaceId));
+    }
+
+    @PostMapping
+    public ResponseEntity<TaskResponse> createTask(
+            @PathVariable String workspaceId,
+            @RequestBody TaskCreateRequest request) {
+        return ResponseEntity.ok(taskService.createTask(workspaceId, request));
+    }
+
+    @DeleteMapping("/{taskId}")
+    public ResponseEntity<Void> deleteTask(@PathVariable String taskId) {
+        taskService.deleteTask(taskId);
+        return ResponseEntity.ok().build();
+    }
 
     @GetMapping("/kanban")
     public ResponseEntity<Map<TaskStatus, List<Task>>> getKanbanBoard(@PathVariable String workspaceId) {

@@ -2,11 +2,12 @@ import { useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import Header from "../components/Header";
 import JoinModal from "../components/JoinModal";
+import client from "../api/client";
 import "./WorkspaceList.css";
 import "./TemplatePage.css";
 
 interface Workspace {
-  id: number;
+  id: string;
   name: string;
   gradient: string;
   starred?: boolean;
@@ -28,25 +29,47 @@ export default function TemplatePage() {
   };
   const navigate = useNavigate();
 
-  const workspace  = state?.workspace         ?? { id: 0, name: "워크스페이스", gradient: "#ccc" };
+  const workspace  = state?.workspace         ?? { id: "", name: "워크스페이스", gradient: "#ccc" };
   const teamWs     = state?.teamWorkspaces     ?? [];
   const personalWs = state?.personalWorkspaces ?? [];
   const allWorkspaces = [...teamWs, ...personalWs];
 
-  const [expandedId, setExpandedId]   = useState<number>(workspace.id);
+  const [expandedId, setExpandedId]   = useState<string>(workspace.id);
   const [catOpen, setCatOpen]         = useState(false);
   const [joinOpen, setJoinOpen]       = useState(false);
   const [selectedCat, setSelectedCat] = useState<string>("전체");
   const [search, setSearch]           = useState("");
+  const [applying, setApplying]       = useState(false);
 
-  const toggleSidebar = (id: number) =>
-    setExpandedId((prev) => (prev === id ? -1 : id));
+  const toggleSidebar = (id: string) =>
+    setExpandedId((prev) => (prev === id ? "" : id));
 
   const navState = (ws: Workspace) => ({
     workspace: ws,
     teamWorkspaces: teamWs,
     personalWorkspaces: personalWs,
   });
+
+  const handleApplyTemplate = async (gradient: string) => {
+    if (!workspace.id) {
+      navigate("/workspace-board", { state: { workspace: { ...workspace, gradient }, workspaces: allWorkspaces } });
+      return;
+    }
+    setApplying(true);
+    try {
+      await client.patch(`/workspaces/${workspace.id}`, {
+        name: workspace.name,
+        gradient,
+      });
+      const updated = { ...workspace, gradient };
+      localStorage.setItem("clickedWorkspace", JSON.stringify(updated));
+      navigate("/workspace-board", { state: { workspace: updated, workspaces: allWorkspaces } });
+    } catch {
+      alert("템플릿 적용에 실패했습니다.");
+    } finally {
+      setApplying(false);
+    }
+  };
 
   const renderSidebarItems = (list: Workspace[]) =>
     list.map((ws) => (
@@ -59,7 +82,7 @@ export default function TemplatePage() {
           <span className={`sidebar-arrow ${expandedId === ws.id ? "open" : ""}`}>▾</span>
         </div>
         <div className={`sidebar-submenu ${expandedId === ws.id ? "open" : ""}`}>
-          <div className="sidebar-subitem" onClick={() => navigate("/board", { state: navState(ws) })}>
+          <div className="sidebar-subitem" onClick={() => navigate("/workspace-board", { state: { workspace: ws, workspaces: allWorkspaces } })}>
             <span className="subitem-icon">□</span> Board
           </div>
           <div className="sidebar-subitem" onClick={() => navigate("/members", { state: navState(ws) })}>
@@ -149,9 +172,15 @@ export default function TemplatePage() {
 
           <div className="template-grid-full">
             {TEMPLATES.filter((t) => t.name.includes(search)).map((t) => (
-              <div key={t.id} className="template-card-full">
+              <div
+                key={t.id}
+                className="template-card-full"
+                style={{ cursor: applying ? "wait" : "pointer" }}
+                onClick={() => !applying && handleApplyTemplate(t.bg)}
+              >
                 <div className="template-thumb-full" style={{ background: t.bg }} />
                 <span className="template-name-full">{t.name}</span>
+                <span className="template-apply-hint">클릭하여 적용</span>
               </div>
             ))}
             {Array.from({ length: EMPTY_COUNT }).map((_, i) => (

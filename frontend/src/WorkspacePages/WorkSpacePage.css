@@ -402,6 +402,25 @@
   flex: 1;
 }
 
+.wsp-card-delete {
+  display: none;
+  background: none;
+  border: none;
+  color: #bbb;
+  cursor: pointer;
+  font-size: 11px;
+  padding: 0 0 0 6px;
+  line-height: 1;
+}
+
+.wsp-card-item:hover .wsp-card-delete {
+  display: block;
+}
+
+.wsp-card-delete:hover {
+  color: #e53e3e;
+}
+
 .wsp-card-icon {
   font-size: 14px;
   color: #bbb;

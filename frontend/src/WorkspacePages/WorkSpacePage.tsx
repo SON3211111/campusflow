@@ -1,14 +1,15 @@
-import { useState } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import Header from "../components/Header";
 import BoardSubHeader from "../components/BoardSubHeader";
 import WorkspaceTabBar from "../components/WorkspaceTabBar";
 import CardDetailModal from "../components/CardDetailModal";
 import BoardSlideView from "../components/BoardSlideView";
+import client from "../api/client";
 import "./WorkSpacePage.css";
 
 interface Workspace {
-  id: number;
+  id: string;
   name: string;
   gradient: string;
 }
@@ -22,6 +23,32 @@ interface CardItem {
 
 const DAYS = ["일", "월", "화", "수", "목", "금", "토"];
 const TODAY = new Date();
+
+const COL_TO_STATUS: Record<string, string> = {
+  "상태 없음": "TODO",
+  "시작하지 않음": "REVIEW",
+  "진행 중": "DOING",
+  "보류 중": "ISSUE",
+  "완료": "DONE",
+};
+
+const STATUS_TO_COL: Record<string, string> = {
+  TODO: "상태 없음",
+  REVIEW: "시작하지 않음",
+  DOING: "진행 중",
+  ISSUE: "보류 중",
+  DONE: "완료",
+};
+
+const BSV_KEY_TO_STATUS: Record<string, string> = {
+  none: "TODO",
+  notStarted: "REVIEW",
+  inProgress: "DOING",
+  hold: "ISSUE",
+  done: "DONE",
+};
+
+const INITIAL_COLS = ["상태 없음", "시작하지 않음", "진행 중", "보류 중", "완료"];
 
 function getCalendarDays(year: number, month: number) {
   const first = new Date(year, month, 1).getDay();
@@ -69,16 +96,48 @@ export default function WorkSpacePage() {
   const [calYear, setCalYear]   = useState(TODAY.getFullYear());
   const [calMonth, setCalMonth] = useState(TODAY.getMonth());
 
-  const [cols, setCols]             = useState(["상태 없음", "시작하지 않음", "진행 중", "완료"]);
+  const emptyCards = () => Object.fromEntries(INITIAL_COLS.map((c) => [c, [] as CardItem[]]));
+
+  const [cols, setCols]             = useState(INITIAL_COLS);
   const [addingList, setAddingList] = useState(false);
   const [listName, setListName]     = useState("");
 
-  const [cards, setCards] = useState<{ [col: string]: CardItem[] }>({
-    "상태 없음": [],
-    "시작하지 않음": [],
-    "진행 중": [],
-    "완료": [],
-  });
+  const [cards, setCards] = useState<{ [col: string]: CardItem[] }>(emptyCards());
+
+  const hasPostedBasket = useRef(false);
+
+  useEffect(() => {
+    if (!workspace?.id) return;
+
+    const init = async () => {
+      if (!hasPostedBasket.current && basketTasks.length > 0) {
+        hasPostedBasket.current = true;
+        for (const bt of basketTasks) {
+          try {
+            await client.post(`/workspaces/${workspace.id}/tasks`, {
+              title: bt.title,
+              description: bt.desc || "",
+              status: "TODO",
+            });
+          } catch {}
+        }
+      }
+
+      try {
+        const res = await client.get(`/workspaces/${workspace.id}/tasks`);
+        const newCards = emptyCards();
+        for (const t of res.data) {
+          const col = STATUS_TO_COL[t.status] ?? "상태 없음";
+          if (newCards[col]) {
+            newCards[col].push({ id: t.taskId, title: t.title, desc: t.description ?? "", comments: [] });
+          }
+        }
+        setCards(newCards);
+      } catch {}
+    };
+
+    init();
+  }, [workspace?.id]);
 
   const handleAddList = () => {
     if (!listName.trim()) return;
@@ -96,23 +155,63 @@ export default function WorkSpacePage() {
   const [draggingCard, setDraggingCard]   = useState<{ card: CardItem; col: string } | null>(null);
   const [dragOverCol, setDragOverCol]     = useState<string | null>(null);
 
-  const handleCardDrop = (targetCol: string) => {
+  const handleCardDrop = async (targetCol: string) => {
     if (!draggingCard || draggingCard.col === targetCol) return;
+    const { card, col: sourceCol } = draggingCard;
     setCards((prev) => ({
       ...prev,
-      [draggingCard.col]: prev[draggingCard.col].filter((c) => c.id !== draggingCard.card.id),
-      [targetCol]: [...prev[targetCol], draggingCard.card],
+      [sourceCol]: prev[sourceCol].filter((c) => c.id !== card.id),
+      [targetCol]: [...(prev[targetCol] ?? []), card],
     }));
     setDraggingCard(null);
     setDragOverCol(null);
+
+    const newStatus = COL_TO_STATUS[targetCol];
+    if (newStatus && workspace?.id) {
+      try {
+        await client.patch(`/workspaces/${workspace.id}/tasks/${card.id}/status?status=${newStatus}`);
+      } catch {}
+    }
   };
 
-  const handleAddCard = (col: string) => {
+  const handleAddCard = async (col: string) => {
     if (!inputVal.trim()) return;
-    const newCard: CardItem = { id: Date.now().toString(), title: inputVal.trim(), desc: "", comments: [] };
-    setCards((prev) => ({ ...prev, [col]: [...prev[col], newCard] }));
+    const title = inputVal.trim();
+    const status = COL_TO_STATUS[col] ?? "TODO";
+
+    if (workspace?.id) {
+      try {
+        const res = await client.post(`/workspaces/${workspace.id}/tasks`, {
+          title,
+          description: "",
+          status,
+        });
+        const newCard: CardItem = {
+          id: res.data.taskId,
+          title: res.data.title,
+          desc: res.data.description ?? "",
+          comments: [],
+        };
+        setCards((prev) => ({ ...prev, [col]: [...(prev[col] ?? []), newCard] }));
+      } catch {
+        const newCard: CardItem = { id: Date.now().toString(), title, desc: "", comments: [] };
+        setCards((prev) => ({ ...prev, [col]: [...(prev[col] ?? []), newCard] }));
+      }
+    } else {
+      const newCard: CardItem = { id: Date.now().toString(), title, desc: "", comments: [] };
+      setCards((prev) => ({ ...prev, [col]: [...(prev[col] ?? []), newCard] }));
+    }
     setInputVal("");
     setAddingCol(null);
+  };
+
+  const handleDeleteCard = async (col: string, cardId: string) => {
+    setCards((prev) => ({ ...prev, [col]: prev[col].filter((c) => c.id !== cardId) }));
+    if (workspace?.id) {
+      try {
+        await client.delete(`/workspaces/${workspace.id}/tasks/${cardId}`);
+      } catch {}
+    }
   };
 
   const handleSaveDesc = (col: string, id: string, desc: string) => {
@@ -121,6 +220,15 @@ export default function WorkSpacePage() {
 
   const handleSaveComments = (col: string, id: string, comments: CardItem["comments"]) => {
     setCards((prev) => ({ ...prev, [col]: prev[col].map((c) => c.id === id ? { ...c, comments } : c) }));
+  };
+
+  const handleBoardStatusChange = async (taskId: string, newColKey: string) => {
+    const newStatus = BSV_KEY_TO_STATUS[newColKey];
+    if (newStatus && workspace?.id) {
+      try {
+        await client.patch(`/workspaces/${workspace.id}/tasks/${taskId}/status?status=${newStatus}`);
+      } catch {}
+    }
   };
 
   const calDays = getCalendarDays(calYear, calMonth);
@@ -247,7 +355,10 @@ export default function WorkSpacePage() {
                       onClick={() => setSelectedCard({ card, col })}
                     >
                       <span className="wsp-card-text">{card.title}</span>
-                      <span className="wsp-card-icon">≡</span>
+                      <button
+                        className="wsp-card-delete"
+                        onClick={(e) => { e.stopPropagation(); handleDeleteCard(col, card.id); }}
+                      >✕</button>
                     </div>
                   ))}
                   {addingCol === col ? (
@@ -310,6 +421,7 @@ export default function WorkSpacePage() {
         initialCards={slideInitialCards}
         gradient={gradient}
         onCardClick={(card) => setSlideCard(card)}
+        onStatusChange={handleBoardStatusChange}
       />
 
       {slideCard && (

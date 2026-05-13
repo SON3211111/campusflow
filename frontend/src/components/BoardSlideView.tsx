@@ -13,6 +13,7 @@ interface Props {
   initialCards: CardItem[];
   gradient?: string;
   onCardClick?: (card: { title: string; desc: string; comments: any[] }) => void;
+  onStatusChange?: (taskId: string, newColKey: string) => void;
 }
 
 const STATUS_COLS = [
@@ -25,7 +26,7 @@ const STATUS_COLS = [
 
 type ColMap = { [key: string]: CardItem[] };
 
-export default function BoardSlideView({ visible, initialCards, gradient, onCardClick }: Props) {
+export default function BoardSlideView({ visible, initialCards, gradient, onCardClick, onStatusChange }: Props) {
   const [colMap, setColMap] = useState<ColMap>({
     none: [], notStarted: [], inProgress: [], hold: [], done: [],
   });
@@ -58,17 +59,19 @@ export default function BoardSlideView({ visible, initialCards, gradient, onCard
 
   const handleDrop = (targetCol: string) => {
     if (!draggingId || !draggingCol || draggingCol === targetCol) return;
+    const taskId = draggingId;
     setColMap((prev) => {
-      const card = prev[draggingCol].find((c) => c.id === draggingId);
+      const card = prev[draggingCol].find((c) => c.id === taskId);
       if (!card) return prev;
       const next = {
         ...prev,
-        [draggingCol]: prev[draggingCol].filter((c) => c.id !== draggingId),
+        [draggingCol]: prev[draggingCol].filter((c) => c.id !== taskId),
         [targetCol]: [...prev[targetCol], card],
       };
       saveStats(next);
       return next;
     });
+    onStatusChange?.(taskId, targetCol);
     setDraggingId(null);
     setDraggingCol(null);
     setDragOverCol(null);
