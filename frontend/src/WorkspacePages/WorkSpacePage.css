@@ -297,6 +297,19 @@
   padding: 12px 0;
 }
 
+/* ===== Loading ===== */
+.wsp-loading {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.wsp-loading-text {
+  font-size: 14px;
+  color: rgba(255,255,255,0.6);
+}
+
 /* ===== Landing Screen ===== */
 .wsp-landing {
   flex: 1;

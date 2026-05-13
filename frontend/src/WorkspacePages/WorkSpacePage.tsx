@@ -81,7 +81,8 @@ export default function WorkSpacePage() {
   const [showPlanner, setShowPlanner]     = useState(true);
   const [showCommunity, setShowCommunity] = useState(true);
   const [showBoardView, setShowBoardView] = useState(basketTasks.length > 0);
-  const [showLanding, setShowLanding]     = useState(basketTasks.length === 0);
+  const [loading, setLoading]             = useState(true);
+  const [showLanding, setShowLanding]     = useState(false);
   const [aiTaskOpen, setAiTaskOpen]       = useState(false);
 
   const [messages, setMessages] = useState<{ user: string; text: string; time: string }[]>([]);
@@ -110,7 +111,11 @@ export default function WorkSpacePage() {
   const hasPostedBasket = useRef(false);
 
   useEffect(() => {
-    if (!workspace?.id) return;
+    if (!workspace?.id) {
+      setShowLanding(true);
+      setLoading(false);
+      return;
+    }
 
     const init = async () => {
       if (!hasPostedBasket.current && basketTasks.length > 0) {
@@ -136,8 +141,13 @@ export default function WorkSpacePage() {
           }
         }
         setCards(newCards);
-        if (Object.values(newCards).flat().length > 0) setShowLanding(false);
-      } catch {}
+        const hasTasks = Object.values(newCards).flat().length > 0 || basketTasks.length > 0;
+        setShowLanding(!hasTasks);
+      } catch {
+        setShowLanding(basketTasks.length === 0);
+      } finally {
+        setLoading(false);
+      }
     };
 
     init();
@@ -334,7 +344,13 @@ export default function WorkSpacePage() {
         <main className="wsp-board">
           <BoardSubHeader wsName={wsName} memberCount={1} workspace={workspace} workspaces={workspaces} />
 
-          {showLanding && (
+          {loading && (
+            <div className="wsp-loading">
+              <span className="wsp-loading-text">불러오는 중...</span>
+            </div>
+          )}
+
+          {!loading && showLanding && (
             <div className="wsp-landing">
               <div className="wsp-landing-ws-icon" style={{ background: gradient }} />
               <h2 className="wsp-landing-title">{wsName}</h2>
@@ -356,7 +372,7 @@ export default function WorkSpacePage() {
             </div>
           )}
 
-          <div className="wsp-columns" style={{ display: showLanding ? 'none' : undefined }}>
+          <div className="wsp-columns" style={{ display: loading || showLanding ? 'none' : undefined }}>
             {cols.map((col) => (
               <div
                 key={col}
