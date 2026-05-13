@@ -2,6 +2,7 @@ import { useState, useRef, useEffect } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import axios from "axios";
 import Header from "../components/Header";
+import client from "../api/client";
 import "./AiTaskPage.css";
 
 interface Task {
@@ -16,6 +17,26 @@ interface Category {
   taskColor: string;
 }
 
+interface WorkspaceItem {
+  id: string;
+  name: string;
+  gradient: string;
+}
+
+interface AiResult {
+  title: string;
+  categories: { id: string; name: string; tasks: string[] }[];
+}
+
+interface AiTaskSession {
+  title: string;
+  categories: Category[];
+  tasks: Task[];
+  basket: Task[];
+  prompt: string;
+  result: AiResult;
+}
+
 const CAT_COLORS = [
   { color: "#1a1a1a", taskColor: "#f8b4b4" },
   { color: "#6ab4f8", taskColor: "#6ab4f8" },
@@ -27,22 +48,31 @@ const CAT_COLORS = [
 export default function AiTaskPage() {
   const { state } = useLocation() as {
     state: {
-      workspaces?: { id: string; name: string; gradient: string }[];
-      workspace?: { id: string; name: string; gradient: string };
-      result?: { title: string; categories: { id: string; name: string; tasks: string[] }[] };
+      workspaces?: WorkspaceItem[];
+      workspace?: WorkspaceItem;
+      result?: AiResult;
       prompt?: string;
     };
   };
   const navigate = useNavigate();
   const workspaces   = state?.workspaces ?? [];
   const workspace    = state?.workspace ?? workspaces[0];
-  const aiResult     = state?.result;
-  const origPrompt   = state?.prompt ?? "";
+  const sessionKey   = `ai_task_session_${workspace?.id ?? "default"}`;
+  const storedSession: AiTaskSession | null = (() => {
+    try {
+      return JSON.parse(localStorage.getItem(sessionKey) ?? "null");
+    } catch {
+      return null;
+    }
+  })();
+  const shouldRestoreSession = !state?.result && !!storedSession;
+  const aiResult     = state?.result ?? storedSession?.result ?? null;
+  const origPrompt   = state?.prompt ?? storedSession?.prompt ?? "";
 
   const userName = localStorage.getItem("userName") ?? "나";
 
   useEffect(() => {
-    if (!aiResult) navigate("/workspace", { replace: true });
+    if (!aiResult) navigate("/workspace-board", { replace: true, state: { workspace, workspaces } });
   }, []);
 
   if (!aiResult) return null;
@@ -59,10 +89,10 @@ export default function AiTaskPage() {
       cat.tasks.map((t, ti) => ({ id: `c${ci}-t${ti}`, name: t, categoryIdx: ci }))
     );
 
-  const [title, setTitle]               = useState<string>(aiResult.title ?? "");
-  const [categories, setCategories]     = useState<Category[]>(buildCategories(aiResult));
-  const [tasks, setTasks]               = useState<Task[]>(buildTasks(aiResult));
-  const [basket, setBasket]             = useState<Task[]>([]);
+  const [title, setTitle]               = useState<string>(shouldRestoreSession ? storedSession?.title ?? "" : aiResult.title ?? "");
+  const [categories, setCategories]     = useState<Category[]>(shouldRestoreSession ? storedSession?.categories ?? [] : buildCategories(aiResult));
+  const [tasks, setTasks]               = useState<Task[]>(shouldRestoreSession ? storedSession?.tasks ?? [] : buildTasks(aiResult));
+  const [basket, setBasket]             = useState<Task[]>(shouldRestoreSession ? storedSession?.basket ?? [] : []);
   const [draggingId, setDraggingId]     = useState<string | null>(null);
   const [dragOver, setDragOver]         = useState(false);
   const [loadingId, setLoadingId]       = useState<string | null>(null);
@@ -77,13 +107,35 @@ export default function AiTaskPage() {
     setTimeout(() => setSaveMsg(""), 5000);
   };
 
+  useEffect(() => {
+    localStorage.setItem(sessionKey, JSON.stringify({
+      title,
+      categories,
+      tasks,
+      basket,
+      prompt: origPrompt,
+      result: aiResult,
+    }));
+  }, [title, categories, tasks, basket, origPrompt, sessionKey]);
+
+  const buildCurrentResult = (): AiResult => ({
+    title,
+    categories: categories.map((cat, ci) => ({
+      id: `c${ci + 1}`,
+      name: cat.name,
+      tasks: [...tasks, ...basket]
+        .filter((task) => task.categoryIdx === ci)
+        .map((task) => task.name),
+    })),
+  });
+
   const handleSaveTask = () => {
     if (saved) {
       showMsg("이미 저장되었습니다");
       return;
     }
     const list = JSON.parse(localStorage.getItem("saved_ai_tasks") ?? "[]");
-    const newEntry = { id: Date.now().toString(), title, prompt: origPrompt, result: aiResult };
+    const newEntry = { id: Date.now().toString(), title, prompt: origPrompt, result: buildCurrentResult() };
     localStorage.setItem("saved_ai_tasks", JSON.stringify([...list, newEntry]));
     setSaved(true);
     showMsg("저장되었습니다");
@@ -117,6 +169,14 @@ export default function AiTaskPage() {
       setTasks(buildTasks(json));
       setBasket([]);
       setSaved(false);
+      localStorage.setItem(sessionKey, JSON.stringify({
+        title: json.title,
+        categories: buildCategories(json),
+        tasks: buildTasks(json),
+        basket: [],
+        prompt: origPrompt,
+        result: json,
+      }));
     } catch (err: any) {
       console.error("[AI reset]", err);
       alert(`다시 설정에 실패했습니다: ${err?.response?.data?.detail ?? err?.message ?? err}`);
@@ -167,7 +227,7 @@ export default function AiTaskPage() {
     if (cooldown > 0) return;
     const task = tasks.find((t) => t.id === draggingId);
     if (!task) return;
-    setBasket((prev) => [...prev, task]);
+    setBasket((prev) => prev.some((item) => item.id === task.id) ? prev : [...prev, task]);
     setTasks((prev) => prev.filter((t) => t.id !== draggingId));
     setDraggingId(null);
     setDragOver(false);
@@ -200,6 +260,40 @@ export default function AiTaskPage() {
     tasks.filter((t) => t.categoryIdx === ci)
   );
 
+  const sendBasketToWorkspace = async () => {
+    if (!workspace?.id) {
+      alert("워크스페이스 정보가 없습니다.");
+      return;
+    }
+    if (basket.length === 0) {
+      navigate("/workspace-board", { state: { workspaces, workspace } });
+      return;
+    }
+
+    try {
+      for (const task of basket) {
+        await client.post(`/workspaces/${workspace.id}/tasks`, {
+          title: task.name,
+          description: categories[task.categoryIdx]?.name ?? "",
+          status: "TODO",
+        });
+      }
+      setBasket([]);
+      localStorage.setItem(sessionKey, JSON.stringify({
+        title,
+        categories,
+        tasks,
+        basket: [],
+        prompt: origPrompt,
+        result: aiResult,
+      }));
+      showMsg("보드에 업무를 저장했습니다");
+      navigate("/workspace-board", { state: { workspaces, workspace } });
+    } catch (err: any) {
+      alert(`업무 저장에 실패했습니다: ${err?.response?.data?.detail ?? err?.message ?? err}`);
+    }
+  };
+
   return (
     <div className="atp-page">
       <Header workspaces={workspaces} />
@@ -216,14 +310,8 @@ export default function AiTaskPage() {
         </div>
         <button
           className="atp-workspace-btn"
-          onClick={() => navigate("/workspace-board", {
-            state: {
-              workspaces,
-              workspace,
-              basketTasks: basket.map(t => ({ id: t.id, title: t.name, desc: "", comments: [] }))
-            }
-          })}
-        >워크스페이스로 이동 →</button>
+          onClick={sendBasketToWorkspace}
+        >보드로 보내기</button>
       </div>
 
       <div className="atp-body">

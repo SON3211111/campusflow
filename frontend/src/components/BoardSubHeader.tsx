@@ -10,7 +10,7 @@ interface Props {
   initialSelected?: string;
 }
 
-const MENU_ITEMS = ["Board", "Dash Board", "Calender", "Notification", "Task Board", "Setting"];
+const MENU_ITEMS = ["Board", "AI Task", "Dash Board", "Calender", "Notification", "Task Board", "Setting"];
 
 export default function BoardSubHeader({ wsName = "워크스페이스", memberCount = 1, workspace, workspaces = [], initialSelected = "Board" }: Props) {
   const userName = localStorage.getItem("userName") ?? "나";
@@ -50,6 +50,7 @@ export default function BoardSubHeader({ wsName = "워크스페이스", memberCo
                     setDropOpen(false);
                     if (item === "Dash Board") navigate("/dashboard", { state: { workspace, workspaces } });
                     if (item === "Board") navigate("/workspace-board", { state: { workspace, workspaces } });
+                    if (item === "AI Task") navigate("/ai-task", { state: { workspace, workspaces } });
                   }}
                 >
                   {item}

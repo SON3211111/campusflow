@@ -11,6 +11,8 @@ import java.util.List;
 public interface TaskRepository extends JpaRepository<Task, String> {
     List<Task> findAllByWorkspace_WorkspaceIdAndParentTaskIsNull(String workspaceId);
     List<Task> findAllByWorkspace_WorkspaceId(String workspaceId);
+    List<Task> findAllByWorkspace_WorkspaceIdAndDeletedFalse(String workspaceId);
+    List<Task> findAllByWorkspace_WorkspaceIdAndDeletedTrue(String workspaceId);
     void deleteAllByWorkspace_WorkspaceId(String workspaceId);
     List<Task> findAllByWorkspace_WorkspaceIdAndStatus(String workspaceId, TaskStatus status);
 }

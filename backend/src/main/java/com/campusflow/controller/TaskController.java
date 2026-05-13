@@ -24,6 +24,11 @@ public class TaskController {
         return ResponseEntity.ok(taskService.getAllTasks(workspaceId));
     }
 
+    @GetMapping("/trash")
+    public ResponseEntity<List<TaskResponse>> getDeletedTasks(@PathVariable String workspaceId) {
+        return ResponseEntity.ok(taskService.getDeletedTasks(workspaceId));
+    }
+
     @PostMapping
     public ResponseEntity<TaskResponse> createTask(
             @PathVariable String workspaceId,
@@ -35,6 +40,11 @@ public class TaskController {
     public ResponseEntity<Void> deleteTask(@PathVariable String taskId) {
         taskService.deleteTask(taskId);
         return ResponseEntity.ok().build();
+    }
+
+    @PatchMapping("/{taskId}/restore")
+    public ResponseEntity<TaskResponse> restoreTask(@PathVariable String taskId) {
+        return ResponseEntity.ok(taskService.restoreTask(taskId));
     }
 
     @GetMapping("/kanban")

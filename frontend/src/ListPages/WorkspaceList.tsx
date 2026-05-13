@@ -36,7 +36,7 @@ export default function WorkspaceList() {
 
   const [teamWorkspaces, setTeamWorkspaces] = useState<Workspace[]>([]);
   const [personalWorkspaces, setPersonalWorkspaces] = useState<Workspace[]>([]);
-  const [expandedId, setExpandedId] = useState<number | null>(null);
+  const [expandedId, setExpandedId] = useState<string | null>(null);
   const [creatorRect, setCreatorRect] = useState<DOMRect | null>(null);
   const [creatorSection, setCreatorSection] = useState<'team' | 'personal' | null>(null);
   const [deleteTarget, setDeleteTarget] = useState<{ id: any; section: 'team' | 'personal'; name: string } | null>(null);
@@ -118,14 +118,14 @@ export default function WorkspaceList() {
     }
   };
 
-  const toggleStar = (id: number, section: 'team' | 'personal') => {
+  const toggleStar = (id: string, section: 'team' | 'personal') => {
     const updater = (prev: Workspace[]) =>
       prev.map((ws) => ws.id === id ? { ...ws, starred: !ws.starred } : ws);
     if (section === 'team') setTeamWorkspaces(updater);
     else setPersonalWorkspaces(updater);
   };
 
-  const toggleSidebar = (id: number) => {
+  const toggleSidebar = (id: string) => {
     setExpandedId((prev) => (prev === id ? null : id));
   };
 

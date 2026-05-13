@@ -26,7 +26,7 @@ const STATUS_COLS = [
 
 type ColMap = { [key: string]: CardItem[] };
 
-export default function BoardSlideView({ visible, initialCards, gradient, onCardClick, onStatusChange }: Props) {
+export default function BoardSlideView({ visible, initialCards, gradient: _gradient, onCardClick, onStatusChange }: Props) {
   const [colMap, setColMap] = useState<ColMap>({
     none: [], notStarted: [], inProgress: [], hold: [], done: [],
   });

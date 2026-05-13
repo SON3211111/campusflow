@@ -8,7 +8,7 @@ import "./WorkspaceList.css";
 import "./BoardPage.css";
 
 interface Workspace {
-  id: number;
+  id: string;
   name: string;
   gradient: string;
   starred?: boolean;
@@ -29,7 +29,7 @@ export default function BoardPage() {
   };
   const navigate = useNavigate();
 
-  const workspace  = state?.workspace         ?? { id: 0, name: "워크스페이스", gradient: "#ccc" };
+  const workspace  = state?.workspace         ?? { id: "", name: "워크스페이스", gradient: "#ccc" };
   const teamWs     = state?.teamWorkspaces     ?? [];
   const personalWs = state?.personalWorkspaces ?? [];
   const allWorkspaces = [...teamWs, ...personalWs];
@@ -39,7 +39,7 @@ export default function BoardPage() {
   const [selectedTpl, setSelectedTpl] = useState<number | null>(null);
   const [editing, setEditing]         = useState(false);
   const [editValue, setEditValue]     = useState(workspace.name);
-  const [expandedId, setExpandedId]   = useState<number>(workspace.id);
+  const [expandedId, setExpandedId]   = useState<string>(workspace.id);
   const [saving, setSaving]           = useState(false);
   const [pendingNav, setPendingNav]   = useState<PendingNav>(null);
   const [confirmDelete, setConfirmDelete] = useState(false);
@@ -138,8 +138,8 @@ export default function BoardPage() {
     navigate(path, navState ? { state: navState } : undefined);
   };
 
-  const toggleSidebar = (id: number) =>
-    setExpandedId((prev) => (prev === id ? -1 : id));
+  const toggleSidebar = (id: string) =>
+    setExpandedId((prev) => (prev === id ? "" : id));
 
   const renderSidebarItems = (list: Workspace[]) =>
     list.map((ws) => (

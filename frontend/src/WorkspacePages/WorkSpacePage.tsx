@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef } from "react";
-import { useLocation } from "react-router-dom";
+import type { MouseEvent } from "react";
+import { useLocation, useNavigate } from "react-router-dom";
 import Header from "../components/Header";
 import BoardSubHeader from "../components/BoardSubHeader";
 import WorkspaceTabBar from "../components/WorkspaceTabBar";
@@ -61,6 +62,7 @@ function getCalendarDays(year: number, month: number) {
 }
 
 export default function WorkSpacePage() {
+  const navigate = useNavigate();
   const { state } = useLocation() as {
     state: {
       workspace?: Workspace;
@@ -84,6 +86,8 @@ export default function WorkSpacePage() {
   const [loading, setLoading]             = useState(true);
   const [showLanding, setShowLanding]     = useState(false);
   const [aiTaskOpen, setAiTaskOpen]       = useState(false);
+  const [trashOpen, setTrashOpen]         = useState(false);
+  const [deletedCards, setDeletedCards]   = useState<CardItem[]>([]);
 
   const [messages, setMessages] = useState<{ user: string; text: string; time: string }[]>([]);
   const [msgInput, setMsgInput] = useState("");
@@ -109,6 +113,8 @@ export default function WorkSpacePage() {
   const [cards, setCards] = useState<{ [col: string]: CardItem[] }>(emptyCards());
 
   const hasPostedBasket = useRef(false);
+  const columnsRef = useRef<HTMLDivElement>(null);
+  const panState = useRef({ active: false, x: 0, scrollLeft: 0, moved: false });
 
   useEffect(() => {
     if (!workspace?.id) {
@@ -152,6 +158,24 @@ export default function WorkSpacePage() {
 
     init();
   }, [workspace?.id]);
+
+  const loadTrash = async () => {
+    if (!workspace?.id) return;
+    try {
+      const res = await client.get(`/workspaces/${workspace.id}/tasks/trash`);
+      setDeletedCards(
+        res.data.map((t: any) => ({
+          id: t.taskId,
+          title: t.title,
+          desc: t.description ?? "",
+          dueDate: t.dueDate ?? "",
+          comments: [],
+        }))
+      );
+    } catch {
+      setDeletedCards([]);
+    }
+  };
 
   const handleAddList = () => {
     if (!listName.trim()) return;
@@ -221,12 +245,59 @@ export default function WorkSpacePage() {
   };
 
   const handleDeleteCard = async (col: string, cardId: string) => {
+    const card = cards[col]?.find((c) => c.id === cardId);
     setCards((prev) => ({ ...prev, [col]: prev[col].filter((c) => c.id !== cardId) }));
+    if (card) setDeletedCards((prev) => [card, ...prev.filter((c) => c.id !== cardId)]);
     if (workspace?.id) {
       try {
         await client.delete(`/workspaces/${workspace.id}/tasks/${cardId}`);
       } catch {}
     }
+  };
+
+  const handleRestoreCard = async (card: CardItem) => {
+    if (!workspace?.id) return;
+    try {
+      const res = await client.patch(`/workspaces/${workspace.id}/tasks/${card.id}/restore`);
+      const restored: CardItem = {
+        id: res.data.taskId,
+        title: res.data.title,
+        desc: res.data.description ?? "",
+        dueDate: res.data.dueDate ?? "",
+        comments: [],
+      };
+      const col = STATUS_TO_COL[res.data.status] ?? "?곹깭 ?놁쓬";
+      setCards((prev) => ({ ...prev, [col]: [...(prev[col] ?? []), restored] }));
+      setDeletedCards((prev) => prev.filter((c) => c.id !== card.id));
+      setShowLanding(false);
+    } catch {}
+  };
+
+  const openTrash = async () => {
+    await loadTrash();
+    setTrashOpen(true);
+  };
+
+  const handleBoardMouseDown = (e: MouseEvent<HTMLDivElement>) => {
+    if (!columnsRef.current || (e.target as HTMLElement).closest("button, input, textarea")) return;
+    panState.current = {
+      active: true,
+      x: e.pageX,
+      scrollLeft: columnsRef.current.scrollLeft,
+      moved: false,
+    };
+  };
+
+  const handleBoardMouseMove = (e: MouseEvent<HTMLDivElement>) => {
+    const state = panState.current;
+    if (!state.active || !columnsRef.current) return;
+    const delta = e.pageX - state.x;
+    if (Math.abs(delta) > 4) state.moved = true;
+    columnsRef.current.scrollLeft = state.scrollLeft - delta;
+  };
+
+  const stopBoardPan = () => {
+    panState.current.active = false;
   };
 
   const handleSaveDesc = (col: string, id: string, desc: string) => {
@@ -354,6 +425,18 @@ export default function WorkSpacePage() {
         <main className="wsp-board">
           <BoardSubHeader wsName={wsName} memberCount={1} workspace={workspace} workspaces={workspaces} />
 
+          <div className="wsp-board-tools">
+            <button
+              className="wsp-tool-btn"
+              onClick={() => navigate("/ai-task", { state: { workspace, workspaces } })}
+            >
+              AI Task
+            </button>
+            <button className="wsp-tool-btn" onClick={openTrash}>
+              Trash ({deletedCards.length})
+            </button>
+          </div>
+
           {loading && (
             <div className="wsp-loading">
               <span className="wsp-loading-text">불러오는 중...</span>
@@ -382,7 +465,15 @@ export default function WorkSpacePage() {
             </div>
           )}
 
-          <div className="wsp-columns" style={{ display: loading || showLanding ? 'none' : undefined }}>
+          <div
+            ref={columnsRef}
+            className={`wsp-columns ${panState.current.active ? "panning" : ""}`}
+            style={{ display: loading || showLanding ? 'none' : undefined }}
+            onMouseDown={handleBoardMouseDown}
+            onMouseMove={handleBoardMouseMove}
+            onMouseUp={stopBoardPan}
+            onMouseLeave={stopBoardPan}
+          >
             {cols.map((col) => (
               <div
                 key={col}
@@ -405,7 +496,13 @@ export default function WorkSpacePage() {
                       draggable
                       onDragStart={() => setDraggingCard({ card, col })}
                       onDragEnd={() => { setDraggingCard(null); setDragOverCol(null); }}
-                      onClick={() => setSelectedCard({ card, col })}
+                      onClick={() => {
+                        if (panState.current.moved) {
+                          panState.current.moved = false;
+                          return;
+                        }
+                        setSelectedCard({ card, col });
+                      }}
                     >
                       <span className="wsp-card-text">{card.title}</span>
                       <button
@@ -506,6 +603,33 @@ export default function WorkSpacePage() {
           workspaces={workspaces}
           workspace={workspace}
         />
+      )}
+      {trashOpen && (
+        <div className="wsp-trash-overlay" onClick={() => setTrashOpen(false)}>
+          <div className="wsp-trash-modal" onClick={(e) => e.stopPropagation()}>
+            <div className="wsp-trash-header">
+              <h3>Trash</h3>
+              <button className="wsp-trash-close" onClick={() => setTrashOpen(false)}>x</button>
+            </div>
+            {deletedCards.length === 0 ? (
+              <div className="wsp-trash-empty">Deleted tasks will appear here.</div>
+            ) : (
+              <div className="wsp-trash-list">
+                {deletedCards.map((card) => (
+                  <div key={card.id} className="wsp-trash-item">
+                    <div>
+                      <strong>{card.title}</strong>
+                      {card.desc && <p>{card.desc}</p>}
+                    </div>
+                    <button className="wsp-restore-btn" onClick={() => handleRestoreCard(card)}>
+                      Restore
+                    </button>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        </div>
       )}
     </div>
   );

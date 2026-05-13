@@ -12,6 +12,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
@@ -25,7 +26,13 @@ public class TaskService {
 
     @Transactional(readOnly = true)
     public List<TaskResponse> getAllTasks(String workspaceId) {
-        return taskRepository.findAllByWorkspace_WorkspaceId(workspaceId)
+        return taskRepository.findAllByWorkspace_WorkspaceIdAndDeletedFalse(workspaceId)
+                .stream().map(TaskResponse::from).toList();
+    }
+
+    @Transactional(readOnly = true)
+    public List<TaskResponse> getDeletedTasks(String workspaceId) {
+        return taskRepository.findAllByWorkspace_WorkspaceIdAndDeletedTrue(workspaceId)
                 .stream().map(TaskResponse::from).toList();
     }
 
@@ -46,6 +53,7 @@ public class TaskService {
                 .description(req.description() != null ? req.description() : "")
                 .status(status)
                 .dueDate(dueDate)
+                .deleted(false)
                 .workspace(workspace)
                 .build();
         return TaskResponse.from(taskRepository.save(task));
@@ -53,12 +61,24 @@ public class TaskService {
 
     @Transactional
     public void deleteTask(String taskId) {
-        taskRepository.deleteById(taskId);
+        Task task = taskRepository.findById(taskId)
+                .orElseThrow(() -> new IllegalArgumentException("Task not found. ID: " + taskId));
+        task.setDeleted(true);
+        task.setDeletedAt(LocalDateTime.now());
+    }
+
+    @Transactional
+    public TaskResponse restoreTask(String taskId) {
+        Task task = taskRepository.findById(taskId)
+                .orElseThrow(() -> new IllegalArgumentException("Task not found. ID: " + taskId));
+        task.setDeleted(false);
+        task.setDeletedAt(null);
+        return TaskResponse.from(task);
     }
 
     @Transactional(readOnly = true)
     public Map<TaskStatus, List<Task>> getKanbanBoard(String workspaceId) {
-        List<Task> tasks = taskRepository.findAllByWorkspace_WorkspaceId(workspaceId);
+        List<Task> tasks = taskRepository.findAllByWorkspace_WorkspaceIdAndDeletedFalse(workspaceId);
         return tasks.stream().collect(Collectors.groupingBy(Task::getStatus));
     }
 

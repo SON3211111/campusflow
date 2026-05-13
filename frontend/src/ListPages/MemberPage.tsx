@@ -2,7 +2,6 @@ import { useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import Header from "../components/Header";
 import JoinModal from "../components/JoinModal";
-import client from "../api/client";
 import "./WorkspaceList.css";
 import "./MemberPage.css";
 
@@ -19,7 +18,7 @@ export default function MemberPage() {
   };
   const navigate = useNavigate();
 
-  const workspace  = state?.workspace         ?? { id: 0, name: "워크스페이스", gradient: "#ccc" };
+  const workspace  = state?.workspace         ?? { id: "", name: "워크스페이스", gradient: "#ccc" };
   const teamWs     = state?.teamWorkspaces     ?? [];
   const personalWs = state?.personalWorkspaces ?? [];
   const allWorkspaces = [...teamWs, ...personalWs];
@@ -46,8 +45,6 @@ export default function MemberPage() {
 
   const navTo = (path: string, navState?: object) =>
     navigate(path, navState ? { state: navState } : undefined);
-
-  const navState = { workspace, teamWorkspaces: teamWs, personalWorkspaces: personalWs };
 
   const renderSidebarItems = (list: Workspace[], section: string) =>
     list.map((ws) => (
