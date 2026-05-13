@@ -414,3 +414,77 @@
   border-radius: 20px;
   transition: width 0.5s;
 }
+
+/* ===== 마감 임박 작업 리스트 ===== */
+.dbp-upcoming-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  max-height: 300px;
+  overflow-y: auto;
+}
+
+.dbp-upcoming-item {
+  padding: 10px 12px;
+  background: #f9f9f9;
+  border-left: 3px solid #6ab4f8;
+  border-radius: 4px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.dbp-upcoming-item:has(.dbp-upcoming-days.today) {
+  border-left-color: #ef4444;
+  background: #fef2f2;
+}
+
+.dbp-upcoming-item:has(.dbp-upcoming-days.urgent) {
+  border-left-color: #f97316;
+  background: #fff7ed;
+}
+
+.dbp-upcoming-title {
+  font-size: 13px;
+  font-weight: 500;
+  color: #333;
+  flex: 1;
+  word-break: break-word;
+  margin-right: 8px;
+}
+
+.dbp-upcoming-info {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  white-space: nowrap;
+}
+
+.dbp-upcoming-date {
+  font-size: 11px;
+  color: #888;
+}
+
+.dbp-upcoming-days {
+  font-size: 11px;
+  font-weight: 600;
+  padding: 2px 6px;
+  border-radius: 3px;
+  background: #e0e7ff;
+  color: #4f46e5;
+}
+
+.dbp-upcoming-days.today {
+  background: #fee2e2;
+  color: #dc2626;
+}
+
+.dbp-upcoming-days.urgent {
+  background: #fed7aa;
+  color: #ea580c;
+}
+
+.dbp-upcoming-days.warning {
+  background: #fef3c7;
+  color: #b45309;
+}

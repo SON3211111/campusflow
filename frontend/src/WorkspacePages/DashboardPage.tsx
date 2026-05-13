@@ -12,6 +12,14 @@ interface Workspace {
   gradient: string;
 }
 
+interface Task {
+  taskId: string;
+  title: string;
+  description?: string;
+  status: string;
+  dueDate?: string;
+}
+
 const R = 35;
 const CIRC = 2 * Math.PI * R;
 
@@ -33,6 +41,7 @@ export default function DashboardPage() {
   const userName  = localStorage.getItem("userName") ?? "나";
 
   const [donut, setDonut] = useState({ progress: 0, done: 0, hold: 0, notStarted: 0, todo: 0 });
+  const [upcomingTasks, setUpcomingTasks] = useState<{ taskId: string; title: string; dueDate: string; daysLeft: number }[]>([]);
 
   useEffect(() => {
     if (!workspace?.id) {
@@ -41,8 +50,10 @@ export default function DashboardPage() {
     }
     client.get(`/workspaces/${workspace.id}/tasks`)
       .then((res) => {
-        const tasks: { status: string }[] = res.data ?? [];
+        const tasks: Task[] = res.data ?? [];
         const counts = { progress: 0, done: 0, hold: 0, notStarted: 0, todo: 0 };
+        
+        // 상태별 집계
         for (const t of tasks) {
           if (t.status === "DOING")       counts.progress++;
           else if (t.status === "DONE")   counts.done++;
@@ -51,6 +62,34 @@ export default function DashboardPage() {
           else if (t.status === "TODO")   counts.todo++;
         }
         setDonut(counts);
+        
+        // 마감 임박 작업 필터링 (오늘 기준 7일 이내)
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+        const upcoming: { taskId: string; title: string; dueDate: string; daysLeft: number }[] = [];
+        
+        for (const t of tasks) {
+          if (t.dueDate) {
+            const dueDate = new Date(t.dueDate);
+            dueDate.setHours(0, 0, 0, 0);
+            const daysLeft = Math.ceil((dueDate.getTime() - today.getTime()) / (1000 * 60 * 60 * 24));
+            
+            // 마감일이 오늘부터 7일 이내인 미완료 작업만 표시
+            if (daysLeft >= 0 && daysLeft <= 7 && t.status !== "DONE") {
+              upcoming.push({
+                taskId: t.taskId,
+                title: t.title,
+                dueDate: t.dueDate,
+                daysLeft: daysLeft,
+              });
+            }
+          }
+        }
+        
+        // 마감일이 가까운 순으로 정렬
+        upcoming.sort((a, b) => a.daysLeft - b.daysLeft);
+        setUpcomingTasks(upcoming);
+        
         localStorage.setItem("board_stats", JSON.stringify({
           inProgress: counts.progress,
           done: counts.done,
@@ -236,27 +275,23 @@ export default function DashboardPage() {
           {/* 마감 임박 */}
           <div className="dbp-card">
             <h3 className="dbp-card-title">마감 임박</h3>
-            {total === 0 ? (
-              <div className="dbp-empty-msg">등록된 마감 업무가 없습니다.</div>
+            {upcomingTasks.length === 0 ? (
+              <div className="dbp-empty-msg">마감 임박 업무가 없습니다.</div>
             ) : (
               <>
-                <div className="dbp-warning">⚠️ 경보</div>
-                <div className="dbp-dl-row">
-                  <span className="dbp-dl-name">진행중 업무</span>
-                  <div className="dbp-dl-bar">
-                    <div className="dbp-dl-fill striped" style={{ width: `${Math.min((donut.progress / TOTAL) * 100 + 20, 100)}%` }} />
-                  </div>
-                </div>
-                <div className="dbp-dl-divider" />
-                <div className="dbp-request-row">
-                  <span className="dbp-request-num">{donut.notStarted + donut.todo}</span>
-                  <span className="dbp-request-label">미시작</span>
-                </div>
-                <div className="dbp-dl-row">
-                  <span className="dbp-dl-name">미시작 업무</span>
-                  <div className="dbp-dl-bar">
-                    <div className="dbp-dl-fill" style={{ width: `${Math.min(((donut.notStarted + donut.todo) / TOTAL) * 100, 100)}%` }} />
-                  </div>
+                <div className="dbp-warning">⚠️ {upcomingTasks.length}건의 작업이 마감 예정입니다</div>
+                <div className="dbp-upcoming-list">
+                  {upcomingTasks.map((task) => (
+                    <div key={task.taskId} className="dbp-upcoming-item">
+                      <div className="dbp-upcoming-title">{task.title}</div>
+                      <div className="dbp-upcoming-info">
+                        <span className="dbp-upcoming-date">{task.dueDate}</span>
+                        <span className={`dbp-upcoming-days ${task.daysLeft === 0 ? "today" : task.daysLeft <= 3 ? "urgent" : "warning"}`}>
+                          {task.daysLeft === 0 ? "오늘" : `${task.daysLeft}일 남음`}
+                        </span>
+                      </div>
+                    </div>
+                  ))}
                 </div>
               </>
             )}

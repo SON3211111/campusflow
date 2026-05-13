@@ -7,16 +7,20 @@ interface Props {
   title: string;
   colName: string;
   initialDesc?: string;
+  initialDueDate?: string;
   initialComments?: Comment[];
   onSaveDesc?: (desc: string) => void;
+  onSaveDueDate?: (dueDate: string) => void;
   onSaveComments?: (comments: Comment[]) => void;
   onClose: () => void;
 }
 
-export default function CardDetailModal({ title, colName, initialDesc = "", initialComments = [], onSaveDesc, onSaveComments, onClose }: Props) {
+export default function CardDetailModal({ title, colName, initialDesc = "", initialDueDate = "", initialComments = [], onSaveDesc, onSaveDueDate, onSaveComments, onClose }: Props) {
   const userName  = localStorage.getItem("userName") ?? "나";
   const [desc, setDesc]         = useState(initialDesc);
   const [editingDesc, setEditingDesc] = useState(false);
+  const [dueDate, setDueDate]   = useState(initialDueDate);
+  const [editingDueDate, setEditingDueDate] = useState(false);
   const [comment, setComment]   = useState("");
   const [comments, setComments] = useState<Comment[]>(initialComments);
 
@@ -68,6 +72,30 @@ export default function CardDetailModal({ title, colName, initialDesc = "", init
               ) : (
                 <div className="cdm-desc-placeholder" onClick={() => setEditingDesc(true)}>
                   {desc || "자세한 설명을 추가하세요..."}
+                </div>
+              )}
+            </div>
+            <div className="cdm-section">
+              <div className="cdm-section-title">
+                📅 마감일
+                {!editingDueDate && <button className="cdm-edit-btn" onClick={() => setEditingDueDate(true)}>수정</button>}
+              </div>
+              {editingDueDate ? (
+                <div className="cdm-desc-editor">
+                  <input
+                    type="date"
+                    className="cdm-desc-textarea"
+                    value={dueDate}
+                    onChange={(e) => setDueDate(e.target.value)}
+                  />
+                  <div className="cdm-desc-actions">
+                    <button className="cdm-save-btn" onClick={() => { onSaveDueDate?.(dueDate); setEditingDueDate(false); }}>저장</button>
+                    <button className="cdm-cancel-btn" onClick={() => setEditingDueDate(false)}>취소</button>
+                  </div>
+                </div>
+              ) : (
+                <div className="cdm-desc-placeholder" onClick={() => setEditingDueDate(true)}>
+                  {dueDate || "마감일을 설정하세요..."}
                 </div>
               )}
             </div>

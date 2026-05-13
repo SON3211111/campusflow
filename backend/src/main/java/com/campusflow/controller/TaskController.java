@@ -49,4 +49,12 @@ public class TaskController {
         taskService.updateTaskStatus(taskId, status);
         return ResponseEntity.ok().build();
     }
+
+    @PatchMapping("/{taskId}/due-date")
+    public ResponseEntity<Void> updateDueDate(
+            @PathVariable String taskId,
+            @RequestParam(required = false) String dueDate) {
+        taskService.updateTaskDueDate(taskId, dueDate);
+        return ResponseEntity.ok().build();
+    }
 }

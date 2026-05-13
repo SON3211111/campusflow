@@ -11,6 +11,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.LocalDate;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
@@ -36,10 +37,15 @@ public class TaskService {
         if (req.status() != null && !req.status().isBlank()) {
             try { status = TaskStatus.valueOf(req.status()); } catch (IllegalArgumentException ignored) {}
         }
+        LocalDate dueDate = null;
+        if (req.dueDate() != null && !req.dueDate().isBlank()) {
+            try { dueDate = LocalDate.parse(req.dueDate()); } catch (Exception ignored) {}
+        }
         Task task = Task.builder()
                 .title(req.title())
                 .description(req.description() != null ? req.description() : "")
                 .status(status)
+                .dueDate(dueDate)
                 .workspace(workspace)
                 .build();
         return TaskResponse.from(taskRepository.save(task));
@@ -61,5 +67,12 @@ public class TaskService {
         Task task = taskRepository.findById(taskId)
                 .orElseThrow(() -> new IllegalArgumentException("태스크를 찾을 수 없습니다. ID: " + taskId));
         task.setStatus(newStatus);
+    }
+
+    @Transactional
+    public void updateTaskDueDate(String taskId, String dueDate) {
+        Task task = taskRepository.findById(taskId)
+                .orElseThrow(() -> new IllegalArgumentException("태스크를 찾을 수 없습니다. ID: " + taskId));
+        task.setDueDate(dueDate != null && !dueDate.isBlank() ? LocalDate.parse(dueDate) : null);
     }
 }

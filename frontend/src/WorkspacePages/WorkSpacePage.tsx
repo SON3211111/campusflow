@@ -19,6 +19,7 @@ interface CardItem {
   id: string;
   title: string;
   desc: string;
+  dueDate?: string;
   comments: { user: string; text: string; time: string }[];
 }
 
@@ -137,7 +138,7 @@ export default function WorkSpacePage() {
         for (const t of res.data) {
           const col = STATUS_TO_COL[t.status] ?? "상태 없음";
           if (newCards[col]) {
-            newCards[col].push({ id: t.taskId, title: t.title, desc: t.description ?? "", comments: [] });
+            newCards[col].push({ id: t.taskId, title: t.title, desc: t.description ?? "", dueDate: t.dueDate ?? "", comments: [] });
           }
         }
         setCards(newCards);
@@ -165,7 +166,7 @@ export default function WorkSpacePage() {
   const [addingCol, setAddingCol]         = useState<string | null>(null);
   const [inputVal, setInputVal]           = useState("");
   const [selectedCard, setSelectedCard]   = useState<{ card: CardItem; col: string } | null>(null);
-  const [slideCard, setSlideCard]         = useState<{ title: string; desc: string; comments: any[] } | null>(null);
+  const [slideCard, setSlideCard]         = useState<{ title: string; desc: string; dueDate?: string; comments: any[] } | null>(null);
   const [draggingCard, setDraggingCard]   = useState<{ card: CardItem; col: string } | null>(null);
   const [dragOverCol, setDragOverCol]     = useState<string | null>(null);
 
@@ -204,15 +205,16 @@ export default function WorkSpacePage() {
           id: res.data.taskId,
           title: res.data.title,
           desc: res.data.description ?? "",
+          dueDate: res.data.dueDate ?? "",
           comments: [],
         };
         setCards((prev) => ({ ...prev, [col]: [...(prev[col] ?? []), newCard] }));
       } catch {
-        const newCard: CardItem = { id: Date.now().toString(), title, desc: "", comments: [] };
+        const newCard: CardItem = { id: Date.now().toString(), title, desc: "", dueDate: "", comments: [] };
         setCards((prev) => ({ ...prev, [col]: [...(prev[col] ?? []), newCard] }));
       }
     } else {
-      const newCard: CardItem = { id: Date.now().toString(), title, desc: "", comments: [] };
+      const newCard: CardItem = { id: Date.now().toString(), title, desc: "", dueDate: "", comments: [] };
       setCards((prev) => ({ ...prev, [col]: [...(prev[col] ?? []), newCard] }));
     }
     setInputVal("");
@@ -230,6 +232,15 @@ export default function WorkSpacePage() {
 
   const handleSaveDesc = (col: string, id: string, desc: string) => {
     setCards((prev) => ({ ...prev, [col]: prev[col].map((c) => c.id === id ? { ...c, desc } : c) }));
+  };
+
+  const handleSaveDueDate = async (col: string, id: string, dueDate: string) => {
+    setCards((prev) => ({ ...prev, [col]: prev[col].map((c) => c.id === id ? { ...c, dueDate } : c) }));
+    if (workspace?.id) {
+      try {
+        await client.patch(`/workspaces/${workspace.id}/tasks/${id}/due-date?dueDate=${dueDate}`);
+      } catch {}
+    }
   };
 
   const handleSaveComments = (col: string, id: string, comments: CardItem["comments"]) => {
@@ -472,6 +483,7 @@ export default function WorkSpacePage() {
           title={slideCard.title}
           colName="상태 없음"
           initialDesc={slideCard.desc}
+          initialDueDate={slideCard.dueDate}
           initialComments={slideCard.comments}
           onClose={() => setSlideCard(null)}
         />
@@ -481,8 +493,10 @@ export default function WorkSpacePage() {
           title={selectedCard.card.title}
           colName={selectedCard.col}
           initialDesc={selectedCard.card.desc}
+          initialDueDate={selectedCard.card.dueDate}
           initialComments={selectedCard.card.comments}
           onSaveDesc={(desc) => handleSaveDesc(selectedCard.col, selectedCard.card.id, desc)}
+          onSaveDueDate={(dueDate) => handleSaveDueDate(selectedCard.col, selectedCard.card.id, dueDate)}
           onSaveComments={(comments) => handleSaveComments(selectedCard.col, selectedCard.card.id, comments)}
           onClose={() => setSelectedCard(null)}
         />
