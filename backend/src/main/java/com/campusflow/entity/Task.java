@@ -4,7 +4,12 @@ import jakarta.persistence.*;
 import lombok.*;
 import com.campusflow.entity.enums.TaskStatus;
 
-@Entity @Getter @Setter @Builder @NoArgsConstructor @AllArgsConstructor
+@Entity
+@Getter
+@Setter
+@Builder
+@NoArgsConstructor
+@AllArgsConstructor
 public class Task {
     @Id @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long taskId;
