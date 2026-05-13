@@ -204,7 +204,7 @@ export default function WorkspaceList() {
             <div className="card-grid">
               {teamWorkspaces.map((ws) => (
                 <WorkspaceCard
-                  key={ws.id}
+                  key={`team-${ws.id}`}
                   name={ws.name}
                   gradient={ws.gradient}
                   starred={ws.starred}
@@ -232,7 +232,7 @@ export default function WorkspaceList() {
             <div className="card-grid">
               {personalWorkspaces.map((ws) => (
                 <WorkspaceCard
-                  key={ws.id}
+                  key={`personal-${ws.id}`}
                   name={ws.name}
                   gradient={ws.gradient}
                   starred={ws.starred}
@@ -260,7 +260,7 @@ export default function WorkspaceList() {
             <div className="card-grid">
               {favorites.map((ws) => (
                 <WorkspaceCard
-                  key={ws.id}
+                  key={`fav-${ws.id}`}
                   name={ws.name}
                   gradient={ws.gradient}
                   starred
