@@ -4,6 +4,7 @@ import Header from "../components/Header";
 import WorkspaceCard from "../components/WorkspaceCard";
 import BoardCreator from "../components/BoardCreator";
 import JoinModal from "../components/JoinModal";
+import AITaskModal from "../components/AITaskModal";
 import client from "../api/client";
 import "./WorkspaceList.css";
 
@@ -39,7 +40,8 @@ export default function WorkspaceList() {
   const [creatorRect, setCreatorRect] = useState<DOMRect | null>(null);
   const [creatorSection, setCreatorSection] = useState<'team' | 'personal' | null>(null);
   const [deleteTarget, setDeleteTarget] = useState<{ id: any; section: 'team' | 'personal'; name: string } | null>(null);
-  const [joinOpen, setJoinOpen] = useState(false);
+  const [joinOpen, setJoinOpen]   = useState(false);
+  const [aiTaskOpen, setAiTaskOpen] = useState(false);
   const creatorRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -208,6 +210,7 @@ export default function WorkspaceList() {
                   starred={ws.starred}
                   onToggleStar={() => toggleStar(ws.id, 'team')}
                   onDelete={() => setDeleteTarget({ id: ws.id, section: 'team', name: ws.name })}
+                  onClick={() => setAiTaskOpen(true)}
                 />
               ))}
               <div
@@ -235,6 +238,7 @@ export default function WorkspaceList() {
                   starred={ws.starred}
                   onToggleStar={() => toggleStar(ws.id, 'personal')}
                   onDelete={() => setDeleteTarget({ id: ws.id, section: 'personal', name: ws.name })}
+                  onClick={() => setAiTaskOpen(true)}
                 />
               ))}
               <div
@@ -278,6 +282,7 @@ export default function WorkspaceList() {
 
       <button className="settings-btn">⚙</button>
       {joinOpen && <JoinModal onClose={() => setJoinOpen(false)} />}
+      {aiTaskOpen && <AITaskModal onClose={() => setAiTaskOpen(false)} />}
 
       {deleteTarget && (
         <div className="modal-overlay" onClick={() => setDeleteTarget(null)}>

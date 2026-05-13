@@ -1,0 +1,267 @@
+.tbp-page {
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+  background: #111;
+  color: #fff;
+}
+
+.tbp-topbar {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 24px;
+}
+
+.tbp-back-btn {
+  background: none;
+  border: 1px solid #444;
+  border-radius: 8px;
+  color: #ccc;
+  padding: 7px 14px;
+  font-size: 13px;
+  cursor: pointer;
+}
+
+.tbp-back-btn:hover {
+  background: #222;
+}
+
+.tbp-retry-btn {
+  background: none;
+  border: 1px solid #555;
+  border-radius: 8px;
+  color: #aaa;
+  padding: 7px 14px;
+  font-size: 13px;
+  cursor: pointer;
+}
+
+.tbp-retry-btn:hover {
+  background: #222;
+}
+
+.tbp-demo-btn {
+  margin-left: auto;
+  background: #6b7cff;
+  border: none;
+  border-radius: 8px;
+  color: #fff;
+  padding: 7px 16px;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.tbp-demo-btn:hover {
+  background: #5a6aee;
+}
+
+.tbp-body {
+  flex: 1;
+  overflow: auto;
+  display: flex;
+  flex-direction: column;
+}
+
+.tbp-center {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 20px;
+}
+
+.tbp-spinner {
+  width: 40px;
+  height: 40px;
+  border: 3px solid #333;
+  border-top-color: #66a6ff;
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+.tbp-loading-text {
+  color: #888;
+  font-size: 14px;
+}
+
+.tbp-error {
+  color: #f87171;
+  font-size: 14px;
+}
+
+.tbp-tree {
+  flex: 1;
+  padding: 20px 32px 0;
+  overflow-x: auto;
+}
+
+.tbp-root-wrap {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  margin-bottom: 0;
+}
+
+.tbp-root-node {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  background: #6b7cff;
+  border-radius: 20px;
+  padding: 10px 24px;
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.tbp-root-icon {
+  font-size: 18px;
+}
+
+.tbp-root-title {
+  white-space: nowrap;
+}
+
+.tbp-root-line {
+  width: 1px;
+  height: 24px;
+  background: #444;
+}
+
+.tbp-categories {
+  display: flex;
+  gap: 16px;
+  justify-content: center;
+  align-items: flex-start;
+}
+
+.tbp-category-col {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+  min-width: 160px;
+}
+
+.tbp-category-node {
+  width: 100%;
+  text-align: center;
+  padding: 10px 8px;
+  border-radius: 8px;
+  font-size: 13px;
+  font-weight: 700;
+  color: #fff;
+  border: 1px solid rgba(255,255,255,0.15);
+}
+
+.tbp-tasks {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  width: 100%;
+}
+
+.tbp-task-card {
+  border-radius: 8px;
+  padding: 10px 12px;
+  font-size: 12px;
+  cursor: grab;
+  border: 1px solid rgba(255,255,255,0.1);
+  transition: opacity 0.15s, transform 0.15s;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.tbp-task-card:hover {
+  opacity: 0.85;
+  transform: translateY(-1px);
+}
+
+.tbp-task-card:active {
+  cursor: grabbing;
+}
+
+.tbp-task-label {
+  font-size: 10px;
+  color: rgba(255,255,255,0.5);
+}
+
+.tbp-task-name {
+  font-size: 12px;
+  color: #fff;
+  font-weight: 500;
+}
+
+.tbp-users-bar {
+  display: flex;
+  gap: 16px;
+  padding: 16px 32px;
+  background: #1a1a1a;
+  border-top: 1px solid #333;
+  overflow-x: auto;
+}
+
+.tbp-user-slot {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  background: #252525;
+  border: 2px dashed #444;
+  border-radius: 12px;
+  padding: 10px 16px;
+  min-width: 200px;
+  min-height: 70px;
+  transition: border-color 0.15s, background 0.15s;
+  flex-wrap: wrap;
+}
+
+.tbp-user-slot.drag-over {
+  border-color: #66a6ff;
+  background: #1a2a3a;
+}
+
+.tbp-user-avatar {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  background: #6b7cff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 14px;
+  font-weight: 700;
+  flex-shrink: 0;
+}
+
+.tbp-user-name {
+  font-size: 12px;
+  color: #aaa;
+  flex-shrink: 0;
+}
+
+.tbp-assigned-tasks {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  flex: 1;
+}
+
+.tbp-assigned-card {
+  background: #3a4a6a;
+  border-radius: 6px;
+  padding: 4px 10px;
+  font-size: 11px;
+  color: #c8d8ff;
+}
+
+.tbp-drop-hint {
+  font-size: 11px;
+  color: #555;
+}
