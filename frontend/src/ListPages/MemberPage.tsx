@@ -62,7 +62,7 @@ export default function MemberPage() {
         <div className={`sidebar-submenu ${expandedId === ws.id ? "open" : ""}`}>
           <div
             className="sidebar-subitem"
-            onClick={() => navTo("/board", { workspace: ws, teamWorkspaces: teamWs, personalWorkspaces: personalWs })}
+            onClick={() => navigate("/workspace-board", { state: { workspace: ws, workspaces: allWorkspaces } })}
           >
             <span className="subitem-icon">□</span> Board
           </div>

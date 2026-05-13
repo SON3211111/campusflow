@@ -6,6 +6,7 @@ import WorkspaceTabBar from "../components/WorkspaceTabBar";
 import CardDetailModal from "../components/CardDetailModal";
 import BoardSlideView from "../components/BoardSlideView";
 import client from "../api/client";
+import AITaskModal from "../components/AITaskModal";
 import "./WorkSpacePage.css";
 
 interface Workspace {
@@ -80,6 +81,8 @@ export default function WorkSpacePage() {
   const [showPlanner, setShowPlanner]     = useState(true);
   const [showCommunity, setShowCommunity] = useState(true);
   const [showBoardView, setShowBoardView] = useState(basketTasks.length > 0);
+  const [showLanding, setShowLanding]     = useState(basketTasks.length === 0);
+  const [aiTaskOpen, setAiTaskOpen]       = useState(false);
 
   const [messages, setMessages] = useState<{ user: string; text: string; time: string }[]>([]);
   const [msgInput, setMsgInput] = useState("");
@@ -133,6 +136,7 @@ export default function WorkSpacePage() {
           }
         }
         setCards(newCards);
+        if (Object.values(newCards).flat().length > 0) setShowLanding(false);
       } catch {}
     };
 
@@ -329,7 +333,44 @@ export default function WorkSpacePage() {
         {/* 오른쪽: Board */}
         <main className="wsp-board">
           <BoardSubHeader wsName={wsName} memberCount={1} workspace={workspace} workspaces={workspaces} />
-          <div className="wsp-columns">
+
+          {showLanding && (
+            <div className="wsp-landing">
+              <div className="wsp-landing-ws-icon" style={{ background: gradient }} />
+              <h2 className="wsp-landing-title">{wsName}</h2>
+              <p className="wsp-landing-sub">시작할 방법을 선택하세요</p>
+              <div className="wsp-landing-actions">
+                <button className="wsp-landing-btn ai"
+                  onClick={() => setAiTaskOpen(true)}>
+                  <span className="wsp-lbtn-icon">🤖</span>
+                  <span className="wsp-lbtn-title">AI 업무 생성</span>
+                  <span className="wsp-lbtn-desc">AI가 업무를 자동으로 분해합니다</span>
+                </button>
+                <button className="wsp-landing-btn start"
+                  onClick={() => setShowLanding(false)}>
+                  <span className="wsp-lbtn-icon">▶</span>
+                  <span className="wsp-lbtn-title">바로 시작하기</span>
+                  <span className="wsp-lbtn-desc">빈 보드에서 직접 업무를 추가합니다</span>
+                </button>
+                <button className="wsp-landing-btn basket"
+                  onClick={() => {
+                    const saved = JSON.parse(localStorage.getItem("saved_ai_tasks") ?? "[]");
+                    if (saved.length > 0) {
+                      const latest = saved[saved.length - 1];
+                      navigate("/ai-task", { state: { workspaces, workspace, result: latest.result, prompt: latest.prompt } });
+                    } else {
+                      setAiTaskOpen(true);
+                    }
+                  }}>
+                  <span className="wsp-lbtn-icon">🧺</span>
+                  <span className="wsp-lbtn-title">AI 업무 장바구니</span>
+                  <span className="wsp-lbtn-desc">저장된 AI 업무를 불러옵니다</span>
+                </button>
+              </div>
+            </div>
+          )}
+
+          <div className="wsp-columns" style={{ display: showLanding ? 'none' : undefined }}>
             {cols.map((col) => (
               <div
                 key={col}
@@ -442,6 +483,13 @@ export default function WorkSpacePage() {
           onSaveDesc={(desc) => handleSaveDesc(selectedCard.col, selectedCard.card.id, desc)}
           onSaveComments={(comments) => handleSaveComments(selectedCard.col, selectedCard.card.id, comments)}
           onClose={() => setSelectedCard(null)}
+        />
+      )}
+      {aiTaskOpen && (
+        <AITaskModal
+          onClose={() => setAiTaskOpen(false)}
+          workspaces={workspaces}
+          workspace={workspace}
         />
       )}
     </div>

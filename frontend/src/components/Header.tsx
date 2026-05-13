@@ -71,7 +71,7 @@ export default function Header({ workspaces = [], showSearch = true, onLogout }:
               <div className="search-dropdown">
                 <p className="search-dropdown-category">Board</p>
                 {filtered.map((ws) => (
-                  <div key={ws.id} className="search-result-item" onClick={() => { setSearchOpen(false); setQuery(''); setAiTaskOpen(true); }}>
+                  <div key={ws.id} className="search-result-item" onClick={() => { setSearchOpen(false); setQuery(''); localStorage.setItem("clickedWorkspace", JSON.stringify(ws)); navigate('/workspace-board', { state: { workspace: ws, workspaces } }); }}>
                     <div className="search-result-thumb" style={{ background: ws.gradient }} />
                     <span className="search-result-name">{ws.name}</span>
                   </div>
@@ -86,7 +86,7 @@ export default function Header({ workspaces = [], showSearch = true, onLogout }:
       <div className="header-right">
         {showSearch && (
           <>
-            <div className="header-myprojects">
+            <div className="header-myprojects" onClick={() => navigate('/workspace')} style={{ cursor: 'pointer' }}>
               <span className="grid-icon">⊞</span>
               <span>My projects</span>
             </div>

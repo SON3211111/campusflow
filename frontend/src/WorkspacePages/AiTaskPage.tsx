@@ -27,13 +27,15 @@ const CAT_COLORS = [
 export default function AiTaskPage() {
   const { state } = useLocation() as {
     state: {
-      workspaces?: { id: number; name: string; gradient: string }[];
+      workspaces?: { id: string; name: string; gradient: string }[];
+      workspace?: { id: string; name: string; gradient: string };
       result?: { title: string; categories: { id: string; name: string; tasks: string[] }[] };
       prompt?: string;
     };
   };
   const navigate = useNavigate();
   const workspaces   = state?.workspaces ?? [];
+  const workspace    = state?.workspace ?? workspaces[0];
   const aiResult     = state?.result;
   const origPrompt   = state?.prompt ?? "";
 
@@ -217,7 +219,7 @@ export default function AiTaskPage() {
           onClick={() => navigate("/workspace-board", {
             state: {
               workspaces,
-              workspace: workspaces[0],
+              workspace,
               basketTasks: basket.map(t => ({ id: t.id, title: t.name, desc: "", comments: [] }))
             }
           })}

@@ -295,6 +295,75 @@
   padding: 12px 0;
 }
 
+/* ===== Landing Screen ===== */
+.wsp-landing {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 40px 20px;
+  gap: 16px;
+}
+
+.wsp-landing-ws-icon {
+  width: 72px;
+  height: 72px;
+  border-radius: 20px;
+  box-shadow: 0 4px 20px rgba(0,0,0,0.25);
+}
+
+.wsp-landing-title {
+  font-size: 24px;
+  font-weight: 700;
+  color: #fff;
+  margin: 0;
+  text-shadow: 0 1px 4px rgba(0,0,0,0.3);
+}
+
+.wsp-landing-sub {
+  font-size: 14px;
+  color: rgba(255,255,255,0.75);
+  margin: 0 0 8px;
+}
+
+.wsp-landing-actions {
+  display: flex;
+  gap: 16px;
+  flex-wrap: wrap;
+  justify-content: center;
+}
+
+.wsp-landing-btn {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  width: 160px;
+  padding: 22px 16px;
+  border: none;
+  border-radius: 16px;
+  cursor: pointer;
+  transition: transform 0.15s, box-shadow 0.15s;
+  background: rgba(255,255,255,0.15);
+  backdrop-filter: blur(8px);
+  color: #fff;
+}
+
+.wsp-landing-btn:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 8px 24px rgba(0,0,0,0.3);
+  background: rgba(255,255,255,0.25);
+}
+
+.wsp-landing-btn.ai   { border: 1.5px solid rgba(107,180,248,0.6); }
+.wsp-landing-btn.start { border: 1.5px solid rgba(125,232,154,0.6); }
+.wsp-landing-btn.basket { border: 1.5px solid rgba(248,208,138,0.6); }
+
+.wsp-lbtn-icon  { font-size: 28px; }
+.wsp-lbtn-title { font-size: 14px; font-weight: 700; }
+.wsp-lbtn-desc  { font-size: 11px; color: rgba(255,255,255,0.7); text-align: center; line-height: 1.4; }
+
 /* ===== Board ===== */
 .wsp-board {
   flex: 1;

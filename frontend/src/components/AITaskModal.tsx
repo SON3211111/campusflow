@@ -6,12 +6,15 @@ type Screen = "home" | "prompt" | "existing";
 
 interface SavedItem { id: string; title: string; prompt: string; result: any; }
 
+interface WsItem { id: string; name: string; gradient: string; }
+
 interface Props {
   onClose: () => void;
-  workspaces?: { id: number; name: string; gradient: string }[];
+  workspaces?: WsItem[];
+  workspace?: WsItem;
 }
 
-function ExistingList({ workspaces, onClose }: { workspaces: Props["workspaces"]; onClose: () => void }) {
+function ExistingList({ workspaces, workspace, onClose }: { workspaces: Props["workspaces"]; workspace: Props["workspace"]; onClose: () => void }) {
   const navigate = useNavigate();
   const [list, setList] = useState<SavedItem[]>(
     JSON.parse(localStorage.getItem("saved_ai_tasks") ?? "[]")
@@ -34,7 +37,10 @@ function ExistingList({ workspaces, onClose }: { workspaces: Props["workspaces"]
               <span className="ai-existing-icon">⊛</span>
               <span
                 className="ai-existing-title"
-                onClick={() => { onClose(); navigate("/ai-task", { state: { workspaces, result: item.result, prompt: item.prompt } }); }}
+                onClick={() => {
+                  onClose();
+                  navigate("/ai-task", { state: { workspaces, workspace, result: item.result, prompt: item.prompt } });
+                }}
               >
                 {item.title}
               </span>
@@ -47,7 +53,7 @@ function ExistingList({ workspaces, onClose }: { workspaces: Props["workspaces"]
   );
 }
 
-export default function AITaskModal({ onClose, workspaces = [] }: Props) {
+export default function AITaskModal({ onClose, workspaces = [], workspace }: Props) {
   const navigate = useNavigate();
   const [screen, setScreen] = useState<Screen>("home");
   const [prompt, setPrompt] = useState("");
@@ -75,7 +81,10 @@ export default function AITaskModal({ onClose, workspaces = [] }: Props) {
                   <span className="ai-option-desc">기존 작업을 가져오기</span>
                 </div>
               </div>
-              <div className="ai-option-card" onClick={() => { onClose(); navigate("/workspace-board", { state: { workspaces } }); }}>
+              <div className="ai-option-card" onClick={() => {
+                onClose();
+                navigate("/workspace-board", { state: { workspace: workspace ?? workspaces[0], workspaces } });
+              }}>
                 <div className="ai-option-icon orange">🚀</div>
                 <div className="ai-option-info">
                   <span className="ai-option-name">바로 워크스페이스로 이동</span>
@@ -100,7 +109,7 @@ export default function AITaskModal({ onClose, workspaces = [] }: Props) {
               disabled={!prompt.trim()}
               onClick={() => {
                 onClose();
-                navigate("/task-breakdown", { state: { prompt, workspaces } });
+                navigate("/task-breakdown", { state: { prompt, workspaces, workspace } });
               }}
             >
               🤖 AI로 업무 분해하기
@@ -112,7 +121,7 @@ export default function AITaskModal({ onClose, workspaces = [] }: Props) {
         {screen === "existing" && (
           <>
             <h3 className="ai-modal-title">기존 Task 가져오기</h3>
-            <ExistingList workspaces={workspaces} onClose={onClose} />
+            <ExistingList workspaces={workspaces} workspace={workspace} onClose={onClose} />
             <button className="ai-modal-back" onClick={() => setScreen("home")}>← 뒤로</button>
           </>
         )}
