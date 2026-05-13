@@ -1,0 +1,40 @@
+.wtb-wrap {
+  position: fixed;
+  bottom: 20px;
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  gap: 4px;
+  padding: 6px 10px;
+  background: rgba(255,255,255,0.92);
+  backdrop-filter: blur(16px);
+  border: 1px solid rgba(255,255,255,0.9);
+  border-radius: 40px;
+  box-shadow: 0 4px 24px rgba(0,0,0,0.15);
+  z-index: 200;
+  white-space: nowrap;
+}
+
+.wtb-tab {
+  background: transparent;
+  border: none;
+  border-radius: 30px;
+  padding: 7px 18px;
+  font-size: 13px;
+  color: #333;
+  cursor: pointer;
+  transition: background 0.15s;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.wtb-tab:hover {
+  background: rgba(0,0,0,0.06);
+}
+
+.wtb-tab.active {
+  background: rgba(0,0,0,0.08);
+  font-weight: 600;
+  color: #111;
+}

@@ -1,4 +1,4 @@
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import axios from "axios";
 import Header from "../components/Header";
@@ -39,10 +39,11 @@ export default function AiTaskPage() {
 
   const userName = localStorage.getItem("userName") ?? "나";
 
-  if (!aiResult) {
-    navigate("/workspace", { replace: true });
-    return null;
-  }
+  useEffect(() => {
+    if (!aiResult) navigate("/workspace", { replace: true });
+  }, []);
+
+  if (!aiResult) return null;
 
   const buildCategories = (res: typeof aiResult) =>
     (res?.categories ?? []).map((cat, ci) => ({
@@ -129,7 +130,7 @@ export default function AiTaskPage() {
 다음 업무를 성격이 다른 2개의 세부 업무로 분해해주세요. 단순히 숫자만 붙이거나 같은 내용을 반복하면 안 됩니다. 각 세부 업무는 서로 다른 작업이어야 합니다. 더 이상 의미 있게 나눌 수 없다면 tasks를 빈 배열로 반환하세요. 반드시 아래 JSON 형식만 반환하세요:
 {"tasks":["세부업무1","세부업무2"]}
 업무: ${task.name}`;
-      const res = await axios.post("/ai/generate", { prompt }, { timeout: 60000 });
+      const res = await axios.post("/api/ai/generate", { prompt }, { timeout: 60000 });
       const text: string = res.data.result ?? "";
       const match = text.match(/\{[\s\S]*\}/);
       if (!match) return;
@@ -168,7 +169,7 @@ export default function AiTaskPage() {
     setTasks((prev) => prev.filter((t) => t.id !== draggingId));
     setDraggingId(null);
     setDragOver(false);
-    setCooldown(30);
+    setCooldown(3);
     if (cooldownRef.current) clearInterval(cooldownRef.current);
     cooldownRef.current = setInterval(() => {
       setCooldown((prev) => {
@@ -211,7 +212,16 @@ export default function AiTaskPage() {
           <button className="atp-save-btn" onClick={handleSaveTask}>💾 task 저장</button>
           {saveMsg && <span className="atp-save-msg">{saveMsg}</span>}
         </div>
-        <button className="atp-workspace-btn">워크스페이스로 이동 →</button>
+        <button
+          className="atp-workspace-btn"
+          onClick={() => navigate("/workspace-board", {
+            state: {
+              workspaces,
+              workspace: workspaces[0],
+              basketTasks: basket.map(t => ({ id: t.id, title: t.name, desc: "", comments: [] }))
+            }
+          })}
+        >워크스페이스로 이동 →</button>
       </div>
 
       <div className="atp-body">

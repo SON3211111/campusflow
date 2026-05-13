@@ -1,0 +1,337 @@
+import { useState } from "react";
+import { useLocation, useNavigate } from "react-router-dom";
+import Header from "../components/Header";
+import BoardSubHeader from "../components/BoardSubHeader";
+import WorkspaceTabBar from "../components/WorkspaceTabBar";
+import CardDetailModal from "../components/CardDetailModal";
+import BoardSlideView from "../components/BoardSlideView";
+import "./WorkSpacePage.css";
+
+interface Workspace {
+  id: number;
+  name: string;
+  gradient: string;
+}
+
+interface CardItem {
+  id: string;
+  title: string;
+  desc: string;
+  comments: { user: string; text: string; time: string }[];
+}
+
+const DAYS = ["일", "월", "화", "수", "목", "금", "토"];
+const TODAY = new Date();
+
+function getCalendarDays(year: number, month: number) {
+  const first = new Date(year, month, 1).getDay();
+  const last = new Date(year, month + 1, 0).getDate();
+  const days: (number | null)[] = Array(first).fill(null);
+  for (let i = 1; i <= last; i++) days.push(i);
+  return days;
+}
+
+export default function WorkSpacePage() {
+  const { state } = useLocation() as {
+    state: {
+      workspace?: Workspace;
+      workspaces?: Workspace[];
+      basketTasks?: CardItem[];
+    };
+  };
+  const navigate = useNavigate();
+
+  const savedWs    = JSON.parse(localStorage.getItem("clickedWorkspace") ?? "null");
+  const workspace  = state?.workspace ?? state?.workspaces?.[0] ?? savedWs;
+  const workspaces = state?.workspaces ?? [];
+  const gradient   = workspace?.gradient ?? "linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%)";
+  const wsName     = workspace?.name ?? "워크스페이스";
+
+  const basketTasks = (state?.basketTasks ?? []) as CardItem[];
+
+  const [tab, setTab]                     = useState<"board" | "planner" | "community">("board");
+  const [showPlanner, setShowPlanner]     = useState(true);
+  const [showCommunity, setShowCommunity] = useState(true);
+  const [showBoardView, setShowBoardView] = useState(basketTasks.length > 0);
+
+  const [messages, setMessages] = useState<{ user: string; text: string; time: string }[]>([]);
+  const [msgInput, setMsgInput] = useState("");
+  const [writingMsg, setWritingMsg] = useState(false);
+
+  const handleSendMsg = () => {
+    if (!msgInput.trim()) return;
+    const userName = localStorage.getItem("userName") ?? "나";
+    setMessages((prev) => [...prev, { user: userName, text: msgInput.trim(), time: "방금" }]);
+    setMsgInput("");
+    setWritingMsg(false);
+  };
+
+  const [calYear, setCalYear]   = useState(TODAY.getFullYear());
+  const [calMonth, setCalMonth] = useState(TODAY.getMonth());
+
+  const [cols, setCols]             = useState(["상태 없음", "시작하지 않음", "진행 중", "완료"]);
+  const [addingList, setAddingList] = useState(false);
+  const [listName, setListName]     = useState("");
+
+  const [cards, setCards] = useState<{ [col: string]: CardItem[] }>({
+    "상태 없음": [],
+    "시작하지 않음": [],
+    "진행 중": [],
+    "완료": [],
+  });
+
+  const handleAddList = () => {
+    if (!listName.trim()) return;
+    const name = listName.trim();
+    setCols((prev) => [...prev, name]);
+    setCards((prev) => ({ ...prev, [name]: [] }));
+    setListName("");
+    setAddingList(false);
+  };
+
+  const [addingCol, setAddingCol]         = useState<string | null>(null);
+  const [inputVal, setInputVal]           = useState("");
+  const [selectedCard, setSelectedCard]   = useState<{ card: CardItem; col: string } | null>(null);
+  const [slideCard, setSlideCard]         = useState<{ title: string; desc: string; comments: any[] } | null>(null);
+  const [draggingCard, setDraggingCard]   = useState<{ card: CardItem; col: string } | null>(null);
+  const [dragOverCol, setDragOverCol]     = useState<string | null>(null);
+
+  const handleCardDrop = (targetCol: string) => {
+    if (!draggingCard || draggingCard.col === targetCol) return;
+    setCards((prev) => ({
+      ...prev,
+      [draggingCard.col]: prev[draggingCard.col].filter((c) => c.id !== draggingCard.card.id),
+      [targetCol]: [...prev[targetCol], draggingCard.card],
+    }));
+    setDraggingCard(null);
+    setDragOverCol(null);
+  };
+
+  const handleAddCard = (col: string) => {
+    if (!inputVal.trim()) return;
+    const newCard: CardItem = { id: Date.now().toString(), title: inputVal.trim(), desc: "", comments: [] };
+    setCards((prev) => ({ ...prev, [col]: [...prev[col], newCard] }));
+    setInputVal("");
+    setAddingCol(null);
+  };
+
+  const handleSaveDesc = (col: string, id: string, desc: string) => {
+    setCards((prev) => ({ ...prev, [col]: prev[col].map((c) => c.id === id ? { ...c, desc } : c) }));
+  };
+
+  const handleSaveComments = (col: string, id: string, comments: CardItem["comments"]) => {
+    setCards((prev) => ({ ...prev, [col]: prev[col].map((c) => c.id === id ? { ...c, comments } : c) }));
+  };
+
+  const calDays = getCalendarDays(calYear, calMonth);
+
+  const prevMonth = () => {
+    if (calMonth === 0) { setCalYear(y => y - 1); setCalMonth(11); }
+    else setCalMonth(m => m - 1);
+  };
+  const nextMonth = () => {
+    if (calMonth === 11) { setCalYear(y => y + 1); setCalMonth(0); }
+    else setCalMonth(m => m + 1);
+  };
+
+  const allBoardCards = Object.values(cards).flat();
+  const slideInitialCards = [...basketTasks, ...allBoardCards];
+
+  return (
+    <div className="wsp-page">
+      <Header workspaces={workspaces} />
+
+      <div className="wsp-body" style={{ background: gradient }}>
+        {/* 왼쪽: Community */}
+        <aside className={`wsp-community ${showCommunity ? "panel-visible" : "panel-hidden"}`}>
+          <div className="wsp-panel-title">
+            <span className="wsp-panel-icon">💬</span> community
+          </div>
+          <input className="wsp-search" placeholder="채널 및 메시지 검색..." />
+          <div className="wsp-channel-label">채널 및 스레드</div>
+          <div className="wsp-channel-item"># 일반</div>
+          <div className="wsp-channel-item"># UI/UX 디자인</div>
+          <div className="wsp-channel-item">
+            # 개발 및 연동
+            <span className="wsp-channel-dot" />
+          </div>
+          <div className="wsp-channel-label" style={{ marginTop: 16 }}>최근 메시지</div>
+          <div className="wsp-msg-list">
+            {messages.length === 0 ? (
+              <div className="wsp-msg-empty">메시지가 없습니다.</div>
+            ) : (
+              messages.map((m, i) => (
+                <div key={i} className="wsp-msg-item">
+                  <div className="wsp-msg-header">
+                    <span className="wsp-msg-name">{m.user}</span>
+                    <span className="wsp-msg-time">{m.time}</span>
+                  </div>
+                  <div className="wsp-msg-text">{m.text}</div>
+                </div>
+              ))
+            )}
+          </div>
+          {writingMsg ? (
+            <div className="wsp-msg-form">
+              <textarea
+                className="wsp-msg-input"
+                placeholder="메시지 입력..."
+                value={msgInput}
+                onChange={(e) => setMsgInput(e.target.value)}
+                onKeyDown={(e) => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); handleSendMsg(); } }}
+                autoFocus
+              />
+              <div className="wsp-msg-actions">
+                <button className="wsp-msg-send" onClick={handleSendMsg}>전송</button>
+                <button className="wsp-msg-cancel" onClick={() => { setWritingMsg(false); setMsgInput(""); }}>취소</button>
+              </div>
+            </div>
+          ) : (
+            <button className="wsp-new-msg-btn" onClick={() => setWritingMsg(true)}>✎ 새 메시지 작성</button>
+          )}
+        </aside>
+
+        {/* 가운데: Planner */}
+        <aside className={`wsp-planner ${showPlanner ? "panel-visible" : "panel-hidden"}`}>
+          <div className="wsp-panel-title">
+            <span className="wsp-panel-icon">📅</span> Planner
+          </div>
+          <div className="wsp-cal-header">
+            <button className="wsp-cal-nav" onClick={prevMonth}>‹</button>
+            <span className="wsp-cal-title">{calYear}년 {calMonth + 1}월</span>
+            <button className="wsp-cal-nav" onClick={nextMonth}>›</button>
+          </div>
+          <div className="wsp-cal-grid">
+            {DAYS.map((d) => (
+              <div key={d} className={`wsp-cal-day-label ${d === "일" ? "sun" : d === "토" ? "sat" : ""}`}>{d}</div>
+            ))}
+            {calDays.map((d, i) => {
+              const isToday = d === TODAY.getDate() && calMonth === TODAY.getMonth() && calYear === TODAY.getFullYear();
+              return (
+                <div key={i} className={`wsp-cal-day ${!d ? "empty" : ""} ${isToday ? "today" : ""}`}>
+                  {d}
+                </div>
+              );
+            })}
+          </div>
+          <div className="wsp-upcoming-label">다가오는 마감일</div>
+          <div className="wsp-upcoming-empty">마감일이 없습니다.</div>
+        </aside>
+
+        {/* 오른쪽: Board */}
+        <main className="wsp-board">
+          <BoardSubHeader wsName={wsName} memberCount={1} workspace={workspace} workspaces={workspaces} />
+          <div className="wsp-columns">
+            {cols.map((col) => (
+              <div
+                key={col}
+                className={`wsp-column ${dragOverCol === col ? "drag-over" : ""}`}
+                onDragOver={(e) => { e.preventDefault(); setDragOverCol(col); }}
+                onDragLeave={() => setDragOverCol(null)}
+                onDrop={() => handleCardDrop(col)}
+              >
+                <div className="wsp-col-header">
+                  <span className="wsp-col-dot" data-col={col} />
+                  <span className="wsp-col-title">{col}</span>
+                  <span className="wsp-col-count">{(cards[col] ?? []).length}</span>
+                  <button className="wsp-col-menu">···</button>
+                </div>
+                <div className="wsp-col-body">
+                  {(cards[col] ?? []).map((card) => (
+                    <div
+                      key={card.id}
+                      className={`wsp-card-item ${draggingCard?.card.id === card.id ? "dragging" : ""}`}
+                      draggable
+                      onDragStart={() => setDraggingCard({ card, col })}
+                      onDragEnd={() => { setDraggingCard(null); setDragOverCol(null); }}
+                      onClick={() => setSelectedCard({ card, col })}
+                    >
+                      <span className="wsp-card-text">{card.title}</span>
+                      <span className="wsp-card-icon">≡</span>
+                    </div>
+                  ))}
+                  {addingCol === col ? (
+                    <div className="wsp-add-form">
+                      <input
+                        className="wsp-add-input"
+                        placeholder="업무 제목 입력..."
+                        value={inputVal}
+                        onChange={(e) => setInputVal(e.target.value)}
+                        onKeyDown={(e) => { if (e.key === "Enter") handleAddCard(col); if (e.key === "Escape") { setAddingCol(null); setInputVal(""); } }}
+                        autoFocus
+                      />
+                      <div className="wsp-add-actions">
+                        <button className="wsp-add-submit" onClick={() => handleAddCard(col)}>Add card</button>
+                        <button className="wsp-add-cancel" onClick={() => { setAddingCol(null); setInputVal(""); }}>✕</button>
+                      </div>
+                    </div>
+                  ) : (
+                    <button className="wsp-add-card" onClick={() => setAddingCol(col)}>+ Add a card</button>
+                  )}
+                </div>
+              </div>
+            ))}
+            <div className="wsp-add-list">
+              {addingList ? (
+                <div className="wsp-add-list-form">
+                  <input
+                    className="wsp-add-list-input"
+                    placeholder="목록 이름 입력..."
+                    value={listName}
+                    onChange={(e) => setListName(e.target.value)}
+                    onKeyDown={(e) => { if (e.key === "Enter") handleAddList(); }}
+                    autoFocus
+                  />
+                  <div className="wsp-add-list-actions">
+                    <button className="wsp-add-submit" onClick={handleAddList}>목록 추가</button>
+                    <button className="wsp-add-cancel" onClick={() => { setAddingList(false); setListName(""); }}>✕</button>
+                  </div>
+                </div>
+              ) : (
+                <button className="wsp-add-list-btn" onClick={() => setAddingList(true)}>+ 목록 추가</button>
+              )}
+            </div>
+          </div>
+        </main>
+      </div>
+
+      <WorkspaceTabBar
+        active={tab}
+        onTabChange={(t) => {
+          setTab(t);
+          if (t === "planner") setShowPlanner((v) => !v);
+          if (t === "community") setShowCommunity((v) => !v);
+          if (t === "board") setShowBoardView((v) => !v);
+        }}
+      />
+
+      <BoardSlideView
+        visible={showBoardView}
+        initialCards={slideInitialCards}
+        gradient={gradient}
+        onCardClick={(card) => setSlideCard(card)}
+      />
+
+      {slideCard && (
+        <CardDetailModal
+          title={slideCard.title}
+          colName="상태 없음"
+          initialDesc={slideCard.desc}
+          initialComments={slideCard.comments}
+          onClose={() => setSlideCard(null)}
+        />
+      )}
+      {selectedCard && (
+        <CardDetailModal
+          title={selectedCard.card.title}
+          colName={selectedCard.col}
+          initialDesc={selectedCard.card.desc}
+          initialComments={selectedCard.card.comments}
+          onSaveDesc={(desc) => handleSaveDesc(selectedCard.col, selectedCard.card.id, desc)}
+          onSaveComments={(comments) => handleSaveComments(selectedCard.col, selectedCard.card.id, comments)}
+          onClose={() => setSelectedCard(null)}
+        />
+      )}
+    </div>
+  );
+}

@@ -15,11 +15,6 @@ export default defineConfig({
         target: process.env.API_TARGET ?? 'http://localhost:8080',
         changeOrigin: true,
       },
-      '/ai': {
-        target: process.env.AI_TARGET ?? 'http://localhost:8000',
-        changeOrigin: true,
-        rewrite: (path) => path.replace(/^\/ai/, ''),
-      },
     },
   },
 })

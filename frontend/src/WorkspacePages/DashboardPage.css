@@ -1,0 +1,402 @@
+.dbp-page {
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+  background: #f0f2f8;
+}
+
+.dbp-body {
+  flex: 1;
+  overflow-y: auto;
+  padding: 20px 24px 100px;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  background: #f0f2f8;
+}
+
+/* ===== 카드 공통 ===== */
+.dbp-card {
+  background: #fff;
+  border-radius: 16px;
+  padding: 20px;
+  box-shadow: 0 2px 10px rgba(0,0,0,0.06);
+}
+
+.dbp-card-title {
+  font-size: 15px;
+  font-weight: 700;
+  color: #222;
+  margin: 0 0 14px 0;
+}
+
+/* ===== 상단 두 칸 ===== */
+.dbp-top-row {
+  display: grid;
+  grid-template-columns: 1fr 1.6fr;
+  gap: 20px;
+}
+
+/* ===== 도넛 차트 ===== */
+.dbp-donut-area {
+  display: flex;
+  justify-content: center;
+  margin-bottom: 16px;
+}
+
+.dbp-donut-svg {
+  width: 140px;
+  height: 140px;
+  transform: rotate(-90deg);
+}
+
+.dbp-stat-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.dbp-stat-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 14px;
+  background: #f8f8f8;
+  border-radius: 10px;
+}
+
+.dbp-stat-dot {
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.dbp-stat-label {
+  flex: 1;
+  font-size: 13px;
+  color: #555;
+}
+
+.dbp-stat-val {
+  font-size: 13px;
+  font-weight: 700;
+  color: #222;
+}
+
+/* ===== 활동 로그 ===== */
+.dbp-activity-card {
+  display: flex;
+  flex-direction: column;
+}
+
+.dbp-activity-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 20px;
+}
+
+.dbp-activity-user-label {
+  font-size: 12px;
+  color: #aaa;
+}
+
+.dbp-timeline {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+}
+
+.dbp-timeline-item {
+  display: flex;
+  gap: 10px;
+  padding-bottom: 16px;
+  align-items: flex-start;
+}
+
+.dbp-timeline-item:last-child {
+  padding-bottom: 0;
+}
+
+.dbp-timeline-left {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  width: 32px;
+  flex-shrink: 0;
+}
+
+.dbp-timeline-icon {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  background: #f0f2f8;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 14px;
+  flex-shrink: 0;
+  border: 2px solid #e0e0e0;
+}
+
+.dbp-timeline-line {
+  flex: 1;
+  width: 2px;
+  background: #e0e0e0;
+  margin-top: 4px;
+}
+
+.dbp-timeline-content {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding-top: 4px;
+  text-align: left;
+}
+
+.dbp-timeline-type {
+  font-size: 12px;
+  font-weight: 700;
+  color: #4f7cff;
+}
+
+.dbp-timeline-desc {
+  font-size: 13px;
+  color: #444;
+  line-height: 1.4;
+}
+
+/* ===== 그라프 목록 ===== */
+.dbp-graph-card {
+  width: 100%;
+}
+
+.dbp-graph-list {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.dbp-graph-row {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+
+.dbp-graph-name {
+  font-size: 13px;
+  color: #555;
+  min-width: 56px;
+}
+
+.dbp-graph-track {
+  flex: 1;
+  height: 14px;
+  background: #f0f0f0;
+  border-radius: 20px;
+  overflow: hidden;
+}
+
+/* ===== 하단 행 ===== */
+.dbp-bottom-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 20px;
+}
+
+/* ===== 팀 기간 바 차트 ===== */
+.dbp-bar-chart {
+  display: flex;
+  position: relative;
+  height: 180px;
+  margin-bottom: 12px;
+}
+
+.dbp-bar-grid {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  pointer-events: none;
+}
+
+.dbp-grid-line {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  border-top: 1px dashed #e0e0e0;
+  width: 100%;
+}
+
+.dbp-grid-label {
+  font-size: 10px;
+  color: #ccc;
+  min-width: 20px;
+}
+
+.dbp-bars {
+  display: flex;
+  gap: 20px;
+  align-items: flex-end;
+  height: 100%;
+  padding-left: 28px;
+  flex: 1;
+}
+
+.dbp-bar-col {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+}
+
+.dbp-bar-track {
+  width: 36px;
+  height: 150px;
+  background: #f0f0f0;
+  border-radius: 6px;
+  display: flex;
+  flex-direction: column-reverse;
+  overflow: hidden;
+}
+
+.dbp-bar-seg {
+  width: 100%;
+}
+
+.dbp-bar-seg.done     { background: #7de89a; }
+.dbp-bar-seg.progress { background: #6ab4f8; }
+.dbp-bar-seg.hold     { background: #f8d08a; }
+
+.dbp-bar-avatar {
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  background: #a89cf8;
+  color: #fff;
+  font-size: 11px;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.dbp-bar-name {
+  font-size: 10px;
+  color: #888;
+  white-space: nowrap;
+}
+
+.dbp-bar-legend {
+  display: flex;
+  gap: 14px;
+  font-size: 12px;
+  color: #666;
+}
+
+.dbp-legend-item {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.dbp-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+}
+
+/* ===== 마감 임박 ===== */
+.dbp-warning {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 13px;
+  font-weight: 600;
+  color: #d97706;
+  margin-bottom: 12px;
+}
+
+.dbp-dl-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 10px;
+}
+
+.dbp-dl-name {
+  font-size: 13px;
+  color: #555;
+  min-width: 50px;
+}
+
+.dbp-dl-bar {
+  flex: 1;
+  height: 10px;
+  background: #f0f0f0;
+  border-radius: 6px;
+  overflow: hidden;
+}
+
+.dbp-dl-fill {
+  height: 100%;
+  background: #6ab4f8;
+  border-radius: 6px;
+}
+
+.dbp-dl-fill.urgent {
+  background: #f87171;
+}
+
+.dbp-dl-fill.striped {
+  background: repeating-linear-gradient(
+    45deg,
+    #f87171,
+    #f87171 6px,
+    #fca5a5 6px,
+    #fca5a5 12px
+  );
+}
+
+.dbp-dl-divider {
+  border: none;
+  border-top: 1px solid #f0f0f0;
+  margin: 14px 0;
+}
+
+.dbp-request-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 14px 0 10px;
+}
+
+.dbp-request-num {
+  width: 26px;
+  height: 26px;
+  background: #4f7cff;
+  color: #fff;
+  font-size: 13px;
+  font-weight: 700;
+  border-radius: 6px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.dbp-request-label {
+  font-size: 13px;
+  color: #555;
+}
+
+.dbp-graph-fill {
+  height: 100%;
+  background: linear-gradient(to right, #6ab4f8, #a89cf8);
+  border-radius: 20px;
+  transition: width 0.5s;
+}
