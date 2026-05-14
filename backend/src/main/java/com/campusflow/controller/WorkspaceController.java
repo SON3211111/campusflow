@@ -3,7 +3,10 @@ package com.campusflow.controller;
 import com.campusflow.dto.ApiResponse;
 import com.campusflow.dto.WorkspaceRequest;
 import com.campusflow.dto.WorkspaceResponse;
+import com.campusflow.entity.Notification;
 import com.campusflow.entity.Workspace;
+import com.campusflow.repository.NotificationRepository;
+import com.campusflow.repository.WorkspaceMemberRepository;
 import com.campusflow.service.WorkspaceService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -22,6 +25,8 @@ import java.util.stream.Collectors;
 public class WorkspaceController {
 
     private final WorkspaceService workspaceService;
+    private final WorkspaceMemberRepository workspaceMemberRepository;
+    private final NotificationRepository notificationRepository;
 
     @Operation(summary = "내 워크스페이스 목록 조회")
     @GetMapping
@@ -64,6 +69,28 @@ public class WorkspaceController {
     public ResponseEntity<ApiResponse<Void>> deleteWorkspace(@PathVariable String workspaceId) {
         workspaceService.deleteWorkspace(workspaceId);
         return ResponseEntity.ok(ApiResponse.success(200, "삭제 성공", null));
+    }
+
+    @Operation(summary = "워크스페이스 멤버 목록 조회")
+    @GetMapping("/{workspaceId}/members")
+    public ResponseEntity<ApiResponse<?>> getMembers(@PathVariable String workspaceId) {
+        var members = workspaceService.getMembersByWorkspaceId(workspaceId);
+        return ResponseEntity.ok(ApiResponse.success(200, "조회 성공", members));
+    }
+
+    @Operation(summary = "멤버 내보내기 (OWNER 전용)")
+    @DeleteMapping("/{workspaceId}/members/{userId}")
+    public ResponseEntity<ApiResponse<?>> kickMember(
+            @PathVariable String workspaceId,
+            @PathVariable String userId) {
+        workspaceMemberRepository.findByWorkspace_WorkspaceIdAndUser_UserId(workspaceId, userId)
+                .ifPresent(workspaceMemberRepository::delete);
+        Notification noti = Notification.builder()
+                .userId(userId)
+                .message("추방되었습니다.")
+                .build();
+        notificationRepository.save(noti);
+        return ResponseEntity.ok(ApiResponse.success(200, "내보내기 완료", null));
     }
 
     @Operation(summary = "워크스페이스 참여 (초대 코드/ID 입력)")

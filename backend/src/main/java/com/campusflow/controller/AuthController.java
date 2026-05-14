@@ -57,6 +57,22 @@ public class AuthController {
                 .body(ApiResponse.success(201, "회원가입 및 개인 워크스페이스 생성 성공", null)); // 유저 비번 등 노출 방지를 위해 null 또는 전용 DTO
     }
 
+    // 1-1-1. 이메일로 유저 검색
+    @GetMapping("/search")
+    public ResponseEntity<ApiResponse<?>> searchByEmail(@RequestParam String email) {
+        Optional<User> userOpt = userRepository.findByEmail(email);
+        if (userOpt.isEmpty()) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND)
+                    .body(ApiResponse.error(404, "계정을 찾을 수 없습니다."));
+        }
+        User user = userOpt.get();
+        Map<String, Object> data = new HashMap<>();
+        data.put("userId", user.getUserId());
+        data.put("name", user.getName());
+        data.put("email", user.getEmail());
+        return ResponseEntity.ok(ApiResponse.success(200, "조회 성공", data));
+    }
+
     // 1-2. 로그인
     @PostMapping("/login")
     public ResponseEntity<ApiResponse<?>> login(@RequestBody LoginRequest loginRequest) {

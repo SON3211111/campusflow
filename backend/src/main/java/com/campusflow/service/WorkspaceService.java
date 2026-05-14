@@ -93,6 +93,21 @@ public class WorkspaceService {
         workspaceRepository.deleteById(workspaceId);
     }
 
+    @Transactional(readOnly = true)
+    public List<java.util.Map<String, String>> getMembersByWorkspaceId(String workspaceId) {
+        return workspaceMemberRepository.findAllByWorkspace_WorkspaceId(workspaceId)
+                .stream()
+                .map(m -> {
+                    java.util.Map<String, String> map = new java.util.HashMap<>();
+                    map.put("userId", m.getUser().getUserId());
+                    map.put("name", m.getUser().getName());
+                    map.put("email", m.getUser().getEmail());
+                    map.put("role", m.getRole().name());
+                    return map;
+                })
+                .collect(Collectors.toList());
+    }
+
     @Transactional
     public Workspace joinWorkspace(String workspaceId, String userId) {
         Workspace workspace = workspaceRepository.findByWorkspaceId(workspaceId)
