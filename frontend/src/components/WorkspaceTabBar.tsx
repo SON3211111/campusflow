@@ -1,0 +1,37 @@
+/**
+ * 워크스페이스 하단 탭바 컴포넌트
+ * planner/community/board/My workspace 탭 전환 + 휴지통 버튼(삭제 항목 수 뱃지) 포함
+ */
+import "./WorkspaceTabBar.css";
+
+type Tab = "planner" | "community" | "board" | "personal";
+
+interface Props {
+  active?: Tab;
+  onTabChange?: (tab: Tab) => void;
+  onTrashClick?: () => void;
+  trashCount?: number;
+}
+
+export default function WorkspaceTabBar({ active, onTabChange, onTrashClick, trashCount = 0 }: Props) {
+  return (
+    <div className="wtb-wrap">
+      <button className={`wtb-tab ${active === "planner" ? "active" : ""}`} onClick={() => onTabChange?.("planner")}>
+        planner
+      </button>
+      <button className={`wtb-tab ${active === "community" ? "active" : ""}`} onClick={() => onTabChange?.("community")}>
+        community
+      </button>
+      <button className={`wtb-tab ${active === "board" ? "active" : ""}`} onClick={() => onTabChange?.("board")}>
+        board
+      </button>
+      <button className={`wtb-tab ${active === "personal" ? "active" : ""}`} onClick={() => onTabChange?.("personal")}>
+        My workspace
+      </button>
+      <div className="wtb-divider" />
+      <button className="wtb-tab" onClick={onTrashClick}>
+        🗑 {trashCount > 0 && <span className="wtb-trash-count">{trashCount}</span>}
+      </button>
+    </div>
+  );
+}

@@ -2,44 +2,202 @@ from fastapi import FastAPI, HTTPException
 from pydantic import BaseModel
 import httpx
 import os
+import re
+import json
 from dotenv import load_dotenv
 
 load_dotenv()
 
 app = FastAPI()
 
+# Ollama 서버 주소 및 사용할 AI 모델 환경변수로 관리
 OLLAMA_URL = os.getenv("OLLAMA_URL", "http://ollama:11434")
-OLLAMA_MODEL = os.getenv("OLLAMA_MODEL", "llama3")
+OLLAMA_MODEL = os.getenv("OLLAMA_MODEL", "gemma4:e4b")
 OLLAMA_MODELS = [m.strip() for m in os.getenv("OLLAMA_MODELS", OLLAMA_MODEL).split(",")]
 
 
+# /generate 용 요청 구조 (자유 프롬프트)
 class PromptRequest(BaseModel):
     prompt: str
     model: str | None = None
 
 
+# /generate-tasks 용 요청 구조 (프로젝트 제목 + 설명)
+class TaskGenerateRequest(BaseModel):
+    title: str
+    description: str
+    model: str | None = None
+
+
+# AI가 생성하는 업무 카드 한 개
+class Task(BaseModel):
+    title: str
+    description: str
+    category: str           # 기획 / 디자인 / 프론트 / 백엔드 / 테스트
+    priority: str = "MEDIUM"  # HIGH / MEDIUM / LOW
+    estimated_hours: int | None = None
+
+
+# /generate-tasks 응답 구조 (업무 카드 목록)
+class TaskGenerateResponse(BaseModel):
+    tasks: list[Task]
+
+
+def _extract_json(text: str) -> dict:
+    # AI가 ```json ... ``` 형태로 응답하는 경우 코드블록 안만 추출
+    code_block = re.search(r"```(?:json)?\s*([\s\S]*?)\s*```", text)
+    if code_block:
+        text = code_block.group(1)
+
+    # { } 깊이를 추적해서 가장 바깥 JSON 객체 추출
+    start = text.find("{")
+    if start != -1:
+        depth = 0
+        for i, ch in enumerate(text[start:], start):
+            if ch == "{":
+                depth += 1
+            elif ch == "}":
+                depth -= 1
+                if depth == 0:
+                    return json.loads(text[start : i + 1])
+
+    raise ValueError("JSON을 찾을 수 없습니다.")
+
+
+def _build_generate_prompt(title: str, description: str) -> str:
+    # AI에게 보낼 업무 분해 프롬프트 생성
+    # 영어로 작성한 이유: 오픈소스 모델은 영어 지시를 더 정확하게 따름
+    return f"""You are a project task breakdown AI. Analyze the project below and break it down into concrete tasks.
+
+[Project]
+Title: {title}
+Description: {description}
+
+Rules:
+- Break the project into 4 to 8 concrete, actionable tasks.
+- Each task should be independent enough for one person to pick up and work on.
+- Set priority to HIGH, MEDIUM, or LOW based on importance and urgency.
+- Estimate hours as a positive integer (realistic working hours for one person).
+- Do NOT assign tasks to anyone. Tasks will be claimed by team members themselves.
+- Set category to ONE of: 기획, 디자인, 프론트, 백엔드, 테스트
+
+Respond with ONLY the following JSON and nothing else:
+{{
+  "tasks": [
+    {{
+      "title": "task title",
+      "description": "what needs to be done",
+      "category": "백엔드",
+      "priority": "HIGH",
+      "estimated_hours": 4
+    }}
+  ]
+}}"""
+
+
+# 서버 상태 확인 (Docker healthcheck 등에서 사용)
 @app.get("/health")
 def health():
     return {"status": "ok"}
 
 
+# 사용 가능한 AI 모델 목록 반환
 @app.get("/models")
 def models():
     return {"models": OLLAMA_MODELS, "default": OLLAMA_MODEL}
 
 
+# 자유 텍스트 프롬프트 → AI 응답 반환 (범용)
 @app.post("/generate")
 async def generate(req: PromptRequest):
     model = req.model or OLLAMA_MODEL
     if model not in OLLAMA_MODELS:
-        raise HTTPException(status_code=400, detail=f"지원하지 않는 모델: {model}. 사용 가능: {OLLAMA_MODELS}")
-    async with httpx.AsyncClient(timeout=60.0) as client:
+        raise HTTPException(
+            status_code=400,
+            detail=f"지원하지 않는 모델: {model}. 사용 가능: {OLLAMA_MODELS}",
+        )
+
+    async with httpx.AsyncClient(timeout=300.0) as client:
         try:
             response = await client.post(
                 f"{OLLAMA_URL}/api/generate",
-                json={"model": model, "prompt": req.prompt, "stream": False},
+                json={
+                    "model": model,
+                    "prompt": req.prompt,
+                    "stream": False,
+                    "options": {"num_predict": 200},
+                },
             )
             response.raise_for_status()
-            return response.json()
+            data = response.json()
+            return {"result": data.get("response", "")}
+
         except httpx.HTTPError as e:
-            raise HTTPException(status_code=502, detail=str(e))
+            import traceback; traceback.print_exc()
+            raise HTTPException(status_code=502, detail=repr(e))
+        except Exception as e:
+            import traceback; traceback.print_exc()
+            raise HTTPException(status_code=500, detail=repr(e))
+
+
+# 프로젝트 정보 → 업무 카드 목록 반환 (장바구니 핵심 기능)
+# 팀장이 제목+설명 입력 → AI가 4~8개 업무로 분해 → 팀원이 드래그해서 가져감
+@app.post("/generate-tasks", response_model=TaskGenerateResponse)
+async def generate_tasks(req: TaskGenerateRequest):
+    model = req.model or OLLAMA_MODEL
+    if model not in OLLAMA_MODELS:
+        raise HTTPException(
+            status_code=400,
+            detail=f"지원하지 않는 모델: {model}. 사용 가능: {OLLAMA_MODELS}",
+        )
+
+    prompt = _build_generate_prompt(req.title, req.description)
+
+    async with httpx.AsyncClient(timeout=300.0) as client:
+        try:
+            response = await client.post(
+                f"{OLLAMA_URL}/api/generate",
+                json={
+                    "model": model,
+                    "prompt": prompt,
+                    "stream": False,
+                    "options": {"num_predict": 2500, "temperature": 0.3},
+                    # num_predict: 카드 여러 개 생성에 충분한 토큰 수
+                    # temperature: 낮을수록 일관된 JSON 출력
+                },
+            )
+            response.raise_for_status()
+            raw_text = response.json().get("response", "")
+
+        except httpx.HTTPError as e:
+            import traceback; traceback.print_exc()
+            raise HTTPException(status_code=502, detail=repr(e))
+        except Exception as e:
+            import traceback; traceback.print_exc()
+            raise HTTPException(status_code=500, detail=repr(e))
+
+    # AI 응답에서 JSON 추출 및 파싱
+    try:
+        parsed = _extract_json(raw_text)
+        tasks_data = parsed.get("tasks", [])
+        if not tasks_data:
+            raise ValueError("tasks 배열이 비어 있습니다.")
+    except (ValueError, json.JSONDecodeError) as e:
+        raise HTTPException(
+            status_code=422,
+            detail=f"AI 응답 파싱 실패: {e}\n원문: {raw_text[:500]}",
+        )
+
+    # dict 목록 → Task 객체 목록 변환
+    tasks = [
+        Task(
+            title=t.get("title", ""),
+            description=t.get("description", ""),
+            category=t.get("category", "기타"),
+            priority=t.get("priority", "MEDIUM").upper(),
+            estimated_hours=t.get("estimated_hours"),
+        )
+        for t in tasks_data
+    ]
+
+    return TaskGenerateResponse(tasks=tasks)

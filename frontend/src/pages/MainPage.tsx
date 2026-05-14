@@ -2,6 +2,7 @@ import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import "./MainPage.css";
 import stressImg from "../assets/stress.png";
+import Header from "../components/Header";
 
 // 언어 데이터를 원어와 병기하도록 수정
 const languages = [
@@ -14,18 +15,14 @@ const languages = [
 ];
 
 const MainPage: React.FC = () => {
+  const navigate = useNavigate();
+  const isLoggedIn = !!localStorage.getItem('accessToken');
   const [isLangMenuOpen, setIsLangMenuOpen] = useState(false);
   const [selectedLang, setSelectedLang] = useState("한국어");
-  const navigate = useNavigate();
 
   return (
     <div className="main-page-wrapper">
-      <header className="nav-bar">
-        <div className="logo">CAMPUS_FLOW</div>
-        <button className="login-btn" onClick={() => navigate("/login")}>
-          로그인
-        </button>
-      </header>
+      <Header showSearch={false} />
 
       <main className="container">
         {/* 섹션 1: 비디오 및 메인 버튼 */}
@@ -33,9 +30,9 @@ const MainPage: React.FC = () => {
           <div className="btn-group">
             <button
               className="main-btn login"
-              onClick={() => navigate("/login")}
+              onClick={() => navigate(isLoggedIn ? "/workspace" : "/login")}
             >
-              login
+              {isLoggedIn ? "workspace" : "login"}
             </button>
             <button className="main-btn pro">PRO</button>
           </div>

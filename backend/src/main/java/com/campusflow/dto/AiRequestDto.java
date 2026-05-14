@@ -1,3 +1,9 @@
-package com.campusflow.backend.dto;
+package com.campusflow.dto;
 
-public record AiRequestDto(String prompt) {}
+/**
+ * AI 요청을 위한 간결한 레코드 DTO
+ */
+public record AiRequestDto(
+        String projectId,
+        String prompt
+) {}

@@ -1,44 +1,56 @@
-import React, { useState } from 'react';
+/**
+ * 로그인 페이지
+ * 이메일/비밀번호 입력 → JWT accessToken 발급 → localStorage 저장 후 워크스페이스로 이동
+ * 이미 로그인된 상태면 자동으로 /workspace 리다이렉트
+ */
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import './Login.css';
 import eyeIcon from '../assets/icons-eye.png';
 import logoImg from '../assets/Logo.png';
+import { login } from '../api/auth';
 
 const Login: React.FC = () => {
   const navigate = useNavigate();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
   const [errorMsg, setErrorMsg] = useState('');
+  const [loading, setLoading] = useState(false);
+
+  useEffect(() => {
+    if (localStorage.getItem('accessToken')) {
+      navigate('/workspace', { replace: true });
+    }
+  }, [navigate]);
 
   const handleLogin = async () => {
     setErrorMsg('');
+    setLoading(true);
 
     try {
-      const res = await fetch('http://localhost:8080/api/auth/login', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email, password }),
-      });
-
-      if (res.status === 404) {
+      const res = await login({ email, password });
+      const data = res.data.data;
+      localStorage.setItem('accessToken', data.accessToken);
+      localStorage.setItem('userId', String(data.userId));
+      localStorage.setItem('userName', data.name);
+      navigate('/workspace');
+    } catch (err: any) {
+      const status = err.response?.status;
+      if (status === 404) {
         setErrorMsg('계정이 없습니다.');
-        return;
-      }
-      if (res.status === 401) {
+      } else if (status === 401) {
         setErrorMsg('비밀번호가 일치하지 않습니다.');
-        return;
+      } else {
+        setErrorMsg('서버에 연결할 수 없습니다.');
       }
-
-      if (res.ok) {
-        const data = await res.json();
-        localStorage.setItem('accessToken', data.data.accessToken);
-        localStorage.setItem('userId', data.data.userId);
-        localStorage.setItem('userName', data.data.name);
-        navigate('/workspace');
-      }
-    } catch {
-      setErrorMsg('서버에 연결할 수 없습니다.');
+    } finally {
+      setLoading(false);
     }
+  };
+
+  const handleKeyDown = (e: React.KeyboardEvent) => {
+    if (e.key === 'Enter') handleLogin();
   };
 
   return (
@@ -50,7 +62,7 @@ const Login: React.FC = () => {
 
       <div className="login-card">
         <div className="logo-wrapper">
-          <img src={logoImg} alt="C'flow" className="login-logo-img" />
+          <img src={logoImg} alt="C'flow" className="login-logo-img" onClick={() => navigate('/')} style={{ cursor: 'pointer' }} />
         </div>
 
         <div className="login-form">
@@ -61,29 +73,34 @@ const Login: React.FC = () => {
               placeholder="hong@gmail.com"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
+              onKeyDown={handleKeyDown}
             />
-            {errorMsg && <p className="error-msg">{errorMsg}</p>}
           </div>
 
           <div className="input-group">
             <label>비밀번호</label>
             <div className="pw-input-wrapper">
               <input
-                type="password"
+                type={showPassword ? 'text' : 'password'}
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
+                onKeyDown={handleKeyDown}
               />
-              <img src={eyeIcon} className="pw-toggle-icon" alt="보기" />
+              <img
+                src={eyeIcon}
+                className="pw-toggle-icon"
+                alt="보기"
+                onClick={() => setShowPassword((v) => !v)}
+                style={{ cursor: 'pointer' }}
+              />
             </div>
           </div>
 
-          <div className="login-options">
-            <label className="checkbox-container">
-              <input type="checkbox" /> 내 정보 저장
-            </label>
-          </div>
+          {errorMsg && <p className="error-msg">{errorMsg}</p>}
 
-          <button className="submit-btn" onClick={handleLogin}>완료</button>
+          <button className="submit-btn" onClick={handleLogin} disabled={loading}>
+            {loading ? '로그인 중...' : '완료'}
+          </button>
         </div>
 
         <div className="social-login">

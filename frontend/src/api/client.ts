@@ -7,7 +7,6 @@ const client = axios.create({
   },
 });
 
-// 토큰이 있으면 자동으로 헤더에 Bearer {token}을 넣어주는 로직
 client.interceptors.request.use((config) => {
   const token = localStorage.getItem('accessToken');
   if (token) {
@@ -15,5 +14,21 @@ client.interceptors.request.use((config) => {
   }
   return config;
 });
+
+// JWT 만료(401) 시 자동 로그아웃 (로그인/회원가입 요청 제외)
+client.interceptors.response.use(
+  (response) => response,
+  (error) => {
+    const url = error.config?.url ?? '';
+    const isAuthRequest = url.includes('/auth/login') || url.includes('/auth/signup');
+    if (error.response?.status === 401 && !isAuthRequest) {
+      localStorage.removeItem('accessToken');
+      localStorage.removeItem('userId');
+      localStorage.removeItem('userName');
+      window.location.href = '/login';
+    }
+    return Promise.reject(error);
+  }
+);
 
 export default client;

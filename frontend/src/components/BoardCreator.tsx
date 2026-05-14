@@ -1,3 +1,7 @@
+/**
+ * 워크스페이스(보드) 생성 폼 컴포넌트
+ * 배경 그라데이션 선택 + 이름 입력으로 새 워크스페이스를 생성
+ */
 import { useState } from 'react';
 import './BoardCreator.css';
 
@@ -15,7 +19,7 @@ interface Props {
   onCreate: (name: string, gradient: string) => void;
 }
 
-export default function BoardCreator({ onClose, onCreate }: Props) {
+export default function BoardCreator({ onClose: _onClose, onCreate }: Props) {
   const [title, setTitle] = useState('');
   const [selected, setSelected] = useState(GRADIENTS[0]);
 

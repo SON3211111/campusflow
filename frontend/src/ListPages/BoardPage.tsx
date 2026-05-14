@@ -1,16 +1,20 @@
 import { useState, useRef, useEffect } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import Header from "../components/Header";
+import JoinModal from "../components/JoinModal";
 import WorkspaceCard from "../components/WorkspaceCard";
+import client from "../api/client";
 import "./WorkspaceList.css";
 import "./BoardPage.css";
 
 interface Workspace {
-  id: number;
+  id: string;
   name: string;
   gradient: string;
   starred?: boolean;
 }
+
+type PendingNav = { path: string; state?: object } | null;
 
 const templates = [
   { id: 1, name: "초원",           bg: "linear-gradient(180deg,#87ceeb 20%,#90ee90 65%,#228b22 100%)" },
@@ -25,23 +29,48 @@ export default function BoardPage() {
   };
   const navigate = useNavigate();
 
-  const workspace  = state?.workspace          ?? { id: 0, name: "워크스페이스", gradient: "#ccc" };
-  const teamWs     = state?.teamWorkspaces      ?? [];
-  const personalWs = state?.personalWorkspaces  ?? [];
+  const workspace  = state?.workspace         ?? { id: "", name: "워크스페이스", gradient: "#ccc" };
+  const teamWs     = state?.teamWorkspaces     ?? [];
+  const personalWs = state?.personalWorkspaces ?? [];
   const allWorkspaces = [...teamWs, ...personalWs];
 
-  const [wsName, setWsName]       = useState(workspace.name);
-  const [wsBg, setWsBg]           = useState(workspace.gradient);
+  const [wsName, setWsName]           = useState(workspace.name);
+  const [wsBg, setWsBg]               = useState(workspace.gradient);
   const [selectedTpl, setSelectedTpl] = useState<number | null>(null);
-  const [editing, setEditing]     = useState(false);
-  const [editValue, setEditValue] = useState(workspace.name);
-  const [expandedId, setExpandedId] = useState<number>(workspace.id);
+  const [editing, setEditing]         = useState(false);
+  const [editValue, setEditValue]     = useState(workspace.name);
+  const [expandedId, setExpandedId]   = useState<string>(workspace.id);
+  const [saving, setSaving]           = useState(false);
+  const [pendingNav, setPendingNav]   = useState<PendingNav>(null);
+  const [confirmDelete, setConfirmDelete] = useState(false);
+  const [joinOpen, setJoinOpen] = useState(false);
 
   const inputRef = useRef<HTMLInputElement>(null);
+
+  // 다른 워크스페이스 보드로 이동할 때 상태 초기화
+  useEffect(() => {
+    setWsName(workspace.name);
+    setWsBg(workspace.gradient);
+    setSelectedTpl(null);
+    setEditing(false);
+    setEditValue(workspace.name);
+    setExpandedId(workspace.id);
+    setSaving(false);
+  }, [workspace.id]);
 
   useEffect(() => {
     if (editing) inputRef.current?.focus();
   }, [editing]);
+
+  const isDirty = wsName !== workspace.name || selectedTpl !== null;
+
+  const tryNavigate = (path: string, navState?: object) => {
+    if (isDirty) {
+      setPendingNav({ path, state: navState });
+    } else {
+      navigate(path, navState ? { state: navState } : undefined);
+    }
+  };
 
   const startEdit = () => {
     setEditValue(wsName);
@@ -64,8 +93,53 @@ export default function BoardPage() {
     setWsBg(tpl.bg);
   };
 
-  const toggleSidebar = (id: number) =>
-    setExpandedId((prev) => (prev === id ? -1 : id));
+  const saveChanges = async (): Promise<boolean> => {
+    if (!isDirty) return true;
+    try {
+      await client.patch(`/workspaces/${workspace.id}`, { name: wsName, gradient: wsBg });
+      return true;
+    } catch {
+      alert('저장에 실패했습니다.');
+      return false;
+    }
+  };
+
+  const handleSave = async () => {
+    setSaving(true);
+    const ok = await saveChanges();
+    setSaving(false);
+    if (ok) navigate('/workspace');
+  };
+
+  const handleSaveAndGo = async () => {
+    if (!pendingNav) return;
+    setSaving(true);
+    const ok = await saveChanges();
+    setSaving(false);
+    if (!ok) return;
+    const { path, state: navState } = pendingNav;
+    setPendingNav(null);
+    navigate(path, navState ? { state: navState } : undefined);
+  };
+
+  const handleDelete = async () => {
+    try {
+      await client.delete(`/workspaces/${workspace.id}`);
+      navigate('/workspace');
+    } catch {
+      alert('삭제에 실패했습니다.');
+    }
+  };
+
+  const handleDiscardAndGo = () => {
+    if (!pendingNav) return;
+    const { path, state: navState } = pendingNav;
+    setPendingNav(null);
+    navigate(path, navState ? { state: navState } : undefined);
+  };
+
+  const toggleSidebar = (id: string) =>
+    setExpandedId((prev) => (prev === id ? "" : id));
 
   const renderSidebarItems = (list: Workspace[]) =>
     list.map((ws) => (
@@ -80,12 +154,28 @@ export default function BoardPage() {
         <div className={`sidebar-submenu ${expandedId === ws.id ? "open" : ""}`}>
           <div
             className={`sidebar-subitem ${ws.id === workspace.id ? "active-subitem" : ""}`}
-            onClick={() => navigate("/board", { state: { workspace: ws, teamWorkspaces: teamWs, personalWorkspaces: personalWs } })}
+            onClick={() =>
+              tryNavigate("/board", { workspace: ws, teamWorkspaces: teamWs, personalWorkspaces: personalWs })
+            }
           >
             <span className="subitem-icon">□</span> Board
           </div>
-          <div className="sidebar-subitem"><span className="subitem-icon">👥</span> Members</div>
-          <div className="sidebar-subitem"><span className="subitem-icon">⚙</span> Setting</div>
+          <div
+            className="sidebar-subitem"
+            onClick={() =>
+              tryNavigate("/members", { workspace: ws, teamWorkspaces: teamWs, personalWorkspaces: personalWs })
+            }
+          >
+            <span className="subitem-icon">👥</span> Members
+          </div>
+          <div
+            className="sidebar-subitem"
+            onClick={() =>
+              tryNavigate("/settings", { workspace: ws, teamWorkspaces: teamWs, personalWorkspaces: personalWs })
+            }
+          >
+            <span className="subitem-icon">⚙</span> Setting
+          </div>
         </div>
       </div>
     ));
@@ -113,11 +203,7 @@ export default function BoardPage() {
 
           <div className="sidebar-bottom">
             <hr className="sidebar-divider" />
-            <div className="sidebar-nav-item" onClick={() => {
-              const updatedTeam = teamWs.map(ws => ws.id === workspace.id ? { ...ws, name: wsName, gradient: wsBg } : ws);
-              const updatedPersonal = personalWs.map(ws => ws.id === workspace.id ? { ...ws, name: wsName, gradient: wsBg } : ws);
-              navigate("/workspace", { state: { teamWorkspaces: updatedTeam, personalWorkspaces: updatedPersonal } });
-            }}>
+            <div className="sidebar-nav-item" onClick={() => tryNavigate('/workspace')}>
               <span className="nav-icon">🏠</span>
               <span>Home</span>
             </div>
@@ -125,12 +211,23 @@ export default function BoardPage() {
               <span className="nav-icon">🖥</span>
               <span>Board</span>
             </div>
-            <button className="join-btn">워크스페이스 참여 !</button>
+            <button className="join-btn" onClick={() => setJoinOpen(true)}>워크스페이스 참여 !</button>
           </div>
         </aside>
 
         {/* 메인 콘텐츠 */}
         <main className="board-main">
+          {/* 액션바 */}
+          <div className="board-action-bar">
+            <button className="board-back-btn" onClick={() => tryNavigate('/workspace')}>← 뒤로가기</button>
+            <div className="board-action-right">
+              <button className="board-delete-btn" onClick={() => setConfirmDelete(true)}>삭제</button>
+              <button className="board-save-btn" onClick={handleSave} disabled={saving}>
+                {saving ? '저장 중...' : '저장'}
+              </button>
+            </div>
+          </div>
+
           {/* 워크스페이스 헤더 */}
           <div className="board-ws-header">
             <div className="board-ws-icon" style={{ background: wsBg }}>
@@ -153,8 +250,9 @@ export default function BoardPage() {
                 <span className="board-ws-edit" onClick={startEdit}>✏️</span>
               </div>
               <div className="board-ws-private">
-                <span>🔒</span>
-                <span>private</span>
+                {localStorage.getItem(`visibility_${workspace.id}`) === "public"
+                  ? <><span>🌐</span><span>public</span></>
+                  : <><span>🔒</span><span>private</span></>}
               </div>
             </div>
           </div>
@@ -177,7 +275,7 @@ export default function BoardPage() {
                 </div>
               ))}
             </div>
-            <p className="template-more">전체 템플릿으로 찾아보기</p>
+            <p className="template-more" onClick={() => tryNavigate("/templates", { workspace, teamWorkspaces: teamWs, personalWorkspaces: personalWs })}>전체 템플릿으로 찾아보기</p>
           </div>
 
           <hr className="board-divider" />
@@ -206,6 +304,44 @@ export default function BoardPage() {
           </div>
         </main>
       </div>
+
+      {/* 워크스페이스 삭제 확인 모달 */}
+      {confirmDelete && (
+        <div className="modal-overlay" onClick={() => setConfirmDelete(false)}>
+          <div className="modal-box" onClick={(e) => e.stopPropagation()}>
+            <p className="modal-title">워크스페이스 삭제</p>
+            <p className="modal-desc">
+              <strong>{wsName}</strong>을(를) 삭제하시겠습니까?<br />
+              삭제된 워크스페이스는 복구할 수 없습니다.
+            </p>
+            <div className="modal-actions">
+              <button className="modal-btn cancel" onClick={() => setConfirmDelete(false)}>취소</button>
+              <button className="modal-btn confirm" onClick={handleDelete}>삭제</button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {joinOpen && <JoinModal onClose={() => setJoinOpen(false)} />}
+
+      {/* 변경사항 저장 확인 모달 */}
+      {pendingNav && (
+        <div className="modal-overlay" onClick={() => setPendingNav(null)}>
+          <div className="modal-box" onClick={(e) => e.stopPropagation()}>
+            <p className="modal-title">저장되지 않은 변경사항</p>
+            <p className="modal-desc">
+              변경사항이 있습니다.<br />저장하고 이동하시겠습니까?
+            </p>
+            <div className="modal-actions">
+              <button className="modal-btn cancel" onClick={() => setPendingNav(null)}>취소</button>
+              <button className="modal-btn discard" onClick={handleDiscardAndGo}>저장 안 함</button>
+              <button className="modal-btn confirm" onClick={handleSaveAndGo} disabled={saving}>
+                {saving ? '저장 중...' : '저장 후 이동'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

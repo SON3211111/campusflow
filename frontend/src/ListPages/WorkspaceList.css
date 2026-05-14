@@ -101,7 +101,7 @@
 }
 
 .sidebar-submenu.open {
-  max-height: 120px;
+  max-height: 180px;
 }
 
 .sidebar-subitem {
@@ -215,4 +215,167 @@
   font-size: 22px;
   cursor: pointer;
   color: #666;
+}
+
+/* ===== SIDEBAR DELETE SUBITEM ===== */
+.sidebar-subitem.delete {
+  color: #e53e3e;
+}
+
+.sidebar-subitem.delete:hover {
+  background: rgba(229, 62, 62, 0.1);
+}
+
+/* ===== DELETE CONFIRM MODAL ===== */
+.modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.4);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 500;
+}
+
+.modal-box {
+  background: #fff;
+  border-radius: 14px;
+  padding: 28px 32px 24px;
+  min-width: 320px;
+  max-width: 420px;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.18);
+}
+
+.modal-title {
+  font-size: 17px;
+  font-weight: 700;
+  color: #222;
+  margin: 0 0 12px 0;
+}
+
+.modal-desc {
+  font-size: 14px;
+  color: #555;
+  line-height: 1.6;
+  margin: 0 0 24px 0;
+}
+
+.modal-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+}
+
+.modal-btn {
+  padding: 8px 22px;
+  border: none;
+  border-radius: 8px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+
+.modal-btn.cancel {
+  background: #f0f0f0;
+  color: #444;
+}
+
+.modal-btn.cancel:hover {
+  background: #e0e0e0;
+}
+
+.modal-btn.discard {
+  background: #f0f0f0;
+  color: #444;
+}
+
+.modal-btn.discard:hover {
+  background: #e0e0e0;
+}
+
+.modal-btn.confirm {
+  background: #e53e3e;
+  color: #fff;
+}
+
+.modal-btn.confirm:hover {
+  background: #c53030;
+}
+
+/* ===== 반응형 ===== */
+@media (max-width: 1024px) {
+  .sidebar {
+    width: 180px;
+    min-width: 180px;
+  }
+
+  .main-content {
+    padding: 24px 24px;
+  }
+}
+
+@media (max-width: 768px) {
+  .workspace-body {
+    flex-direction: column;
+  }
+
+  .sidebar {
+    width: auto;
+    min-width: unset;
+    margin: 8px 8px 0 8px;
+    border-radius: 12px;
+    flex-direction: row;
+    flex-wrap: wrap;
+    padding: 10px 12px;
+    gap: 8px;
+    overflow-y: visible;
+  }
+
+  .sidebar-section {
+    display: none;
+  }
+
+  .sidebar-bottom {
+    margin-top: 0;
+    flex-direction: row;
+    gap: 8px;
+    width: 100%;
+  }
+
+  .sidebar-nav-item {
+    padding: 7px 10px;
+    font-size: 12px;
+  }
+
+  .join-btn {
+    margin-top: 0;
+    padding: 7px 10px;
+    font-size: 11px;
+  }
+
+  .main-content {
+    padding: 20px 16px;
+  }
+
+  .card-grid {
+    gap: 12px;
+  }
+
+  .modal-box {
+    min-width: unset;
+    width: calc(100vw - 40px);
+    padding: 22px 20px 18px;
+  }
+}
+
+@media (max-width: 480px) {
+  .main-content {
+    padding: 16px 12px;
+  }
+
+  .settings-btn {
+    bottom: 16px;
+    right: 16px;
+  }
 }

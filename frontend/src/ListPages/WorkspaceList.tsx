@@ -1,36 +1,73 @@
+/**
+ * 워크스페이스 목록 페이지 (홈)
+ * 팀/개인 워크스페이스 목록 조회, 새로 만들기, 즐겨찾기, 삭제 기능 제공
+ * ID 기반 랜덤 그라데이션으로 썸네일 색상 자동 지정
+ */
 import { useState, useRef, useEffect } from "react";
-import { useNavigate, useLocation } from "react-router-dom";
+import { useNavigate } from "react-router-dom";
 import Header from "../components/Header";
 import WorkspaceCard from "../components/WorkspaceCard";
 import BoardCreator from "../components/BoardCreator";
+import JoinModal from "../components/JoinModal";
+import AITaskModal from "../components/AITaskModal";
+import client from "../api/client";
 import "./WorkspaceList.css";
 
 interface Workspace {
-  id: number;
+  id: string;
   name: string;
   gradient: string;
   starred?: boolean;
+  type?: string;
 }
 
-let nextId = 10;
-
-const DEFAULT_TEAM: Workspace[] = [
-  { id: 1, name: "ㅁㄴㅇㄹ", gradient: "linear-gradient(135deg, #74aaff, #a8d0ff)", starred: true },
-  { id: 2, name: "ㅂㅈㄷㄱㅂㅈㄷㄱㅂㅈㄷㄱ", gradient: "linear-gradient(135deg, #ff7070, #ffb0b0)", starred: true },
+const GRADIENTS = [
+  "linear-gradient(135deg, #74aaff, #a8d0ff)",
+  "linear-gradient(135deg, #ff7070, #ffb0b0)",
+  "linear-gradient(135deg, #7ed957, #b8f0a0)",
+  "linear-gradient(135deg, #ffb347, #ffcc80)",
+  "linear-gradient(135deg, #a78bfa, #c4b5fd)",
 ];
+
+function randomGradient(id: string | number) {
+  let sum = 0;
+  for (const char of String(id)) sum += char.charCodeAt(0);
+  return GRADIENTS[sum % GRADIENTS.length];
+}
 
 export default function WorkspaceList() {
   const navigate = useNavigate();
-  const location = useLocation();
-  const locState = location.state as { teamWorkspaces?: Workspace[]; personalWorkspaces?: Workspace[] } | null;
+  const userId = localStorage.getItem('userId') ?? '';
 
-  const [teamWorkspaces, setTeamWorkspaces] = useState<Workspace[]>(locState?.teamWorkspaces ?? DEFAULT_TEAM);
-  const [personalWorkspaces, setPersonalWorkspaces] = useState<Workspace[]>(locState?.personalWorkspaces ?? []);
-
-  const [expandedId, setExpandedId] = useState<number | null>(null);
+  const [teamWorkspaces, setTeamWorkspaces] = useState<Workspace[]>([]);
+  const [personalWorkspaces, setPersonalWorkspaces] = useState<Workspace[]>([]);
+  const [expandedId, setExpandedId] = useState<string | null>(null);
   const [creatorRect, setCreatorRect] = useState<DOMRect | null>(null);
   const [creatorSection, setCreatorSection] = useState<'team' | 'personal' | null>(null);
+  const [deleteTarget, setDeleteTarget] = useState<{ id: any; section: 'team' | 'personal'; name: string } | null>(null);
+  const [joinOpen, setJoinOpen]   = useState(false);
+  const [aiTaskOpen, setAiTaskOpen] = useState(false);
   const creatorRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (!userId) return;
+    client.get(`/workspaces?userId=${userId}`)
+      .then((res) => {
+        const list: Workspace[] = (res.data.data ?? []).map((ws: any) => {
+          const localGradient = localStorage.getItem(`ws_gradient_${ws.workspaceId}`);
+          return {
+            id: ws.workspaceId,
+            name: ws.name,
+            gradient: localGradient || ws.gradient || randomGradient(ws.workspaceId),
+            starred: false,
+            type: ws.type,
+          };
+        });
+        setTeamWorkspaces(list.filter((ws) => ws.type === 'TEAM'));
+        setPersonalWorkspaces(list.filter((ws) => ws.type !== 'TEAM'));
+      })
+      .catch(() => {});
+  }, [userId]);
 
   const handleNewCardClick = (section: 'team' | 'personal') => (e: React.MouseEvent<HTMLDivElement>) => {
     if (creatorRect && creatorSection === section) {
@@ -43,25 +80,57 @@ export default function WorkspaceList() {
     setCreatorSection(section);
   };
 
-  const handleCreate = (name: string, gradient: string) => {
-    const newWs: Workspace = { id: nextId++, name, gradient, starred: false };
-    if (creatorSection === 'team') {
-      setTeamWorkspaces((prev) => [...prev, newWs]);
-    } else {
-      setPersonalWorkspaces((prev) => [...prev, newWs]);
+  const handleCreate = async (name: string, gradient: string) => {
+    const type = creatorSection === 'team' ? 'TEAM' : 'PERSONAL';
+    const allNames = [...teamWorkspaces, ...personalWorkspaces].map((ws) => ws.name);
+    if (allNames.includes(name.trim())) {
+      alert(`"${name}" 이름의 워크스페이스가 이미 존재합니다.`);
+      return;
+    }
+    try {
+      const res = await client.post(`/workspaces?userId=${userId}`, { name, type });
+      const created = res.data.data;
+      const newWs: Workspace = {
+        id: created.workspaceId,
+        name: created.name,
+        gradient,
+        starred: false,
+        type: created.type,
+      };
+      if (creatorSection === 'team') {
+        setTeamWorkspaces((prev) => [...prev, newWs]);
+      } else {
+        setPersonalWorkspaces((prev) => [...prev, newWs]);
+      }
+    } catch {
+      alert('워크스페이스 생성에 실패했습니다.');
     }
     setCreatorRect(null);
     setCreatorSection(null);
   };
 
-  const toggleStar = (id: number, section: 'team' | 'personal') => {
+  const confirmDelete = async () => {
+    if (!deleteTarget) return;
+    const { id, section } = deleteTarget;
+    try {
+      await client.delete(`/workspaces/${id}`);
+      if (section === 'team') setTeamWorkspaces((prev) => prev.filter((ws) => ws.id !== id));
+      else setPersonalWorkspaces((prev) => prev.filter((ws) => ws.id !== id));
+    } catch {
+      alert('삭제에 실패했습니다.');
+    } finally {
+      setDeleteTarget(null);
+    }
+  };
+
+  const toggleStar = (id: string, section: 'team' | 'personal') => {
     const updater = (prev: Workspace[]) =>
       prev.map((ws) => ws.id === id ? { ...ws, starred: !ws.starred } : ws);
     if (section === 'team') setTeamWorkspaces(updater);
     else setPersonalWorkspaces(updater);
   };
 
-  const toggleSidebar = (id: number) => {
+  const toggleSidebar = (id: string) => {
     setExpandedId((prev) => (prev === id ? null : id));
   };
 
@@ -87,7 +156,7 @@ export default function WorkspaceList() {
 
   const renderSidebarItems = (workspaces: Workspace[], section: 'team' | 'personal') =>
     workspaces.map((ws) => (
-      <div key={ws.id}>
+      <div key={`${section}-${ws.id}`}>
         <div className="sidebar-item" onClick={() => toggleSidebar(ws.id)}>
           <div className="sidebar-item-icon" style={{ background: ws.gradient }}>
             {ws.name[0]}
@@ -96,9 +165,9 @@ export default function WorkspaceList() {
           <span className={`sidebar-arrow ${expandedId === ws.id ? 'open' : ''}`}>▾</span>
         </div>
         <div className={`sidebar-submenu ${expandedId === ws.id ? 'open' : ''}`}>
-          <div className="sidebar-subitem" onClick={() => navigate('/board', { state: { workspace: ws, teamWorkspaces, personalWorkspaces } })}><span className="subitem-icon">□</span> Board</div>
-          <div className="sidebar-subitem"><span className="subitem-icon">👥</span> Members</div>
-          <div className="sidebar-subitem"><span className="subitem-icon">⚙</span> Setting</div>
+          <div className="sidebar-subitem" onClick={() => navigate('/workspace-board', { state: { workspace: ws, workspaces: [...teamWorkspaces, ...personalWorkspaces] } })}><span className="subitem-icon">□</span> Board</div>
+          <div className="sidebar-subitem" onClick={() => navigate('/members', { state: { workspace: ws, teamWorkspaces, personalWorkspaces } })}><span className="subitem-icon">👥</span> Members</div>
+          <div className="sidebar-subitem" onClick={() => navigate('/settings', { state: { workspace: ws, teamWorkspaces, personalWorkspaces } })}><span className="subitem-icon">⚙</span> Setting</div>
         </div>
       </div>
     ));
@@ -108,7 +177,6 @@ export default function WorkspaceList() {
       <Header workspaces={allWorkspaces} />
 
       <div className="workspace-body">
-        {/* 사이드바 */}
         <aside className="sidebar">
           <div className="sidebar-menu-icon">≡</div>
 
@@ -134,22 +202,26 @@ export default function WorkspaceList() {
               <span className="nav-icon">🖥</span>
               <span>Board</span>
             </div>
-            <button className="join-btn">워크스페이스 참여 !</button>
+            <button className="join-btn" onClick={() => setJoinOpen(true)}>워크스페이스 참여 !</button>
           </div>
         </aside>
 
-        {/* 메인 콘텐츠 */}
         <main className="main-content">
           <section className="ws-section">
             <h3 className="section-title">팀 Work Space</h3>
             <div className="card-grid">
               {teamWorkspaces.map((ws) => (
                 <WorkspaceCard
-                  key={ws.id}
+                  key={`team-${ws.id}`}
                   name={ws.name}
                   gradient={ws.gradient}
                   starred={ws.starred}
                   onToggleStar={() => toggleStar(ws.id, 'team')}
+                  onDelete={() => setDeleteTarget({ id: ws.id, section: 'team', name: ws.name })}
+                  onClick={() => {
+                    localStorage.setItem("clickedWorkspace", JSON.stringify(ws));
+                    navigate('/workspace-board', { state: { workspace: ws, workspaces: [...teamWorkspaces, ...personalWorkspaces] } });
+                  }}
                 />
               ))}
               <div
@@ -171,11 +243,16 @@ export default function WorkspaceList() {
             <div className="card-grid">
               {personalWorkspaces.map((ws) => (
                 <WorkspaceCard
-                  key={ws.id}
+                  key={`personal-${ws.id}`}
                   name={ws.name}
                   gradient={ws.gradient}
                   starred={ws.starred}
                   onToggleStar={() => toggleStar(ws.id, 'personal')}
+                  onDelete={() => setDeleteTarget({ id: ws.id, section: 'personal', name: ws.name })}
+                  onClick={() => {
+                    localStorage.setItem("clickedWorkspace", JSON.stringify(ws));
+                    navigate('/workspace-board', { state: { workspace: ws, workspaces: [...teamWorkspaces, ...personalWorkspaces] } });
+                  }}
                 />
               ))}
               <div
@@ -197,7 +274,7 @@ export default function WorkspaceList() {
             <div className="card-grid">
               {favorites.map((ws) => (
                 <WorkspaceCard
-                  key={ws.id}
+                  key={`fav-${ws.id}`}
                   name={ws.name}
                   gradient={ws.gradient}
                   starred
@@ -208,7 +285,6 @@ export default function WorkspaceList() {
         </main>
       </div>
 
-      {/* 보드 만들기 팝업 */}
       {creatorRect && (
         <div
           ref={creatorRef}
@@ -219,6 +295,24 @@ export default function WorkspaceList() {
       )}
 
       <button className="settings-btn">⚙</button>
+      {joinOpen && <JoinModal onClose={() => setJoinOpen(false)} />}
+      {aiTaskOpen && <AITaskModal onClose={() => setAiTaskOpen(false)} workspaces={allWorkspaces} />}
+
+      {deleteTarget && (
+        <div className="modal-overlay" onClick={() => setDeleteTarget(null)}>
+          <div className="modal-box" onClick={(e) => e.stopPropagation()}>
+            <p className="modal-title">워크스페이스 삭제</p>
+            <p className="modal-desc">
+              <strong>{deleteTarget.name}</strong>을(를) 삭제하시겠습니까?<br />
+              삭제된 워크스페이스는 복구할 수 없습니다.
+            </p>
+            <div className="modal-actions">
+              <button className="modal-btn cancel" onClick={() => setDeleteTarget(null)}>취소</button>
+              <button className="modal-btn confirm" onClick={confirmDelete}>삭제</button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

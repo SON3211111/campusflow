@@ -1,0 +1,471 @@
+.atp-page {
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+  background: #fff;
+  color: #111;
+}
+
+.atp-topbar {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 10px 24px;
+  border-bottom: 1px solid #e8e8e8;
+}
+
+.atp-back-btn {
+  background: none;
+  border: 1px solid #ddd;
+  border-radius: 8px;
+  color: #555;
+  padding: 6px 14px;
+  font-size: 13px;
+  cursor: pointer;
+  flex-shrink: 0;
+}
+
+.atp-back-btn:hover {
+  background: #f4f4f4;
+}
+
+.atp-reset-btn {
+  margin-left: auto;
+  background: #4f7cff;
+  color: #fff;
+  border: none;
+  border-radius: 8px;
+  padding: 7px 16px;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.atp-reset-btn:hover {
+  background: #3a65e0;
+}
+
+.atp-save-wrap {
+  position: relative;
+}
+
+.atp-save-msg {
+  position: absolute;
+  top: calc(100% + 4px);
+  right: 0;
+  font-size: 11px;
+  color: #4f7cff;
+  font-weight: 500;
+  white-space: nowrap;
+}
+
+.atp-workspace-btn {
+  background: #fff;
+  color: #222;
+  border: 1.5px solid #ddd;
+  border-radius: 20px;
+  padding: 7px 18px;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.15s;
+  white-space: nowrap;
+}
+
+.atp-workspace-btn:hover {
+  background: #f4f4f4;
+}
+
+.atp-save-btn {
+  background: #fff;
+  color: #4f7cff;
+  border: 1.5px solid #4f7cff;
+  border-radius: 8px;
+  padding: 7px 16px;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+
+.atp-save-btn:hover {
+  background: #eef2ff;
+}
+
+.atp-reset-modal {
+  background: #fff;
+  border-radius: 14px;
+  padding: 28px 32px 24px;
+  width: 400px;
+  box-shadow: 0 8px 32px rgba(0,0,0,0.18);
+  position: relative;
+}
+
+.atp-reset-modal-close {
+  position: absolute;
+  top: 16px;
+  right: 18px;
+  background: none;
+  border: none;
+  font-size: 16px;
+  color: #888;
+  cursor: pointer;
+}
+
+.atp-reset-modal-title {
+  font-size: 17px;
+  font-weight: 700;
+  color: #222;
+  margin: 0 0 16px 0;
+}
+
+.atp-reset-label {
+  font-size: 13px;
+  color: #555;
+  font-weight: 500;
+  display: block;
+  margin-bottom: 8px;
+}
+
+.atp-reset-textarea {
+  width: 100%;
+  height: 130px;
+  border: 1px solid #ddd;
+  border-radius: 10px;
+  padding: 12px;
+  font-size: 14px;
+  resize: none;
+  outline: none;
+  box-sizing: border-box;
+  margin-bottom: 16px;
+}
+
+.atp-reset-textarea:focus {
+  border-color: #4f7cff;
+}
+
+.atp-reset-submit {
+  width: 100%;
+  padding: 11px 0;
+  background-image: linear-gradient(to left, #00c6fb 0%, #005bea 100%);
+  color: #fff;
+  border: none;
+  border-radius: 10px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: opacity 0.15s;
+}
+
+.atp-reset-submit:hover:not(:disabled) {
+  opacity: 0.85;
+}
+
+.atp-reset-submit:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.atp-project-title {
+  font-size: 14px;
+  font-weight: 600;
+  color: #333;
+}
+
+.atp-body {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+/* ===== 트리 ===== */
+.atp-tree {
+  flex: 1;
+  overflow: auto;
+  padding: 32px 48px 0;
+}
+
+.atp-root-wrap {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.atp-root-node {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  background: #a89cf8;
+  color: #fff;
+  border-radius: 20px;
+  padding: 10px 28px;
+  font-size: 14px;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.atp-root-icon {
+  font-size: 16px;
+}
+
+.atp-root-line {
+  width: 1px;
+  height: 28px;
+  background: #ccc;
+}
+
+.atp-categories {
+  display: flex;
+  gap: 32px;
+  justify-content: center;
+  align-items: flex-start;
+  position: relative;
+}
+
+/* 가로 연결선 */
+.atp-categories::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 10%;
+  right: 10%;
+  height: 1px;
+  background: #ccc;
+}
+
+.atp-category-col {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+  min-width: 200px;
+  position: relative;
+}
+
+/* 세로 연결선 */
+.atp-category-col::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 50%;
+  width: 1px;
+  height: 20px;
+  background: #ccc;
+  transform: translateX(-50%);
+}
+
+.atp-cat-node {
+  margin-top: 20px;
+  width: 100%;
+  text-align: center;
+  padding: 16px 12px;
+  border-radius: 12px;
+  font-size: 15px;
+  font-weight: 700;
+  color: #222;
+  background: #fff;
+  border: 2px solid;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+}
+
+.atp-tasks {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  width: 100%;
+}
+
+.atp-task-card {
+  border-radius: 12px;
+  padding: 20px 16px 10px;
+  cursor: grab;
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+  transition: transform 0.15s, opacity 0.15s;
+  border: none;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+}
+
+.atp-task-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+}
+
+.atp-task-card.dragging {
+  opacity: 0.4;
+}
+
+.atp-task-card:active {
+  cursor: grabbing;
+}
+
+.atp-task-label {
+  font-size: 11px;
+  color: rgba(0,0,0,0.4);
+}
+
+.atp-task-name {
+  font-size: 15px;
+  color: #111;
+  font-weight: 700;
+  text-align: left;
+  align-self: flex-start;
+}
+
+.atp-subdivide-btn {
+  align-self: flex-end;
+  background: rgba(0,0,0,0.15);
+  border: none;
+  border-radius: 6px;
+  padding: 3px 8px;
+  font-size: 10px;
+  color: #333;
+  cursor: pointer;
+  margin-top: 8px;
+  transition: background 0.15s;
+  white-space: nowrap;
+}
+
+.atp-subdivide-btn:hover:not(:disabled) {
+  background: rgba(0,0,0,0.25);
+}
+
+.atp-subdivide-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.atp-empty-col {
+  font-size: 11px;
+  color: #bbb;
+  text-align: center;
+  padding: 12px 0;
+}
+
+/* ===== 장바구니 ===== */
+.atp-basket-bar {
+  display: flex;
+  gap: 24px;
+  padding: 20px 32px;
+  background: #f0f2f8;
+  border-top: 1px solid #ddd;
+  overflow-x: auto;
+}
+
+.atp-basket-outer {
+  background: #fff;
+  border-radius: 20px;
+  padding: 20px 24px;
+  display: flex;
+  gap: 24px;
+  box-shadow: 0 2px 10px rgba(0,0,0,0.06);
+}
+
+.atp-user-slot {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+  min-width: 280px;
+}
+
+.atp-basket-box {
+  width: 100%;
+  height: 200px;
+  background: #f8f8f8;
+  border: 2px dashed #ccc;
+  border-radius: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  align-items: stretch;
+  justify-content: center;
+  padding: 10px;
+  box-sizing: border-box;
+  transition: border-color 0.15s, background 0.15s;
+  overflow: hidden;
+}
+
+.atp-basket-box.drag-over {
+  border-color: #7a9fff;
+  background: #eef2ff;
+}
+
+.atp-avatar {
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  background: #a89cf8;
+  color: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 18px;
+  font-weight: 700;
+  flex-shrink: 0;
+}
+
+.atp-user-name {
+  font-size: 13px;
+  color: #444;
+  font-weight: 500;
+}
+
+.atp-drop-hint {
+  font-size: 13px;
+  color: #bbb;
+}
+
+.atp-cooldown-msg {
+  font-size: 13px;
+  color: #4f7cff;
+  font-weight: 600;
+  align-self: flex-start;
+}
+
+.basket-locked {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.atp-basket-card {
+  border-radius: 8px;
+  padding: 0 10px;
+  font-size: 13px;
+  color: #111;
+  font-weight: 600;
+  cursor: grab;
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  width: 100%;
+  box-sizing: border-box;
+  box-shadow: 0 1px 4px rgba(0,0,0,0.08);
+  flex: 1;
+}
+
+.atp-basket-card:active {
+  cursor: grabbing;
+}
+
+.atp-basket-card-name {
+  font-size: 13px;
+  font-weight: 700;
+  color: #111;
+  text-align: left;
+}
+
+.atp-basket-card-tag {
+  display: inline-block;
+  background: rgba(0,0,0,0.12);
+  border-radius: 4px;
+  padding: 2px 8px;
+  font-size: 10px;
+  color: #333;
+  font-weight: 500;
+  align-self: flex-end;
+}
