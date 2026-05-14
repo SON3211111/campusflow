@@ -63,6 +63,10 @@ export default function AITaskModal({ onClose, workspaces = [], workspace }: Pro
   const [screen, setScreen] = useState<Screen>("home");
   const [prompt, setPrompt] = useState("");
 
+  const activeWs = workspace ?? workspaces[0];
+  const sessionKey = `ai_task_session_${activeWs?.id ?? "default"}`;
+  const hasSession = !!localStorage.getItem(sessionKey);
+
   return (
     <div className="modal-overlay" onClick={onClose}>
       <div className="ai-modal-box" onClick={(e) => e.stopPropagation()}>
@@ -72,6 +76,18 @@ export default function AITaskModal({ onClose, workspaces = [], workspace }: Pro
           <>
             <h3 className="ai-modal-title">새 AI Task 생성</h3>
             <div className="ai-modal-options">
+              {hasSession && (
+                <div className="ai-option-card" onClick={() => {
+                  onClose();
+                  navigate("/ai-task", { state: { workspace: activeWs, workspaces } });
+                }}>
+                  <div className="ai-option-icon purple">▶</div>
+                  <div className="ai-option-info">
+                    <span className="ai-option-name">진행 중인 업무 이어하기</span>
+                    <span className="ai-option-desc">마지막 업무 분해 세션을 이어서 진행합니다</span>
+                  </div>
+                </div>
+              )}
               <div className="ai-option-card" onClick={() => setScreen("prompt")}>
                 <div className="ai-option-icon blue">📄</div>
                 <div className="ai-option-info">
@@ -88,7 +104,7 @@ export default function AITaskModal({ onClose, workspaces = [], workspace }: Pro
               </div>
               <div className="ai-option-card" onClick={() => {
                 onClose();
-                navigate("/workspace-board", { state: { workspace: workspace ?? workspaces[0], workspaces } });
+                navigate("/workspace-board", { state: { workspace: activeWs, workspaces } });
               }}>
                 <div className="ai-option-icon orange">🚀</div>
                 <div className="ai-option-info">

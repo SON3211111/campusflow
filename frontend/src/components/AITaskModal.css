@@ -89,6 +89,10 @@
   background: #ffe8d0;
 }
 
+.ai-option-icon.purple {
+  background: #ede8ff;
+}
+
 .ai-option-info {
   display: flex;
   flex-direction: column;
