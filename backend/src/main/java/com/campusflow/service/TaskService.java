@@ -2,6 +2,7 @@ package com.campusflow.service;
 
 import com.campusflow.dto.ProjectProgressDto;
 import com.campusflow.dto.TaskCreateRequest;
+import com.campusflow.dto.TaskResponse;
 import com.campusflow.entity.Project;
 import com.campusflow.entity.Task;
 import com.campusflow.entity.User;
@@ -32,16 +33,23 @@ public class TaskService {
 
     // ── 칸반 보드 ────────────────────────────────────────────
 
-    /** 워크스페이스의 활성 태스크 목록 반환 (소프트 삭제 제외) */
+    /**
+     * 워크스페이스의 활성 태스크 목록 (소프트 삭제 제외).
+     * DTO 변환은 동일 트랜잭션 안에서 수행해 assignee 지연 로딩으로 인한 500을 방지한다.
+     */
     @Transactional(readOnly = true)
-    public List<Task> getActiveTasks(String workspaceId) {
-        return taskRepository.findAllByWorkspace_WorkspaceIdAndDeletedFalse(workspaceId);
+    public List<TaskResponse> getActiveTaskResponses(String workspaceId) {
+        return taskRepository.findAllByWorkspace_WorkspaceIdAndDeletedFalse(workspaceId).stream()
+                .map(TaskResponse::from)
+                .toList();
     }
 
-    /** 워크스페이스의 소프트 삭제된 태스크 목록 반환 (휴지통) */
+    /** 워크스페이스의 소프트 삭제된 태스크 목록 (휴지통) */
     @Transactional(readOnly = true)
-    public List<Task> getDeletedTasks(String workspaceId) {
-        return taskRepository.findAllByWorkspace_WorkspaceIdAndDeletedTrue(workspaceId);
+    public List<TaskResponse> getDeletedTaskResponses(String workspaceId) {
+        return taskRepository.findAllByWorkspace_WorkspaceIdAndDeletedTrue(workspaceId).stream()
+                .map(TaskResponse::from)
+                .toList();
     }
 
     /** 태스크 생성 후 저장된 엔티티 반환 */

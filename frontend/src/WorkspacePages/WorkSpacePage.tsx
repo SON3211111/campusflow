@@ -58,6 +58,14 @@ const BSV_KEY_TO_STATUS: Record<string, string> = {
   done: "DONE",
 };
 
+const COL_TO_BSV_KEY: Record<string, string> = {
+  "상태 없음": "none",
+  "시작하지 않음": "notStarted",
+  "진행 중": "inProgress",
+  "보류 중": "hold",
+  "완료": "done",
+};
+
 const INITIAL_COLS = ["상태 없음", "시작하지 않음", "진행 중", "보류 중", "완료"];
 
 function getCalendarDays(year: number, month: number) {
@@ -359,6 +367,13 @@ export default function WorkSpacePage() {
     else setCalMonth(m => m + 1);
   };
 
+  const bsvColMap = Object.fromEntries(
+    INITIAL_COLS.map((col) => [
+      COL_TO_BSV_KEY[col] ?? "none",
+      (cards[col] ?? []).map(({ id, title, desc, comments }) => ({ id, title, desc, comments })),
+    ])
+  );
+
   const allBoardCards = Object.values(cards).flat();
   const slideInitialCards = [...basketTasks, ...allBoardCards];
 
@@ -581,6 +596,7 @@ export default function WorkSpacePage() {
       <BoardSlideView
         visible={showBoardView}
         initialCards={slideInitialCards}
+        syncedColMap={bsvColMap}
         gradient={gradient}
         workspaceId={workspace?.id}
         onCardClick={(card) => setSlideCard(card)}

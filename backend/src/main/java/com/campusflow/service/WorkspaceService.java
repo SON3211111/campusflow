@@ -5,7 +5,9 @@ import com.campusflow.entity.Workspace;
 import com.campusflow.entity.WorkspaceMember;
 import com.campusflow.entity.enums.WorkspaceRole;
 import com.campusflow.entity.enums.WorkspaceType;
+import com.campusflow.repository.ContributionMetricsRepository;
 import com.campusflow.repository.InvitationRepository;
+import com.campusflow.repository.ProjectRepository;
 import com.campusflow.repository.TaskRepository;
 import com.campusflow.repository.UserRepository;
 import com.campusflow.repository.WorkspaceMemberRepository;
@@ -26,6 +28,8 @@ public class WorkspaceService {
     private final UserRepository userRepository;
     private final TaskRepository taskRepository;
     private final InvitationRepository invitationRepository;
+    private final ProjectRepository projectRepository;
+    private final ContributionMetricsRepository contributionMetricsRepository;
 
     /** 회원가입 시 개인 워크스페이스 자동 생성 */
     @Transactional
@@ -84,8 +88,22 @@ public class WorkspaceService {
 
     @Transactional
     public void deleteWorkspace(String workspaceId) {
-        // FK 제약 순서: Tasks → Invitations → Members → Workspace
+        // FK 제약 순서:
+        // 1. Task의 project FK 제거 (null로 설정)
+        // 2. Task 삭제
+        // 3. ContributionMetrics 삭제
+        // 4. Project 삭제
+        // 5. Invitation 삭제
+        // 6. WorkspaceMember 삭제
+        // 7. Workspace 삭제
+
+        // Task의 project_id, parent_id를 null로 설정 (FK 제약 제거)
+        taskRepository.updateProjectNullByWorkspace(workspaceId);
+        taskRepository.updateParentTaskNullByWorkspace(workspaceId);
+
         taskRepository.deleteAllByWorkspace_WorkspaceId(workspaceId);
+        contributionMetricsRepository.deleteAllByProject_Workspace_WorkspaceId(workspaceId);
+        projectRepository.deleteAllByWorkspace_WorkspaceId(workspaceId);
         invitationRepository.deleteAllByWorkspace_WorkspaceId(workspaceId);
         workspaceMemberRepository.deleteAllByWorkspace_WorkspaceId(workspaceId);
         workspaceRepository.deleteById(workspaceId);

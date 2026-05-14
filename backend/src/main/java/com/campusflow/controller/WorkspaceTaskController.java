@@ -27,10 +27,7 @@ public class WorkspaceTaskController {
 
     @GetMapping
     public ResponseEntity<ApiResponse<List<TaskResponse>>> getTasks(@PathVariable String workspaceId) {
-        List<TaskResponse> tasks = taskService.getActiveTasks(workspaceId)
-                .stream()
-                .map(TaskResponse::from)
-                .toList();
+        List<TaskResponse> tasks = taskService.getActiveTaskResponses(workspaceId);
         return ResponseEntity.ok(ApiResponse.success(200, "조회 성공", tasks));
     }
 
@@ -44,10 +41,7 @@ public class WorkspaceTaskController {
 
     @GetMapping("/trash")
     public ResponseEntity<ApiResponse<List<TaskResponse>>> getTrash(@PathVariable String workspaceId) {
-        List<TaskResponse> deleted = taskService.getDeletedTasks(workspaceId)
-                .stream()
-                .map(TaskResponse::from)
-                .toList();
+        List<TaskResponse> deleted = taskService.getDeletedTaskResponses(workspaceId);
         return ResponseEntity.ok(ApiResponse.success(200, "조회 성공", deleted));
     }
 

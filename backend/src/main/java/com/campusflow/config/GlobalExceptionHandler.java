@@ -1,6 +1,7 @@
 package com.campusflow.config;
 
 import com.campusflow.dto.ApiResponse;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.ExceptionHandler;
@@ -11,6 +12,7 @@ import org.springframework.web.bind.annotation.RestControllerAdvice;
  * 컨트롤러에서 잡히지 않은 예외를 적절한 HTTP 상태 코드로 변환
  * - IllegalArgumentException: 잘못된 요청 파라미터 (400)
  * - IllegalStateException: 비즈니스 규칙 위반 (409)
+ * - DataIntegrityViolationException: FK 제약 위반 (409)
  * - 그 외: 서버 오류 (500)
  * 모든 에러 응답은 AuthController와 동일한 ApiResponse 포맷 사용
  */
@@ -29,9 +31,19 @@ public class GlobalExceptionHandler {
                 .body(ApiResponse.error(409, ex.getMessage()));
     }
 
+    @ExceptionHandler(DataIntegrityViolationException.class)
+    public ResponseEntity<ApiResponse<?>> handleDataIntegrityViolation(DataIntegrityViolationException ex) {
+        String message = "데이터 무결성 오류: 관련된 다른 데이터가 존재합니다.";
+        if (ex.getMessage() != null && ex.getMessage().contains("foreign key")) {
+            message = "삭제할 수 없습니다. 관련된 데이터(초대장, 프로젝트, 태스크 등)가 존재합니다.";
+        }
+        return ResponseEntity.status(HttpStatus.CONFLICT)
+                .body(ApiResponse.error(409, message));
+    }
+
     @ExceptionHandler(Exception.class)
     public ResponseEntity<ApiResponse<?>> handleGeneral(Exception ex) {
         return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-                .body(ApiResponse.error(500, "서버 오류가 발생했습니다."));
+                .body(ApiResponse.error(500, "서버 오류가 발생했습니다: " + ex.getClass().getSimpleName()));
     }
 }

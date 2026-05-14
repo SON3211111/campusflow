@@ -13,9 +13,12 @@ interface CardItem {
   comments: { user: string; text: string; time: string }[];
 }
 
+type ColMap = { [key: string]: CardItem[] };
+
 interface Props {
   visible: boolean;
   initialCards: CardItem[];
+  syncedColMap?: ColMap;
   gradient?: string;
   workspaceId?: string;
   onCardClick?: (card: { title: string; desc: string; comments: any[] }) => void;
@@ -30,32 +33,29 @@ const STATUS_COLS = [
   { key: "done",       label: "완료",          dot: "●", color: "#22c55e" },
 ];
 
-type ColMap = { [key: string]: CardItem[] };
-
-export default function BoardSlideView({ visible, initialCards, gradient: _gradient, workspaceId, onCardClick, onStatusChange }: Props) {
+export default function BoardSlideView({ visible, initialCards, syncedColMap, gradient: _gradient, workspaceId, onCardClick, onStatusChange }: Props) {
   const storageKey = `board_slide_colmap_${workspaceId ?? "default"}`;
 
+  const emptyColMap = (): ColMap => ({ none: [], notStarted: [], inProgress: [], hold: [], done: [] });
+
   const [colMap, setColMap] = useState<ColMap>(() => {
+    if (syncedColMap) return syncedColMap;
     try {
       const saved = localStorage.getItem(`board_slide_colmap_${workspaceId ?? "default"}`);
       if (saved) return JSON.parse(saved);
     } catch {}
-    return { none: [], notStarted: [], inProgress: [], hold: [], done: [] };
+    return emptyColMap();
   });
   const [draggingId, setDraggingId]   = useState<string | null>(null);
   const [draggingCol, setDraggingCol] = useState<string | null>(null);
   const [dragOverCol, setDragOverCol] = useState<string | null>(null);
 
+  // 메인 보드와 동기화: syncedColMap이 바뀌면 즉시 반영
   useEffect(() => {
-    setColMap((prev) => {
-      const existingIds = new Set(Object.values(prev).flat().map((c) => c.id));
-      const newCards = initialCards.filter((c) => !existingIds.has(c.id));
-      if (newCards.length === 0) return prev;
-      const next = { ...prev, none: [...prev.none, ...newCards] };
-      localStorage.setItem(storageKey, JSON.stringify(next));
-      return next;
-    });
-  }, [initialCards]);
+    if (syncedColMap) {
+      setColMap(syncedColMap);
+    }
+  }, [syncedColMap]);
 
   const handleDragStart = (id: string, colKey: string) => {
     setDraggingId(id);
