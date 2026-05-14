@@ -22,6 +22,10 @@ public class Project {
 
     private String description;
 
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "workspace_id")
+    private Workspace workspace;
+
     // --- 초대 관련 필드 ---
     @Column(unique = true, length = 50)
     private String inviteCode;

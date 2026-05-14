@@ -22,8 +22,8 @@ public class ProjectController {
     @PostMapping
     public ResponseEntity<Project> createProject(@RequestBody Map<String, String> request) {
         String title = request.get("title");
-        // workspaceId는 현재 구조에 맞춰 임시값 전달
-        Project project = projectService.createProject(title, "default-workspace");
+        String workspaceId = request.get("workspaceId");
+        Project project = projectService.createProject(title, workspaceId);
         return ResponseEntity.ok(project);
     }
 

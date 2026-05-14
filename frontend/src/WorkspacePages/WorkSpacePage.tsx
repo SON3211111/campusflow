@@ -606,11 +606,11 @@ export default function WorkSpacePage() {
         <div className="wsp-trash-overlay" onClick={() => setTrashOpen(false)}>
           <div className="wsp-trash-modal" onClick={(e) => e.stopPropagation()}>
             <div className="wsp-trash-header">
-              <h3>Trash</h3>
+              <h3>휴지통</h3>
               <button className="wsp-trash-close" onClick={() => setTrashOpen(false)}>x</button>
             </div>
             {deletedCards.length === 0 ? (
-              <div className="wsp-trash-empty">Deleted tasks will appear here.</div>
+              <div className="wsp-trash-empty">삭제된 태스크가 여기에 표시됩니다.</div>
             ) : (
               <div className="wsp-trash-list">
                 {deletedCards.map((card) => (
@@ -620,7 +620,7 @@ export default function WorkSpacePage() {
                       {card.desc && <p>{card.desc}</p>}
                     </div>
                     <button className="wsp-restore-btn" onClick={() => handleRestoreCard(card)}>
-                      Restore
+                      복구
                     </button>
                   </div>
                 ))}

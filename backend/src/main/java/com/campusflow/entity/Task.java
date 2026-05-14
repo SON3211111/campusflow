@@ -5,6 +5,8 @@ import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import jakarta.persistence.*;
 import lombok.*;
+import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -41,7 +43,14 @@ public class Task {
     private User assignee;
 
     @Builder.Default
-    private boolean isAiGenerated = false; // AI 장바구니 출신 여부 구분
+    private boolean isAiGenerated = false;
+
+    private LocalDate dueDate;
+
+    @Builder.Default
+    private boolean isDeleted = false;
+
+    private LocalDateTime deletedAt;
 
     // ------------------------------------------
 
