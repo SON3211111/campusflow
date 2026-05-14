@@ -1,12 +1,18 @@
 package com.campusflow.service;
 
+import com.campusflow.dto.TaskCreateRequest;
+import com.campusflow.dto.TaskResponse;
 import com.campusflow.entity.Task;
+import com.campusflow.entity.Workspace;
 import com.campusflow.entity.enums.TaskStatus;
 import com.campusflow.repository.TaskRepository;
+import com.campusflow.repository.WorkspaceRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
@@ -16,10 +22,63 @@ import java.util.stream.Collectors;
 public class TaskService {
 
     private final TaskRepository taskRepository;
+    private final WorkspaceRepository workspaceRepository;
+
+    @Transactional(readOnly = true)
+    public List<TaskResponse> getAllTasks(String workspaceId) {
+        return taskRepository.findAllByWorkspace_WorkspaceIdAndDeletedFalse(workspaceId)
+                .stream().map(TaskResponse::from).toList();
+    }
+
+    @Transactional(readOnly = true)
+    public List<TaskResponse> getDeletedTasks(String workspaceId) {
+        return taskRepository.findAllByWorkspace_WorkspaceIdAndDeletedTrue(workspaceId)
+                .stream().map(TaskResponse::from).toList();
+    }
+
+    @Transactional
+    public TaskResponse createTask(String workspaceId, TaskCreateRequest req) {
+        Workspace workspace = workspaceRepository.findByWorkspaceId(workspaceId)
+                .orElseThrow(() -> new IllegalArgumentException("워크스페이스를 찾을 수 없습니다."));
+        TaskStatus status = TaskStatus.TODO;
+        if (req.status() != null && !req.status().isBlank()) {
+            try { status = TaskStatus.valueOf(req.status()); } catch (IllegalArgumentException ignored) {}
+        }
+        LocalDate dueDate = null;
+        if (req.dueDate() != null && !req.dueDate().isBlank()) {
+            try { dueDate = LocalDate.parse(req.dueDate()); } catch (Exception ignored) {}
+        }
+        Task task = Task.builder()
+                .title(req.title())
+                .description(req.description() != null ? req.description() : "")
+                .status(status)
+                .dueDate(dueDate)
+                .deleted(false)
+                .workspace(workspace)
+                .build();
+        return TaskResponse.from(taskRepository.save(task));
+    }
+
+    @Transactional
+    public void deleteTask(String taskId) {
+        Task task = taskRepository.findById(taskId)
+                .orElseThrow(() -> new IllegalArgumentException("Task not found. ID: " + taskId));
+        task.setDeleted(true);
+        task.setDeletedAt(LocalDateTime.now());
+    }
+
+    @Transactional
+    public TaskResponse restoreTask(String taskId) {
+        Task task = taskRepository.findById(taskId)
+                .orElseThrow(() -> new IllegalArgumentException("Task not found. ID: " + taskId));
+        task.setDeleted(false);
+        task.setDeletedAt(null);
+        return TaskResponse.from(task);
+    }
 
     @Transactional(readOnly = true)
     public Map<TaskStatus, List<Task>> getKanbanBoard(String workspaceId) {
-        List<Task> tasks = taskRepository.findAllByWorkspace_WorkspaceId(workspaceId);
+        List<Task> tasks = taskRepository.findAllByWorkspace_WorkspaceIdAndDeletedFalse(workspaceId);
         return tasks.stream().collect(Collectors.groupingBy(Task::getStatus));
     }
 
@@ -28,5 +87,12 @@ public class TaskService {
         Task task = taskRepository.findById(taskId)
                 .orElseThrow(() -> new IllegalArgumentException("태스크를 찾을 수 없습니다. ID: " + taskId));
         task.setStatus(newStatus);
+    }
+
+    @Transactional
+    public void updateTaskDueDate(String taskId, String dueDate) {
+        Task task = taskRepository.findById(taskId)
+                .orElseThrow(() -> new IllegalArgumentException("태스크를 찾을 수 없습니다. ID: " + taskId));
+        task.setDueDate(dueDate != null && !dueDate.isBlank() ? LocalDate.parse(dueDate) : null);
     }
 }

@@ -158,3 +158,67 @@
   font-size: 13px;
   color: #444;
 }
+
+.template-apply-hint {
+  font-size: 11px;
+  color: #4f7cff;
+  opacity: 0;
+  transition: opacity 0.15s;
+}
+
+.template-card-full:hover .template-apply-hint {
+  opacity: 1;
+}
+
+.template-card-full:hover .template-thumb-full:not(.empty) {
+  opacity: 0.85;
+  box-shadow: 0 0 0 2px #4f7cff;
+}
+
+.template-card-full.selected .template-apply-hint {
+  opacity: 1;
+  color: #22c55e;
+  font-weight: 600;
+}
+
+.template-card-full.selected .template-thumb-full {
+  box-shadow: 0 0 0 3px #4f7cff;
+  opacity: 1;
+}
+
+/* ===== 적용하기 버튼 바 ===== */
+.template-apply-bar {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.template-preview-chip {
+  width: 28px;
+  height: 28px;
+  border-radius: 6px;
+  flex-shrink: 0;
+  border: 1px solid rgba(0,0,0,0.1);
+}
+
+.template-apply-btn {
+  padding: 7px 20px;
+  background: #4f7cff;
+  color: #fff;
+  border: none;
+  border-radius: 8px;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.15s, opacity 0.15s;
+}
+
+.template-apply-btn:disabled {
+  background: #c0c8ff;
+  cursor: not-allowed;
+  opacity: 0.7;
+}
+
+.template-apply-btn:not(:disabled):hover {
+  background: #3a65e8;
+}

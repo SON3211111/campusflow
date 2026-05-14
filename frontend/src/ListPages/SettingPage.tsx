@@ -81,7 +81,7 @@ const handleSaveAll = async () => {
           <span className={`sidebar-arrow ${expandedId === ws.id ? "open" : ""}`}>▾</span>
         </div>
         <div className={`sidebar-submenu ${expandedId === ws.id ? "open" : ""}`}>
-          <div className="sidebar-subitem" onClick={() => navigate("/board", { state: navState(ws) })}>
+          <div className="sidebar-subitem" onClick={() => navigate("/workspace-board", { state: { workspace: ws, workspaces: allWorkspaces } })}>
             <span className="subitem-icon">□</span> Board
           </div>
           <div className="sidebar-subitem" onClick={() => navigate("/members", { state: navState(ws) })}>
@@ -145,6 +145,26 @@ const handleSaveAll = async () => {
               </div>
             </div>
           </div>
+
+          <hr className="setting-divider" />
+
+          {/* 테마/배경 변경 */}
+          <section className="setting-section">
+            <h3 className="setting-section-title">배경 테마</h3>
+            <p className="setting-desc">워크스페이스 배경 색상을 변경합니다.</p>
+            <button
+              className="setting-template-btn"
+              onClick={() => navigate("/templates", {
+                state: {
+                  workspace: { id: workspace.id, name: wsName, gradient: workspace.gradient },
+                  teamWorkspaces: teamWs,
+                  personalWorkspaces: personalWs,
+                }
+              })}
+            >
+              🎨 템플릿 선택
+            </button>
+          </section>
 
           <hr className="setting-divider" />
 

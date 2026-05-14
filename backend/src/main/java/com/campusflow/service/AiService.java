@@ -55,6 +55,23 @@ public class AiService {
         }
     }
 
+    public String generate(String prompt) {
+        try {
+            HttpHeaders headers = new HttpHeaders();
+            headers.setContentType(MediaType.APPLICATION_JSON);
+            HttpEntity<Map<String, String>> request = new HttpEntity<>(Map.of("prompt", prompt), headers);
+            ResponseEntity<AiResponseDto> response = restTemplate.exchange(
+                    aiServerUrl + "/generate", HttpMethod.POST, request, AiResponseDto.class);
+            if (response.getStatusCode() == HttpStatus.OK && response.getBody() != null) {
+                String result = response.getBody().result();
+                return (result != null) ? result : "";
+            }
+            return "";
+        } catch (Exception e) {
+            throw new RuntimeException("AI 서버 호출 실패: " + e.getMessage(), e);
+        }
+    }
+
     public TaskListDto generateTasks(String title, String description) {
         try {
             HttpHeaders headers = new HttpHeaders();

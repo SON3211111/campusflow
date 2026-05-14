@@ -4,7 +4,7 @@ import AITaskModal from "./AITaskModal";
 import "./Header.css";
 
 interface WorkspaceItem {
-  id: number;
+  id: string;
   name: string;
   gradient: string;
 }
@@ -54,7 +54,7 @@ export default function Header({ workspaces = [], showSearch = true, onLogout }:
   return (
     <>
     <header className="header">
-      <div className="header-logo" onClick={() => navigate("/")}>CAMPUS_FLOW</div>
+      <div className="header-logo" onClick={() => navigate("/")}>C'FLOW</div>
 
       {showSearch && (
         <div className="header-search" ref={searchRef}>
@@ -71,7 +71,7 @@ export default function Header({ workspaces = [], showSearch = true, onLogout }:
               <div className="search-dropdown">
                 <p className="search-dropdown-category">Board</p>
                 {filtered.map((ws) => (
-                  <div key={ws.id} className="search-result-item" onClick={() => { setSearchOpen(false); setQuery(''); setAiTaskOpen(true); }}>
+                  <div key={ws.id} className="search-result-item" onClick={() => { setSearchOpen(false); setQuery(''); localStorage.setItem("clickedWorkspace", JSON.stringify(ws)); navigate('/workspace-board', { state: { workspace: ws, workspaces } }); }}>
                     <div className="search-result-thumb" style={{ background: ws.gradient }} />
                     <span className="search-result-name">{ws.name}</span>
                   </div>
@@ -79,14 +79,14 @@ export default function Header({ workspaces = [], showSearch = true, onLogout }:
               </div>
             )}
           </div>
-          <button className="header-create-btn">Create</button>
+          <button className="header-create-btn">Search</button>
         </div>
       )}
 
       <div className="header-right">
         {showSearch && (
           <>
-            <div className="header-myprojects">
+            <div className="header-myprojects" onClick={() => navigate('/workspace')} style={{ cursor: 'pointer' }}>
               <span className="grid-icon">⊞</span>
               <span>My projects</span>
             </div>

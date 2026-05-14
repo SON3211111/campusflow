@@ -60,12 +60,17 @@ function convertToBreakdownResult(data: any, prompt: string): BreakdownResult {
 
 export default function TaskBreakdownPage() {
   const { state } = useLocation() as {
-    state: { prompt: string; workspaces: { id: number; name: string; gradient: string }[] };
+    state: {
+      prompt: string;
+      workspaces: { id: string; name: string; gradient: string }[];
+      workspace?: { id: string; name: string; gradient: string };
+    };
   };
   const navigate = useNavigate();
 
   const prompt     = state?.prompt     ?? "";
   const workspaces = state?.workspaces ?? [];
+  const workspace  = state?.workspace;
 
   const userName = localStorage.getItem("userName") ?? "나";
 
@@ -83,7 +88,7 @@ export default function TaskBreakdownPage() {
 
   useEffect(() => {
     if (result) {
-      navigate("/ai-task", { state: { workspaces, result, prompt } });
+      navigate("/ai-task", { state: { workspaces, workspace, result, prompt } });
     }
   }, [result]);
 
@@ -122,7 +127,7 @@ export default function TaskBreakdownPage() {
       <div className="tbp-topbar">
         <button className="tbp-back-btn" onClick={() => navigate(-1)}>← 뒤로가기</button>
         {!loading && !error && result && (
-          <button className="tbp-retry-btn" onClick={callAI}>🔄 다시 생성</button>
+          <button className="tbp-retry-btn" onClick={callAI}>다시 생성</button>
         )}
       </div>
 

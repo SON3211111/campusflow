@@ -36,7 +36,7 @@ export default function WorkspaceList() {
 
   const [teamWorkspaces, setTeamWorkspaces] = useState<Workspace[]>([]);
   const [personalWorkspaces, setPersonalWorkspaces] = useState<Workspace[]>([]);
-  const [expandedId, setExpandedId] = useState<number | null>(null);
+  const [expandedId, setExpandedId] = useState<string | null>(null);
   const [creatorRect, setCreatorRect] = useState<DOMRect | null>(null);
   const [creatorSection, setCreatorSection] = useState<'team' | 'personal' | null>(null);
   const [deleteTarget, setDeleteTarget] = useState<{ id: any; section: 'team' | 'personal'; name: string } | null>(null);
@@ -48,13 +48,16 @@ export default function WorkspaceList() {
     if (!userId) return;
     client.get(`/workspaces?userId=${userId}`)
       .then((res) => {
-        const list: Workspace[] = (res.data.data ?? []).map((ws: any) => ({
-          id: ws.workspaceId,
-          name: ws.name,
-          gradient: ws.gradient || randomGradient(ws.workspaceId),
-          starred: false,
-          type: ws.type,
-        }));
+        const list: Workspace[] = (res.data.data ?? []).map((ws: any) => {
+          const localGradient = localStorage.getItem(`ws_gradient_${ws.workspaceId}`);
+          return {
+            id: ws.workspaceId,
+            name: ws.name,
+            gradient: localGradient || ws.gradient || randomGradient(ws.workspaceId),
+            starred: false,
+            type: ws.type,
+          };
+        });
         setTeamWorkspaces(list.filter((ws) => ws.type === 'TEAM'));
         setPersonalWorkspaces(list.filter((ws) => ws.type !== 'TEAM'));
       })
@@ -83,7 +86,7 @@ export default function WorkspaceList() {
       const res = await client.post(`/workspaces?userId=${userId}`, { name, type });
       const created = res.data.data;
       const newWs: Workspace = {
-        id: created.id,
+        id: created.workspaceId,
         name: created.name,
         gradient,
         starred: false,
@@ -115,14 +118,14 @@ export default function WorkspaceList() {
     }
   };
 
-  const toggleStar = (id: number, section: 'team' | 'personal') => {
+  const toggleStar = (id: string, section: 'team' | 'personal') => {
     const updater = (prev: Workspace[]) =>
       prev.map((ws) => ws.id === id ? { ...ws, starred: !ws.starred } : ws);
     if (section === 'team') setTeamWorkspaces(updater);
     else setPersonalWorkspaces(updater);
   };
 
-  const toggleSidebar = (id: number) => {
+  const toggleSidebar = (id: string) => {
     setExpandedId((prev) => (prev === id ? null : id));
   };
 
@@ -157,7 +160,7 @@ export default function WorkspaceList() {
           <span className={`sidebar-arrow ${expandedId === ws.id ? 'open' : ''}`}>▾</span>
         </div>
         <div className={`sidebar-submenu ${expandedId === ws.id ? 'open' : ''}`}>
-          <div className="sidebar-subitem" onClick={() => navigate('/board', { state: { workspace: ws, teamWorkspaces, personalWorkspaces } })}><span className="subitem-icon">□</span> Board</div>
+          <div className="sidebar-subitem" onClick={() => navigate('/workspace-board', { state: { workspace: ws, workspaces: [...teamWorkspaces, ...personalWorkspaces] } })}><span className="subitem-icon">□</span> Board</div>
           <div className="sidebar-subitem" onClick={() => navigate('/members', { state: { workspace: ws, teamWorkspaces, personalWorkspaces } })}><span className="subitem-icon">👥</span> Members</div>
           <div className="sidebar-subitem" onClick={() => navigate('/settings', { state: { workspace: ws, teamWorkspaces, personalWorkspaces } })}><span className="subitem-icon">⚙</span> Setting</div>
         </div>
@@ -210,7 +213,10 @@ export default function WorkspaceList() {
                   starred={ws.starred}
                   onToggleStar={() => toggleStar(ws.id, 'team')}
                   onDelete={() => setDeleteTarget({ id: ws.id, section: 'team', name: ws.name })}
-                  onClick={() => setAiTaskOpen(true)}
+                  onClick={() => {
+                    localStorage.setItem("clickedWorkspace", JSON.stringify(ws));
+                    navigate('/workspace-board', { state: { workspace: ws, workspaces: [...teamWorkspaces, ...personalWorkspaces] } });
+                  }}
                 />
               ))}
               <div
@@ -238,7 +244,10 @@ export default function WorkspaceList() {
                   starred={ws.starred}
                   onToggleStar={() => toggleStar(ws.id, 'personal')}
                   onDelete={() => setDeleteTarget({ id: ws.id, section: 'personal', name: ws.name })}
-                  onClick={() => setAiTaskOpen(true)}
+                  onClick={() => {
+                    localStorage.setItem("clickedWorkspace", JSON.stringify(ws));
+                    navigate('/workspace-board', { state: { workspace: ws, workspaces: [...teamWorkspaces, ...personalWorkspaces] } });
+                  }}
                 />
               ))}
               <div
@@ -282,7 +291,7 @@ export default function WorkspaceList() {
 
       <button className="settings-btn">⚙</button>
       {joinOpen && <JoinModal onClose={() => setJoinOpen(false)} />}
-      {aiTaskOpen && <AITaskModal onClose={() => setAiTaskOpen(false)} />}
+      {aiTaskOpen && <AITaskModal onClose={() => setAiTaskOpen(false)} workspaces={allWorkspaces} />}
 
       {deleteTarget && (
         <div className="modal-overlay" onClick={() => setDeleteTarget(null)}>

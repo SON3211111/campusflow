@@ -1,5 +1,7 @@
 package com.campusflow.controller;
 
+import com.campusflow.dto.TaskCreateRequest;
+import com.campusflow.dto.TaskResponse;
 import com.campusflow.entity.Task;
 import com.campusflow.entity.enums.TaskStatus;
 import com.campusflow.service.TaskService;
@@ -17,6 +19,34 @@ public class TaskController {
 
     private final TaskService taskService;
 
+    @GetMapping
+    public ResponseEntity<List<TaskResponse>> getAllTasks(@PathVariable String workspaceId) {
+        return ResponseEntity.ok(taskService.getAllTasks(workspaceId));
+    }
+
+    @GetMapping("/trash")
+    public ResponseEntity<List<TaskResponse>> getDeletedTasks(@PathVariable String workspaceId) {
+        return ResponseEntity.ok(taskService.getDeletedTasks(workspaceId));
+    }
+
+    @PostMapping
+    public ResponseEntity<TaskResponse> createTask(
+            @PathVariable String workspaceId,
+            @RequestBody TaskCreateRequest request) {
+        return ResponseEntity.ok(taskService.createTask(workspaceId, request));
+    }
+
+    @DeleteMapping("/{taskId}")
+    public ResponseEntity<Void> deleteTask(@PathVariable String taskId) {
+        taskService.deleteTask(taskId);
+        return ResponseEntity.ok().build();
+    }
+
+    @PatchMapping("/{taskId}/restore")
+    public ResponseEntity<TaskResponse> restoreTask(@PathVariable String taskId) {
+        return ResponseEntity.ok(taskService.restoreTask(taskId));
+    }
+
     @GetMapping("/kanban")
     public ResponseEntity<Map<TaskStatus, List<Task>>> getKanbanBoard(@PathVariable String workspaceId) {
         return ResponseEntity.ok(taskService.getKanbanBoard(workspaceId));
@@ -27,6 +57,14 @@ public class TaskController {
             @PathVariable String taskId,
             @RequestParam TaskStatus status) {
         taskService.updateTaskStatus(taskId, status);
+        return ResponseEntity.ok().build();
+    }
+
+    @PatchMapping("/{taskId}/due-date")
+    public ResponseEntity<Void> updateDueDate(
+            @PathVariable String taskId,
+            @RequestParam(required = false) String dueDate) {
+        taskService.updateTaskDueDate(taskId, dueDate);
         return ResponseEntity.ok().build();
     }
 }

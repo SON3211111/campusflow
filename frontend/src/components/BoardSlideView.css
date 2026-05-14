@@ -1,0 +1,129 @@
+.bsv-wrap {
+  position: fixed;
+  bottom: 70px;
+  left: 0;
+  right: 0;
+  background: rgba(255, 255, 255, 0.95);
+  backdrop-filter: blur(10px);
+  border-top: 1px solid rgba(0, 0, 0, 0.08);
+  box-shadow: 0 -4px 24px rgba(0, 0, 0, 0.12);
+  z-index: 150;
+  transition: transform 0.35s ease;
+  height: 55vh;
+  overflow: hidden;
+}
+
+.bsv-visible {
+  transform: translateY(0);
+}
+
+.bsv-hidden {
+  transform: translateY(110%);
+}
+
+.bsv-columns {
+  display: flex;
+  gap: 0;
+  height: 100%;
+  overflow-x: auto;
+  padding: 16px 20px 80px;
+}
+
+.bsv-column {
+  flex: 1;
+  min-width: 200px;
+  max-width: 280px;
+  display: flex;
+  flex-direction: column;
+  border-right: 1px solid #f0f0f0;
+  padding: 0 14px;
+  transition: background 0.15s;
+}
+
+.bsv-column:first-child {
+  padding-left: 0;
+}
+
+.bsv-column:last-child {
+  border-right: none;
+}
+
+.bsv-column.drag-over {
+  background: rgba(79, 124, 255, 0.06);
+  border-radius: 8px;
+}
+
+.bsv-col-header {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 10px 0 12px;
+  border-bottom: 2px solid rgba(0, 0, 0, 0.06);
+  margin-bottom: 10px;
+}
+
+.bsv-dot {
+  font-size: 10px;
+}
+
+.bsv-col-title {
+  font-size: 13px;
+  font-weight: 700;
+  flex: 1;
+}
+
+.bsv-col-count {
+  font-size: 12px;
+  color: #aaa;
+  background: #f4f4f4;
+  border-radius: 10px;
+  padding: 1px 7px;
+}
+
+.bsv-col-body {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  overflow-y: auto;
+  flex: 1;
+}
+
+.bsv-col-empty {
+  font-size: 12px;
+  color: #ccc;
+  text-align: center;
+  padding: 16px 0;
+}
+
+.bsv-card {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 12px;
+  background: #fff;
+  border: 1px solid #eee;
+  border-radius: 8px;
+  cursor: grab;
+  transition: background 0.15s, opacity 0.15s, box-shadow 0.15s;
+}
+
+.bsv-card:hover {
+  background: #f9f9f9;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+}
+
+.bsv-card.dragging {
+  opacity: 0.4;
+  cursor: grabbing;
+}
+
+.bsv-card-check {
+  font-size: 13px;
+  flex-shrink: 0;
+}
+
+.bsv-card-title {
+  font-size: 13px;
+  color: #222;
+  line-height: 1.4;
+}

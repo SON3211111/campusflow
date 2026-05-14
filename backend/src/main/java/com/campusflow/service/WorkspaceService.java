@@ -89,8 +89,27 @@ public class WorkspaceService {
 
     @Transactional
     public void deleteWorkspace(String workspaceId) {
-        // 멤버 삭제 후 워크스페이스 삭제
         workspaceMemberRepository.deleteAllByWorkspace_WorkspaceId(workspaceId);
         workspaceRepository.deleteById(workspaceId);
+    }
+
+    @Transactional
+    public Workspace joinWorkspace(String workspaceId, String userId) {
+        Workspace workspace = workspaceRepository.findByWorkspaceId(workspaceId)
+                .orElseThrow(() -> new IllegalArgumentException("존재하지 않는 워크스페이스입니다."));
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new IllegalArgumentException("존재하지 않는 유저입니다."));
+
+        boolean alreadyMember = workspaceMemberRepository
+                .existsByWorkspace_WorkspaceIdAndUser_UserId(workspaceId, userId);
+        if (!alreadyMember) {
+            WorkspaceMember member = WorkspaceMember.builder()
+                    .workspace(workspace)
+                    .user(user)
+                    .role(WorkspaceRole.MEMBER)
+                    .build();
+            workspaceMemberRepository.save(member);
+        }
+        return workspace;
     }
 }
