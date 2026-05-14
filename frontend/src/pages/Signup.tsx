@@ -1,3 +1,7 @@
+/**
+ * 회원가입 1단계: 이메일 입력 + 약관 동의
+ * 이메일을 localStorage에 저장 후 UserSetup(2단계)으로 이동
+ */
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import './Signup.css';

@@ -13,6 +13,10 @@ import org.springframework.web.client.RestTemplate;
 import java.util.List;
 import java.util.Map;
 
+/**
+ * Python FastAPI AI 서버와 HTTP 통신하는 서비스
+ * 커넥션 타임아웃 10초, 읽기 타임아웃 350초 (AI 처리 시간 고려)
+ */
 @Service
 @Slf4j
 public class AiService {
@@ -20,11 +24,12 @@ public class AiService {
     private final RestTemplate restTemplate;
     private final String aiServerUrl;
 
+    // RestTemplate에 타임아웃 설정 (AI 응답이 느려서 기본값보다 길게 설정)
     public AiService(@Value("${AI_SERVER_URL:http://localhost:8000}") String aiServerUrl) {
         this.aiServerUrl = aiServerUrl;
         SimpleClientHttpRequestFactory factory = new SimpleClientHttpRequestFactory();
-        factory.setConnectTimeout(10_000);
-        factory.setReadTimeout(350_000);
+        factory.setConnectTimeout(10_000);   // 연결 타임아웃 10초
+        factory.setReadTimeout(350_000);     // 읽기 타임아웃 350초 (AI 분석 시간 고려)
         this.restTemplate = new RestTemplate(factory);
     }
 

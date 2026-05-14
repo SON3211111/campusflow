@@ -1,3 +1,10 @@
+/**
+ * AI 태스크 관리 페이지
+ * AI가 분해한 업무 트리를 시각화하고, 드래그앤드롭으로 배정 바구니에 담아 보드로 전송
+ * - 세부 분할: 태스크 하나를 AI로 2개의 서브태스크로 재분해
+ * - 다시 설정: 원본 프롬프트로 AI 재호출하여 새 트리 생성
+ * - 세션 저장: 현재 트리 상태를 localStorage에 자동 저장하여 새로고침 복원
+ */
 import { useState, useRef, useEffect } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import axios from "axios";

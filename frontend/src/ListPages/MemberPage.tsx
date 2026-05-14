@@ -1,3 +1,7 @@
+/**
+ * 멤버 관리 페이지
+ * 워크스페이스에 속한 멤버 목록 확인, 이름 검색, 초대 링크 복사, 사용자 ID 복사 기능 제공
+ */
 import { useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import Header from "../components/Header";

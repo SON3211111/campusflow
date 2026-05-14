@@ -1,3 +1,8 @@
+/**
+ * 워크스페이스 목록 페이지 (홈)
+ * 팀/개인 워크스페이스 목록 조회, 새로 만들기, 즐겨찾기, 삭제 기능 제공
+ * ID 기반 랜덤 그라데이션으로 썸네일 색상 자동 지정
+ */
 import { useState, useRef, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import Header from "../components/Header";

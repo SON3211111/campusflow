@@ -1,3 +1,7 @@
+/**
+ * 워크스페이스 하단 탭바 컴포넌트
+ * planner/community/board/My workspace 탭 전환 + 휴지통 버튼(삭제 항목 수 뱃지) 포함
+ */
 import "./WorkspaceTabBar.css";
 
 type Tab = "planner" | "community" | "board" | "personal";

@@ -1,3 +1,8 @@
+/**
+ * 보드 슬라이드뷰 컴포넌트 (워크스페이스 하단 패널)
+ * 5개 상태 컬럼(상태없음/시작안함/진행중/보류/완료)을 가로로 나열
+ * 드래그앤드롭으로 태스크 이동 가능, 상태 변경 시 onStatusChange 콜백 호출
+ */
 import { useState, useEffect, useCallback } from "react";
 import "./BoardSlideView.css";
 

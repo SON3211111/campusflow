@@ -1,3 +1,8 @@
+/**
+ * 전역 헤더 컴포넌트
+ * 워크스페이스 이름 검색, My projects 이동, 알림, 사용자 드롭다운 메뉴 포함
+ * JWT 토큰 유무로 로그인 여부 판단하여 UI 분기 처리
+ */
 import { useState, useRef, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import AITaskModal from "./AITaskModal";

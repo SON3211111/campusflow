@@ -7,6 +7,11 @@ import org.hibernate.annotations.CreationTimestamp;
 
 import java.time.LocalDateTime;
 
+/**
+ * 워크스페이스 멤버 엔티티
+ * 유저와 워크스페이스의 다대다 관계를 중간 테이블로 관리
+ * OWNER(생성자) / MEMBER(초대/참여) 역할 구분
+ */
 @Entity
 @Table(name = "workspace_members")
 @Getter @Setter

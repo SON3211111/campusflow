@@ -2,6 +2,11 @@ package com.campusflow.dto;
 
 import com.campusflow.entity.Task;
 
+/**
+ * 태스크 응답 DTO
+ * Task 엔티티를 프론트엔드에 전달하기 위한 형태로 변환
+ * LocalDate/LocalDateTime → String 직렬화 포함
+ */
 public record TaskResponse(
         String taskId,
         String title,

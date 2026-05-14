@@ -1,3 +1,7 @@
+/**
+ * 워크스페이스 보드 상단 서브헤더 컴포넌트
+ * 뷰 전환 드롭다운(Board/AI Task/Dash Board 등)과 멤버 아바타 표시
+ */
 import { useState, useRef, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import "./BoardSubHeader.css";

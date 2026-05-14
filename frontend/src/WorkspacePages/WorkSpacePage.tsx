@@ -1,3 +1,10 @@
+/**
+ * 워크스페이스 메인 페이지 (칸반 보드)
+ * - 좌측: Community 패널(채널 목록 + 메시지)
+ * - 중앙: Planner 패널(캘린더 + 마감일)
+ * - 우측: 칸반 보드(드래그앤드롭, 태스크 CRUD, 소프트 삭제/복원)
+ * 마우스 클릭+드래그로 보드 좌우 패닝 지원
+ */
 import { useState, useEffect, useRef } from "react";
 import type { MouseEvent } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
@@ -278,6 +285,7 @@ export default function WorkSpacePage() {
     setTrashOpen(true);
   };
 
+  // 보드 마우스 패닝: 버튼/입력 요소 위에서는 패닝 비활성화
   const handleBoardMouseDown = (e: MouseEvent<HTMLDivElement>) => {
     if (!columnsRef.current || (e.target as HTMLElement).closest("button, input, textarea")) return;
     panState.current = {

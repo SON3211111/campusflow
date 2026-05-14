@@ -1,3 +1,7 @@
+/**
+ * 워크스페이스 카드 컴포넌트
+ * 그라데이션 썸네일, 즐겨찾기(별) 토글, 호버 시 삭제 버튼 표시
+ */
 import { useState } from 'react';
 import './WorkspaceCard.css';
 

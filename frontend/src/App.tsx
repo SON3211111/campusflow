@@ -1,3 +1,5 @@
+// 앱 전체 라우팅 설정
+// PrivateRoute: accessToken 없으면 /login으로 리다이렉트
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 
 import Main from './pages/MainPage';

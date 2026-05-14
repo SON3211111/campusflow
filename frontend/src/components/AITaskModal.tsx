@@ -1,3 +1,8 @@
+/**
+ * AI Task 모달 컴포넌트
+ * 3가지 화면 전환: home(선택) → prompt(새 프롬프트 입력) / existing(저장된 결과 불러오기)
+ * 프롬프트 입력 후 TaskBreakdownPage로 이동하여 AI 분석 시작
+ */
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import "./AITaskModal.css";

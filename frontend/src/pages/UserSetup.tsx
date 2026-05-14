@@ -1,3 +1,8 @@
+/**
+ * 회원가입 2단계: 이름 + 비밀번호 설정
+ * signup API 호출 후 자동 로그인하여 워크스페이스로 바로 이동
+ * 1단계에서 저장한 이메일이 없으면 /signup으로 리다이렉트
+ */
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import './UserSetup.css';

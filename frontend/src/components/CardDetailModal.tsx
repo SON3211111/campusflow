@@ -1,3 +1,8 @@
+/**
+ * 카드 상세 모달 컴포넌트
+ * 태스크 클릭 시 열리는 상세 편집 화면
+ * 설명/마감일 인라인 편집, 댓글 작성 기능 포함
+ */
 import { useState } from "react";
 import "./CardDetailModal.css";
 

@@ -1,3 +1,8 @@
+/**
+ * 로그인 페이지
+ * 이메일/비밀번호 입력 → JWT accessToken 발급 → localStorage 저장 후 워크스페이스로 이동
+ * 이미 로그인된 상태면 자동으로 /workspace 리다이렉트
+ */
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import './Login.css';

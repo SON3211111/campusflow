@@ -7,6 +7,7 @@ import jakarta.validation.constraints.Size;
 import lombok.Getter;
 import lombok.Setter;
 
+/** 회원가입 요청 DTO (Bean Validation 어노테이션으로 입력값 검증) */
 @Getter @Setter
 public class SignupRequest {
 

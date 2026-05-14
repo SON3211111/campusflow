@@ -1,3 +1,8 @@
+/**
+ * AI 업무 분해 로딩 페이지
+ * 프롬프트를 AI 서버(/api/ai/generate-tasks)에 전달하고 결과가 오면 AiTaskPage로 자동 이동
+ * 분석 중 스피너를 보여주고, 에러 시 재시도 버튼 제공
+ */
 import { useEffect, useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import axios from "axios";

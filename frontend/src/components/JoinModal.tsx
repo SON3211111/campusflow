@@ -1,3 +1,7 @@
+/**
+ * 워크스페이스 참여 모달
+ * 워크스페이스 ID를 입력하면 해당 워크스페이스에 MEMBER로 참여
+ */
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import client from "../api/client";
