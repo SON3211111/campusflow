@@ -5,6 +5,7 @@ import com.campusflow.entity.Workspace;
 import com.campusflow.entity.WorkspaceMember;
 import com.campusflow.entity.enums.WorkspaceRole;
 import com.campusflow.entity.enums.WorkspaceType;
+import com.campusflow.repository.TaskRepository;
 import com.campusflow.repository.UserRepository;
 import com.campusflow.repository.WorkspaceMemberRepository;
 import com.campusflow.repository.WorkspaceRepository;
@@ -22,6 +23,7 @@ public class WorkspaceService {
     private final WorkspaceRepository workspaceRepository;
     private final WorkspaceMemberRepository workspaceMemberRepository;
     private final UserRepository userRepository;
+    private final TaskRepository taskRepository;
 
     /**
      * 회원가입 시 호출되는 개인 워크스페이스 자동 생성
@@ -89,6 +91,8 @@ public class WorkspaceService {
 
     @Transactional
     public void deleteWorkspace(String workspaceId) {
+        // FK 제약 순서: Tasks → Members → Workspace 순으로 삭제
+        taskRepository.deleteAllByWorkspace_WorkspaceId(workspaceId);
         workspaceMemberRepository.deleteAllByWorkspace_WorkspaceId(workspaceId);
         workspaceRepository.deleteById(workspaceId);
     }
