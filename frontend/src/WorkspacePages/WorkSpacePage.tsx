@@ -282,7 +282,7 @@ export default function WorkSpacePage() {
         dueDate: res.data.dueDate ?? "",
         comments: [],
       };
-      const col = STATUS_TO_COL[res.data.status] ?? "?곹깭 ?놁쓬";
+      const col = STATUS_TO_COL[res.data.status] ?? "상태 없음";
       setCards((prev) => ({ ...prev, [col]: [...(prev[col] ?? []), restored] }));
       setDeletedCards((prev) => prev.filter((c) => c.id !== card.id));
       setShowLanding(false);

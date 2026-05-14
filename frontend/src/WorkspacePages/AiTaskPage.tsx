@@ -6,7 +6,6 @@
  */
 import { useState, useRef, useEffect } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
-import axios from "axios";
 import Header from "../components/Header";
 import client from "../api/client";
 import "./AiTaskPage.css";
@@ -187,7 +186,7 @@ export default function AiTaskPage() {
     setResetLoading(true);
     try {
       const params = new URLSearchParams({ title: origPrompt, description: origPrompt });
-      const res = await axios.post(`/api/ai/generate-tasks?${params}`, {}, { timeout: 120000 });
+      const res = await client.post(`/ai/generate-tasks?${params}`, {}, { timeout: 120000 });
       const data = res.data;
       const categoryMap = new Map<string, string[]>();
       (data.tasks ?? []).forEach((task: any) => {
@@ -215,7 +214,7 @@ export default function AiTaskPage() {
     setLoadingId(task.id);
     try {
       const category = categories[task.categoryIdx]?.name ?? "";
-      const res = await axios.post("/api/ai/subdivide-task", { task: task.name, category }, { timeout: 60000 });
+      const res = await client.post("/ai/subdivide-task", { task: task.name, category }, { timeout: 60000 });
       const subtasks: string[] = res.data.tasks ?? [];
       if (subtasks.length === 0) { alert("더 이상 분할 할 수 없습니다."); return; }
       const newTasks: Task[] = subtasks.map((t, i) => ({
