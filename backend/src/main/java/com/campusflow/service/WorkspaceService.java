@@ -5,6 +5,9 @@ import com.campusflow.entity.Workspace;
 import com.campusflow.entity.WorkspaceMember;
 import com.campusflow.entity.enums.WorkspaceRole;
 import com.campusflow.entity.enums.WorkspaceType;
+import com.campusflow.entity.Notification;
+import com.campusflow.repository.InvitationRepository;
+import com.campusflow.repository.NotificationRepository;
 import com.campusflow.repository.UserRepository;
 import com.campusflow.repository.WorkspaceMemberRepository;
 import com.campusflow.repository.WorkspaceRepository;
@@ -22,6 +25,8 @@ public class WorkspaceService {
     private final WorkspaceRepository workspaceRepository;
     private final WorkspaceMemberRepository workspaceMemberRepository;
     private final UserRepository userRepository;
+    private final InvitationRepository invitationRepository;
+    private final NotificationRepository notificationRepository;
 
     /**
      * 회원가입 시 호출되는 개인 워크스페이스 자동 생성
@@ -89,6 +94,21 @@ public class WorkspaceService {
 
     @Transactional
     public void deleteWorkspace(String workspaceId) {
+        Workspace workspace = workspaceRepository.findByWorkspaceId(workspaceId)
+                .orElseThrow(() -> new IllegalArgumentException("존재하지 않는 워크스페이스입니다."));
+
+        // 오너 제외 멤버에게 추방 알림 전송
+        workspaceMemberRepository.findAllByWorkspace_WorkspaceId(workspaceId).stream()
+                .filter(m -> m.getRole() != WorkspaceRole.OWNER)
+                .forEach(m -> {
+                    Notification noti = Notification.builder()
+                            .userId(m.getUser().getUserId())
+                            .message("'" + workspace.getName() + "' 워크스페이스가 삭제되어 추방되었습니다.")
+                            .build();
+                    notificationRepository.save(noti);
+                });
+
+        invitationRepository.deleteAllByWorkspace_WorkspaceId(workspaceId);
         workspaceMemberRepository.deleteAllByWorkspace_WorkspaceId(workspaceId);
         workspaceRepository.deleteById(workspaceId);
     }

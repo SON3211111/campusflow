@@ -6,9 +6,12 @@ import { useState, useRef, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import "./BoardSubHeader.css";
 
+interface Member { userId: string; name: string; }
+
 interface Props {
   wsName?: string;
   memberCount?: number;
+  members?: Member[];
   workspace?: { id: string; name: string; gradient: string };
   workspaces?: { id: string; name: string; gradient: string }[];
   initialSelected?: string;
@@ -16,8 +19,11 @@ interface Props {
 
 const MENU_ITEMS = ["Board", "AI Task", "Dash Board", "Calender", "Notification", "Task Board", "Setting"];
 
-export default function BoardSubHeader({ wsName = "워크스페이스", memberCount = 1, workspace, workspaces = [], initialSelected = "Board" }: Props) {
+const AVATAR_COLORS = ["#a89cf8", "#6ab4f8", "#7de89a", "#f8b4b4", "#f8d08a"];
+
+export default function BoardSubHeader({ wsName = "워크스페이스", memberCount = 1, members = [], workspace, workspaces = [], initialSelected = "Board" }: Props) {
   const userName = localStorage.getItem("userName") ?? "나";
+  const MAX_SHOW = 3;
   const navigate = useNavigate();
   const [dropOpen, setDropOpen] = useState(false);
   const [selected, setSelected] = useState(initialSelected);
@@ -67,9 +73,24 @@ export default function BoardSubHeader({ wsName = "워크스페이스", memberCo
 
       <div className="bsh-right">
         <div className="bsh-avatars">
-          <div className="bsh-avatar" title={userName}>{userName[0]}</div>
-          {memberCount > 1 && (
-            <div className="bsh-avatar-more">+{memberCount - 1}</div>
+          {members.length > 0 ? (
+            <>
+              {members.slice(0, MAX_SHOW).map((m, i) => (
+                <div
+                  key={m.userId}
+                  className="bsh-avatar"
+                  title={m.name}
+                  style={{ background: AVATAR_COLORS[i % AVATAR_COLORS.length] }}
+                >
+                  {m.name[0]}
+                </div>
+              ))}
+              {members.length > MAX_SHOW && (
+                <div className="bsh-avatar-more">+{members.length - MAX_SHOW}</div>
+              )}
+            </>
+          ) : (
+            <div className="bsh-avatar" title={userName}>{userName[0]}</div>
           )}
         </div>
         <button className="bsh-menu-btn">···</button>

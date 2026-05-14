@@ -71,8 +71,17 @@ export default function Header({ workspaces = [], showSearch = true, onLogout }:
     return () => clearInterval(timer);
   }, [userId]);
 
+  const addWorkspaceActivity = (workspaceId: string, message: string) => {
+    const key = `workspace_activity_${workspaceId}`;
+    const existing = JSON.parse(localStorage.getItem(key) ?? "[]");
+    const newEntry = { message, time: new Date().toLocaleString() };
+    localStorage.setItem(key, JSON.stringify([newEntry, ...existing].slice(0, 20)));
+  };
+
   const handleAccept = async (invitationId: string) => {
+    const inv = invitations.find((i) => i.invitationId === invitationId);
     await fetch(`/api/invitations/${invitationId}/accept`, { method: "POST" });
+    if (inv) addWorkspaceActivity(inv.workspaceId, `${userName}가 ${inv.workspaceName} 워크스페이스에 참가하였습니다.`);
     setInvitations((prev) => prev.filter((i) => i.invitationId !== invitationId));
     setNotiOpen(false);
     if (window.location.pathname === '/workspace') {
@@ -166,18 +175,49 @@ export default function Header({ workspaces = [], showSearch = true, onLogout }:
                     <p className="noti-empty">새 알림이 없습니다.</p>
                   ) : (
                     <>
-                      {kickNotis.map((n) => (
-                        <div key={n.notificationId} className="noti-item noti-item-kick">
-                          <p className="noti-msg">🚫 <strong>{n.message}</strong></p>
-                          <div className="noti-actions">
-                            <button className="noti-reject-btn" onClick={async () => {
-                              await fetch(`/api/notifications/${n.notificationId}/read`, { method: "POST" });
-                              setKickNotis((prev) => prev.filter((x) => x.notificationId !== n.notificationId));
-                              navigate('/workspace');
-                            }}>확인</button>
+                      {kickNotis.map((n) => {
+                        const isJoinRequest = n.message.startsWith("JOIN_REQUEST|");
+                        if (isJoinRequest) {
+                          const parts = n.message.split("|");
+                          const requesterName = parts[2];
+                          const workspaceName = parts[4];
+                          return (
+                            <div key={n.notificationId} className="noti-item">
+                              <p className="noti-msg">
+                                👋 <strong>{requesterName}</strong>님이 <strong>{workspaceName}</strong> 워크스페이스에 참가하고 싶어합니다.
+                              </p>
+                              <div className="noti-actions">
+                                <button className="noti-reject-btn" onClick={async () => {
+                                  await fetch(`/api/workspaces/join-requests/${n.notificationId}/reject`, { method: "POST" });
+                                  setKickNotis((prev) => prev.filter((x) => x.notificationId !== n.notificationId));
+                                }}>거절</button>
+                                <button className="noti-accept-btn" onClick={async () => {
+                                  await fetch(`/api/workspaces/join-requests/${n.notificationId}/accept`, { method: "POST" });
+                                  addWorkspaceActivity(parts[3], `${parts[2]}가 ${parts[4]} 워크스페이스에 참가하였습니다.`);
+                                  setKickNotis((prev) => prev.filter((x) => x.notificationId !== n.notificationId));
+                                  setNotiOpen(false);
+                                }}>수락</button>
+                              </div>
+                            </div>
+                          );
+                        }
+                        const isAccepted = n.message.includes("수락");
+                        const isRejected = n.message.includes("거절");
+                        const icon = isAccepted ? "✅" : isRejected ? "❌" : "🚫";
+                        const itemClass = isAccepted ? "noti-item noti-item-accept" : "noti-item noti-item-kick";
+                        return (
+                          <div key={n.notificationId} className={itemClass}>
+                            <p className="noti-msg">{icon} <strong>{n.message}</strong></p>
+                            <div className="noti-actions">
+                              <button className="noti-reject-btn" onClick={async () => {
+                                await fetch(`/api/notifications/${n.notificationId}/read`, { method: "POST" });
+                                setKickNotis((prev) => prev.filter((x) => x.notificationId !== n.notificationId));
+                                if (isAccepted) navigate('/workspace');
+                              }}>확인</button>
+                            </div>
                           </div>
-                        </div>
-                      ))}
+                        );
+                      })}
                       {invitations.map((inv) => (
                         <div key={inv.invitationId} className="noti-item">
                           <p className="noti-msg">

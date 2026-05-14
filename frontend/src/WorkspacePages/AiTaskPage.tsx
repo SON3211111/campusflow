@@ -78,11 +78,22 @@ export default function AiTaskPage() {
 
   const userName = localStorage.getItem("userName") ?? "나";
 
-  useEffect(() => {
-    if (!aiResult) navigate("/workspace-board", { replace: true, state: { workspace, workspaces } });
-  }, []);
+  // result도 없고 저장된 세션도 없으면 빈 상태로 표시 (리다이렉트 X)
 
-  if (!aiResult) return null;
+  if (!aiResult) return (
+    <div style={{ display: "flex", flexDirection: "column", height: "100vh", background: "#fff" }}>
+      <Header workspaces={workspaces} />
+      <div style={{ flex: 1, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 16 }}>
+        <p style={{ fontSize: 16, color: "#888" }}>아직 생성된 AI Task가 없습니다.</p>
+        <button
+          style={{ padding: "10px 24px", background: "#4f7cff", color: "#fff", border: "none", borderRadius: 8, fontSize: 14, cursor: "pointer" }}
+          onClick={() => navigate("/workspace-board", { state: { workspace, workspaces } })}
+        >
+          워크스페이스로 돌아가기
+        </button>
+      </div>
+    </div>
+  );
 
   const buildCategories = (res: typeof aiResult) =>
     (res?.categories ?? []).map((cat, ci) => ({
@@ -199,16 +210,14 @@ export default function AiTaskPage() {
 다음 업무를 성격이 다른 2개의 세부 업무로 분해해주세요. 단순히 숫자만 붙이거나 같은 내용을 반복하면 안 됩니다. 각 세부 업무는 서로 다른 작업이어야 합니다. 더 이상 의미 있게 나눌 수 없다면 tasks를 빈 배열로 반환하세요. 반드시 아래 JSON 형식만 반환하세요:
 {"tasks":["세부업무1","세부업무2"]}
 업무: ${task.name}`;
-      const res = await axios.post("/api/ai/generate", { prompt }, { timeout: 60000 });
-      const text: string = res.data.result ?? "";
-      const match = text.match(/\{[\s\S]*\}/);
-      if (!match) return;
-      const json: { tasks: string[] } = JSON.parse(match[0]);
-      if (!json.tasks || json.tasks.length === 0) {
+      const category = categories[task.categoryIdx]?.name ?? "";
+      const res = await axios.post("/api/ai/subdivide-task", { task: task.name, category }, { timeout: 60000 });
+      const subtasks: string[] = res.data.tasks ?? [];
+      if (subtasks.length === 0) {
         alert("더 이상 분할 할 수 없습니다.");
         return;
       }
-      const newTasks: Task[] = json.tasks.map((t, i) => ({
+      const newTasks: Task[] = subtasks.map((t, i) => ({
         id: `${task.id}-sub${i}`,
         name: t,
         categoryIdx: task.categoryIdx,

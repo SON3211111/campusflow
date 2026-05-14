@@ -19,6 +19,7 @@ interface Workspace {
   gradient: string;
   starred?: boolean;
   type?: string;
+  ownerId?: string;
 }
 
 const GRADIENTS = [
@@ -44,7 +45,7 @@ export default function WorkspaceList() {
   const [expandedId, setExpandedId] = useState<string | null>(null);
   const [creatorRect, setCreatorRect] = useState<DOMRect | null>(null);
   const [creatorSection, setCreatorSection] = useState<'team' | 'personal' | null>(null);
-  const [deleteTarget, setDeleteTarget] = useState<{ id: any; section: 'team' | 'personal'; name: string } | null>(null);
+  const [deleteTarget, setDeleteTarget] = useState<{ id: any; section: 'team' | 'personal'; name: string; ownerId?: string } | null>(null);
   const [joinOpen, setJoinOpen]   = useState(false);
   const [aiTaskOpen, setAiTaskOpen] = useState(false);
   const creatorRef = useRef<HTMLDivElement>(null);
@@ -61,6 +62,7 @@ export default function WorkspaceList() {
             gradient: localGradient || ws.gradient || randomGradient(ws.workspaceId),
             starred: false,
             type: ws.type,
+            ownerId: ws.ownerId,
           };
         });
         setTeamWorkspaces(list.filter((ws) => ws.type === 'TEAM'));
@@ -113,11 +115,15 @@ export default function WorkspaceList() {
     if (!deleteTarget) return;
     const { id, section } = deleteTarget;
     try {
-      await client.delete(`/workspaces/${id}`);
+      await client.delete(`/workspaces/${id}?userId=${localStorage.getItem('userId') ?? ''}`);
       if (section === 'team') setTeamWorkspaces((prev) => prev.filter((ws) => ws.id !== id));
       else setPersonalWorkspaces((prev) => prev.filter((ws) => ws.id !== id));
-    } catch {
-      alert('삭제에 실패했습니다.');
+    } catch (err: any) {
+      if (err.response?.status === 403) {
+        alert('삭제가 불가능합니다.');
+      } else {
+        alert('삭제에 실패했습니다.');
+      }
     } finally {
       setDeleteTarget(null);
     }
@@ -217,7 +223,7 @@ export default function WorkspaceList() {
                   gradient={ws.gradient}
                   starred={ws.starred}
                   onToggleStar={() => toggleStar(ws.id, 'team')}
-                  onDelete={() => setDeleteTarget({ id: ws.id, section: 'team', name: ws.name })}
+                  onDelete={() => setDeleteTarget({ id: ws.id, section: 'team', name: ws.name, ownerId: ws.ownerId })}
                   onClick={() => {
                     localStorage.setItem("clickedWorkspace", JSON.stringify(ws));
                     navigate('/workspace-board', { state: { workspace: ws, workspaces: [...teamWorkspaces, ...personalWorkspaces] } });
@@ -248,7 +254,7 @@ export default function WorkspaceList() {
                   gradient={ws.gradient}
                   starred={ws.starred}
                   onToggleStar={() => toggleStar(ws.id, 'personal')}
-                  onDelete={() => setDeleteTarget({ id: ws.id, section: 'personal', name: ws.name })}
+                  onDelete={() => setDeleteTarget({ id: ws.id, section: 'personal', name: ws.name, ownerId: ws.ownerId })}
                   onClick={() => {
                     localStorage.setItem("clickedWorkspace", JSON.stringify(ws));
                     navigate('/workspace-board', { state: { workspace: ws, workspaces: [...teamWorkspaces, ...personalWorkspaces] } });
@@ -302,14 +308,25 @@ export default function WorkspaceList() {
         <div className="modal-overlay" onClick={() => setDeleteTarget(null)}>
           <div className="modal-box" onClick={(e) => e.stopPropagation()}>
             <p className="modal-title">워크스페이스 삭제</p>
-            <p className="modal-desc">
-              <strong>{deleteTarget.name}</strong>을(를) 삭제하시겠습니까?<br />
-              삭제된 워크스페이스는 복구할 수 없습니다.
-            </p>
-            <div className="modal-actions">
-              <button className="modal-btn cancel" onClick={() => setDeleteTarget(null)}>취소</button>
-              <button className="modal-btn confirm" onClick={confirmDelete}>삭제</button>
-            </div>
+            {deleteTarget.ownerId === userId ? (
+              <>
+                <p className="modal-desc">
+                  <strong>{deleteTarget.name}</strong>을(를) 삭제하시겠습니까?<br />
+                  삭제된 워크스페이스는 복구할 수 없습니다.
+                </p>
+                <div className="modal-actions">
+                  <button className="modal-btn cancel" onClick={() => setDeleteTarget(null)}>취소</button>
+                  <button className="modal-btn confirm" onClick={confirmDelete}>삭제</button>
+                </div>
+              </>
+            ) : (
+              <>
+                <p className="modal-desc">삭제가 불가능합니다.</p>
+                <div className="modal-actions">
+                  <button className="modal-btn cancel" onClick={() => setDeleteTarget(null)}>확인</button>
+                </div>
+              </>
+            )}
           </div>
         </div>
       )}

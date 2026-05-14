@@ -7,4 +7,5 @@ import java.util.List;
 
 public interface InvitationRepository extends JpaRepository<Invitation, String> {
     List<Invitation> findByInvitee_UserIdAndStatus(String userId, String status);
+    void deleteAllByWorkspace_WorkspaceId(String workspaceId);
 }

@@ -63,10 +63,14 @@ const handleSaveAll = async () => {
 
   const handleDelete = async () => {
     try {
-      await client.delete(`/workspaces/${workspace.id}`);
+      await client.delete(`/workspaces/${workspace.id}?userId=${localStorage.getItem('userId') ?? ''}`);
       navigate("/workspace");
-    } catch {
-      alert("삭제에 실패했습니다.");
+    } catch (err: any) {
+      if (err.response?.status === 403) {
+        alert("삭제가 불가능합니다.");
+      } else {
+        alert("삭제에 실패했습니다.");
+      }
     }
   };
 

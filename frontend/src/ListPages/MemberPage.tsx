@@ -220,8 +220,40 @@ export default function MemberPage() {
                                 </div>
                               )}
                             </div>
-                            <button className="leave-btn">나가기</button>
+                            <button
+                              className="leave-btn"
+                              onClick={async () => {
+                                if (!window.confirm("워크스페이스에서 나가시겠습니까?")) return;
+                                try {
+                                  await client.delete(`/workspaces/${workspace.id}/members/${userId}`);
+                                  navigate("/workspace");
+                                } catch {
+                                  alert("나가기에 실패했습니다.");
+                                }
+                              }}
+                            >나가기</button>
                             <button className="copy-id-btn" onClick={handleCopyId} title="ID 복사">{copied ? "✓" : "ID"}</button>
+                          </>
+                        ) : isMe && isOwner ? (
+                          /* 팀장이 본인 칸 볼 때 */
+                          <>
+                            <div className="role-wrap">
+                              <button className="role-btn" onClick={() => setRoleDropOpen((v) => !v)}>
+                                개인 보드 목록 ▾
+                              </button>
+                              {roleDropOpen && (
+                                <div className="role-dropdown">
+                                  {teamWs.length === 0 ? (
+                                    <div className="role-dropdown-item empty">팀 워크스페이스 없음</div>
+                                  ) : (
+                                    teamWs.map((ws) => (
+                                      <div key={ws.id} className="role-dropdown-item">{ws.name}</div>
+                                    ))
+                                  )}
+                                </div>
+                              )}
+                            </div>
+                            <button className="copy-id-btn" title="ID 복사" onClick={handleCopyId}>{copied ? "✓" : "ID"}</button>
                           </>
                         ) : (
                           /* 팀원이 팀장 or 다른 팀원 볼 때 */
@@ -278,7 +310,7 @@ export default function MemberPage() {
               <button
                 className="invite-link-btn"
                 onClick={() => {
-                  navigator.clipboard.writeText(`${window.location.origin}/join?workspaceId=${workspace.id}`);
+                  navigator.clipboard.writeText(`${window.location.origin}/join/${workspace.id}`);
                   setLinkCopied(true);
                 }}
               >

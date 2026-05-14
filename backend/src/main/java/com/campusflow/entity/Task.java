@@ -45,6 +45,10 @@ public class Task {
 
     // 소프트 삭제 여부: true면 휴지통으로 이동
     @Builder.Default
+    @Column(name = "is_ai_generated")
+    private boolean isAiGenerated = false;
+
+    @Builder.Default
     @Column(name = "deleted")
     private boolean deleted = false;
 
@@ -57,6 +61,11 @@ public class Task {
     @JoinColumn(name = "workspace_id")
     @JsonIgnore
     private Workspace workspace;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "assignee_id")
+    @JsonIgnore
+    private User assignee;
 
     // AI 세부 분할에서 사용하는 상위 태스크 참조
     @ManyToOne(fetch = FetchType.LAZY)

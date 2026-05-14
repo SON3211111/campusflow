@@ -167,7 +167,7 @@
   position: absolute;
   top: calc(100% + 10px);
   right: 0;
-  width: 300px;
+  width: 360px;
   background: #fff;
   border: 1px solid #e0e0e0;
   border-radius: 12px;
@@ -213,6 +213,8 @@
   color: #333;
   margin: 0 0 10px 0;
   line-height: 1.5;
+  word-break: keep-all;
+  white-space: normal;
 }
 
 .noti-actions {
@@ -253,6 +255,11 @@
 .noti-item-kick {
   background: #fff5f5;
   border-left: 3px solid #e53935;
+}
+
+.noti-item-accept {
+  background: #f0fff4;
+  border-left: 3px solid #22c55e;
 }
 
 .header-user {

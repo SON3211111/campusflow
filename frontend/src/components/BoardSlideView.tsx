@@ -31,9 +31,15 @@ const STATUS_COLS = [
 
 type ColMap = { [key: string]: CardItem[] };
 
+const STORAGE_KEY = "board_slide_colmap";
+
 export default function BoardSlideView({ visible, initialCards, gradient: _gradient, onCardClick, onStatusChange }: Props) {
-  const [colMap, setColMap] = useState<ColMap>({
-    none: [], notStarted: [], inProgress: [], hold: [], done: [],
+  const [colMap, setColMap] = useState<ColMap>(() => {
+    try {
+      const saved = localStorage.getItem(STORAGE_KEY);
+      if (saved) return JSON.parse(saved);
+    } catch {}
+    return { none: [], notStarted: [], inProgress: [], hold: [], done: [] };
   });
   const [draggingId, setDraggingId]   = useState<string | null>(null);
   const [draggingCol, setDraggingCol] = useState<string | null>(null);
@@ -44,7 +50,9 @@ export default function BoardSlideView({ visible, initialCards, gradient: _gradi
       const existingIds = new Set(Object.values(prev).flat().map((c) => c.id));
       const newCards = initialCards.filter((c) => !existingIds.has(c.id));
       if (newCards.length === 0) return prev;
-      return { ...prev, none: [...prev.none, ...newCards] };
+      const next = { ...prev, none: [...prev.none, ...newCards] };
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(next));
+      return next;
     });
   }, [initialCards]);
 
@@ -74,6 +82,7 @@ export default function BoardSlideView({ visible, initialCards, gradient: _gradi
         [targetCol]: [...prev[targetCol], card],
       };
       saveStats(next);
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(next));
       return next;
     });
     onStatusChange?.(taskId, targetCol);

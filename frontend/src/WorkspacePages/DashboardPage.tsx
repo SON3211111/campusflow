@@ -41,6 +41,15 @@ export default function DashboardPage() {
   const userName  = localStorage.getItem("userName") ?? "나";
 
   const [donut, setDonut] = useState({ progress: 0, done: 0, hold: 0, notStarted: 0, todo: 0 });
+  const [wsMembers, setWsMembers] = useState<{ userId: string; name: string }[]>([]);
+
+  useEffect(() => {
+    if (workspace?.id) {
+      client.get(`/workspaces/${workspace.id}/members`)
+        .then((res) => setWsMembers(res.data.data ?? []))
+        .catch(() => {});
+    }
+  }, [workspace?.id]);
   const [upcomingTasks, setUpcomingTasks] = useState<{ taskId: string; title: string; dueDate: string; daysLeft: number }[]>([]);
 
   useEffect(() => {
@@ -112,8 +121,13 @@ export default function DashboardPage() {
   }, [workspace?.id]);
 
   const total = donut.progress + donut.done + donut.hold + donut.notStarted + donut.todo;
+  const wsActivityLog: { icon: string; type: string; desc: string }[] = workspace?.id
+    ? (JSON.parse(localStorage.getItem(`workspace_activity_${workspace.id}`) ?? "[]") as { message: string; time: string }[])
+        .map((a) => ({ icon: "👥", type: "참여", desc: a.message }))
+    : [];
+
   const activityLog = (() => {
-    const log: { icon: string; type: string; desc: string }[] = [];
+    const log: { icon: string; type: string; desc: string }[] = [...wsActivityLog];
     if (donut.done > 0)
       log.push({ icon: "✓", type: "완료됨", desc: `${donut.done}개의 태스크가 완료되었습니다.` });
     if (donut.progress > 0)
@@ -128,7 +142,22 @@ export default function DashboardPage() {
   })();
 
   const TOTAL = total || 1;
-  const GRAPH = [{ name: userName, value: TOTAL > 0 ? Math.round((donut.done / TOTAL) * 100) : 0 }];
+  const currentUserId = localStorage.getItem("userId") ?? "";
+  const GRAPH = wsMembers.length > 0
+    ? wsMembers.map((m) => ({
+        name: m.name,
+        value: m.userId === currentUserId && TOTAL > 0 ? Math.round((donut.done / TOTAL) * 100) : 0,
+      }))
+    : [{ name: userName, value: TOTAL > 0 ? Math.round((donut.done / TOTAL) * 100) : 0 }];
+
+  const TEAM_BARS = wsMembers.length > 0
+    ? wsMembers.map((m) => ({
+        name: m.name,
+        done:     m.userId === currentUserId ? donut.done     : 0,
+        progress: m.userId === currentUserId ? donut.progress : 0,
+        hold:     m.userId === currentUserId ? donut.hold     : 0,
+      }))
+    : [{ name: userName, done: donut.done, progress: donut.progress, hold: donut.hold }];
 
   const doneDash       = arc(donut.done,       0,                                                                    TOTAL);
   const progressDash   = arc(donut.progress,   (donut.done / TOTAL) * CIRC,                                         TOTAL);
@@ -138,7 +167,7 @@ export default function DashboardPage() {
   return (
     <div className="dbp-page">
       <Header workspaces={workspaces} />
-      <BoardSubHeader wsName={wsName} memberCount={1} workspace={workspace} workspaces={workspaces} initialSelected="Dash Board" />
+      <BoardSubHeader wsName={wsName} members={wsMembers} workspace={workspace} workspaces={workspaces} initialSelected="Dash Board" />
 
       <div className="dbp-body" style={{ background: workspace?.gradient ?? "#f0f2f8" }}>
 
@@ -249,7 +278,7 @@ export default function DashboardPage() {
                 ))}
               </div>
               <div className="dbp-bars">
-                {[{ name: userName, done: donut.done, progress: donut.progress, hold: donut.hold }].map((m) => {
+                {TEAM_BARS.map((m) => {
                   const total = m.done + m.progress + m.hold || 1;
                   return (
                     <div key={m.name} className="dbp-bar-col">

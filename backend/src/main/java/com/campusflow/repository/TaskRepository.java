@@ -15,4 +15,5 @@ public interface TaskRepository extends JpaRepository<Task, String> {
     List<Task> findAllByWorkspace_WorkspaceIdAndDeletedTrue(String workspaceId);
     void deleteAllByWorkspace_WorkspaceId(String workspaceId);
     List<Task> findAllByWorkspace_WorkspaceIdAndStatus(String workspaceId, TaskStatus status);
+    List<Task> findAllByWorkspace_WorkspaceIdAndAssignee_UserId(String workspaceId, String userId);
 }

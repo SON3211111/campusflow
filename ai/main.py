@@ -29,6 +29,13 @@ class TaskGenerateRequest(BaseModel):
     model: str | None = None
 
 
+# /subdivide-task 용 요청 구조 (단일 업무 + 카테고리)
+class SubdivideRequest(BaseModel):
+    task: str
+    category: str
+    model: str | None = None
+
+
 # AI가 생성하는 업무 카드 한 개
 class Task(BaseModel):
     title: str
@@ -41,6 +48,11 @@ class Task(BaseModel):
 # /generate-tasks 응답 구조 (업무 카드 목록)
 class TaskGenerateResponse(BaseModel):
     tasks: list[Task]
+
+
+# /subdivide-task 응답 구조 (세부 업무 이름 목록)
+class SubdivideResponse(BaseModel):
+    tasks: list[str]
 
 
 def _extract_json(text: str) -> dict:
@@ -62,6 +74,21 @@ def _extract_json(text: str) -> dict:
                     return json.loads(text[start : i + 1])
 
     raise ValueError("JSON을 찾을 수 없습니다.")
+
+
+def _build_subdivide_prompt(task: str, category: str) -> str:
+    return f"""You are a task breakdown AI. Split the following task into exactly 2 distinct subtasks.
+[Task]
+Name: {task}
+Category: {category}
+Rules:
+- Split into EXACTLY 2 subtasks.
+- Each subtask must be meaningfully different from the other (not just numbered variants of the same action).
+- If the task cannot be meaningfully split, return an empty tasks array.
+- Write task names in Korean. Technical terms (API, UI/UX, etc.) may stay in English.
+- Keep each subtask name concise (under 20 characters).
+Respond with ONLY the following JSON and nothing else:
+{{"tasks": ["subtask1", "subtask2"]}}"""
 
 
 def _build_generate_prompt(title: str, description: str) -> str:
@@ -138,6 +165,40 @@ async def generate(req: PromptRequest):
         except Exception as e:
             import traceback; traceback.print_exc()
             raise HTTPException(status_code=500, detail=repr(e))
+
+
+# 단일 업무 → 2개 세부 업무로 분해
+@app.post("/subdivide-task", response_model=SubdivideResponse)
+async def subdivide_task(req: SubdivideRequest):
+    model = req.model or OLLAMA_MODEL
+    if model not in OLLAMA_MODELS:
+        raise HTTPException(status_code=400, detail=f"지원하지 않는 모델: {model}. 사용 가능: {OLLAMA_MODELS}")
+
+    prompt = _build_subdivide_prompt(req.task, req.category)
+    async with httpx.AsyncClient(timeout=120.0) as client:
+        try:
+            response = await client.post(
+                f"{OLLAMA_URL}/api/generate",
+                json={"model": model, "prompt": prompt, "stream": False, "options": {"num_predict": 200, "temperature": 0.3}},
+            )
+            response.raise_for_status()
+            raw_text = response.json().get("response", "")
+        except httpx.HTTPError as e:
+            import traceback; traceback.print_exc()
+            raise HTTPException(status_code=502, detail=repr(e))
+        except Exception as e:
+            import traceback; traceback.print_exc()
+            raise HTTPException(status_code=500, detail=repr(e))
+
+    try:
+        parsed = _extract_json(raw_text)
+        subtasks = parsed.get("tasks", [])
+        if not isinstance(subtasks, list):
+            raise ValueError("tasks가 배열이 아닙니다.")
+    except (ValueError, json.JSONDecodeError) as e:
+        raise HTTPException(status_code=422, detail=f"AI 응답 파싱 실패: {e}\n원문: {raw_text[:300]}")
+
+    return SubdivideResponse(tasks=[str(t) for t in subtasks])
 
 
 # 프로젝트 정보 → 업무 카드 목록 반환 (장바구니 핵심 기능)

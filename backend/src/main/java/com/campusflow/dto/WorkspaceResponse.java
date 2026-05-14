@@ -19,6 +19,7 @@ public class WorkspaceResponse {
     private String name;
     private String type;
     private String gradient;
+    private String ownerId;
 
     public static WorkspaceResponse from(Workspace workspace) {
         if (workspace == null) return null;
@@ -28,6 +29,7 @@ public class WorkspaceResponse {
                 .name(workspace.getName())
                 .type(workspace.getType() != null ? workspace.getType().name() : null)
                 .gradient(workspace.getGradient())
+                .ownerId(workspace.getOwner() != null ? workspace.getOwner().getUserId() : null)
                 .build();
     }
 }
