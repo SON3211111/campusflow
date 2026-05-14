@@ -52,9 +52,9 @@ public class TaskService {
                 .toList();
     }
 
-    /** 태스크 생성 후 저장된 엔티티 반환 */
+    /** 태스크 생성 후 DTO 반환 (트랜잭션 안에서 LAZY 로딩 완료) */
     @Transactional
-    public Task createTask(String workspaceId, TaskCreateRequest req) {
+    public TaskResponse createTask(String workspaceId, TaskCreateRequest req) {
         Workspace workspace = workspaceRepository.findByWorkspaceId(workspaceId)
                 .orElseThrow(() -> new IllegalArgumentException("존재하지 않는 워크스페이스입니다."));
 
@@ -81,7 +81,8 @@ public class TaskService {
                 .deleted(false)
                 .build();
 
-        return taskRepository.save(task);
+        Task saved = taskRepository.save(task);
+        return TaskResponse.from(saved);
     }
 
     /** 태스크 상태 변경 (칸반 드래그앤드롭) */
@@ -103,12 +104,12 @@ public class TaskService {
 
     /** 휴지통에서 태스크 복원 (isDeleted=false 로 되돌림) */
     @Transactional
-    public Task restoreTask(String taskId) {
+    public TaskResponse restoreTask(String taskId) {
         Task task = taskRepository.findById(taskId)
                 .orElseThrow(() -> new IllegalArgumentException("태스크를 찾을 수 없습니다. ID: " + taskId));
         task.setDeleted(false);
         task.setDeletedAt(null);
-        return task;
+        return TaskResponse.from(task);
     }
 
     /** 마감일 업데이트 (yyyy-MM-dd 형식 문자열) */

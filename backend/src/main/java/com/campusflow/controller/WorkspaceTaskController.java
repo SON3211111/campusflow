@@ -3,7 +3,6 @@ package com.campusflow.controller;
 import com.campusflow.dto.ApiResponse;
 import com.campusflow.dto.TaskCreateRequest;
 import com.campusflow.dto.TaskResponse;
-import com.campusflow.entity.Task;
 import com.campusflow.entity.enums.TaskStatus;
 import com.campusflow.service.TaskService;
 import lombok.RequiredArgsConstructor;
@@ -35,8 +34,8 @@ public class WorkspaceTaskController {
     public ResponseEntity<ApiResponse<TaskResponse>> createTask(
             @PathVariable String workspaceId,
             @RequestBody TaskCreateRequest req) {
-        Task saved = taskService.createTask(workspaceId, req);
-        return ResponseEntity.ok(ApiResponse.success(200, "생성 성공", TaskResponse.from(saved)));
+        TaskResponse saved = taskService.createTask(workspaceId, req);
+        return ResponseEntity.ok(ApiResponse.success(200, "생성 성공", saved));
     }
 
     @GetMapping("/trash")
@@ -61,8 +60,8 @@ public class WorkspaceTaskController {
 
     @PatchMapping("/{taskId}/restore")
     public ResponseEntity<ApiResponse<TaskResponse>> restore(@PathVariable String taskId) {
-        Task restored = taskService.restoreTask(taskId);
-        return ResponseEntity.ok(ApiResponse.success(200, "복원 완료", TaskResponse.from(restored)));
+        TaskResponse restored = taskService.restoreTask(taskId);
+        return ResponseEntity.ok(ApiResponse.success(200, "복원 완료", restored));
     }
 
     @PatchMapping("/{taskId}/due-date")
