@@ -256,9 +256,8 @@ export default function WorkSpacePage() {
           comments: [],
         };
         setCards((prev) => ({ ...prev, [col]: [...(prev[col] ?? []), newCard] }));
-      } catch {
-        const newCard: CardItem = { id: Date.now().toString(), title, desc: "", dueDate: "", comments: [] };
-        setCards((prev) => ({ ...prev, [col]: [...(prev[col] ?? []), newCard] }));
+      } catch (err: any) {
+        alert(`태스크 저장에 실패했습니다: ${err?.response?.data?.message ?? err?.message ?? "알 수 없는 오류"}`);
       }
     } else {
       const newCard: CardItem = { id: Date.now().toString(), title, desc: "", dueDate: "", comments: [] };
