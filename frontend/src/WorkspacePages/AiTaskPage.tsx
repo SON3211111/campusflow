@@ -113,6 +113,8 @@ export default function AiTaskPage() {
   const [saveMsg, setSaveMsg]                       = useState("");
   const [cooldown, setCooldown]                     = useState(0);
   const cooldownRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const [newPromptOpen, setNewPromptOpen]           = useState(false);
+  const [newPrompt, setNewPrompt]                   = useState("");
 
   // 워크스페이스 멤버 목록 조회
   useEffect(() => {
@@ -305,6 +307,12 @@ export default function AiTaskPage() {
     }
   };
 
+  const handleStartNewBreakdown = () => {
+    if (!newPrompt.trim()) return;
+    localStorage.removeItem(sessionKey);
+    navigate("/task-breakdown", { state: { prompt: newPrompt.trim(), workspaces, workspace } });
+  };
+
   const tasksByCategory = categories.map((_, ci) => tasks.filter((t) => t.categoryIdx === ci));
 
   return (
@@ -321,8 +329,28 @@ export default function AiTaskPage() {
           <button className="atp-save-btn" onClick={handleSaveTask}>task 저장</button>
           {saveMsg && <span className="atp-save-msg">{saveMsg}</span>}
         </div>
+        <button className="atp-new-btn" onClick={() => setNewPromptOpen((v) => !v)}>+ 새 업무 분해</button>
         <button className="atp-workspace-btn" onClick={sendBasketToWorkspace}>보드로 보내기</button>
       </div>
+
+      {newPromptOpen && (
+        <div className="atp-new-prompt-bar">
+          <textarea
+            className="atp-new-prompt-input"
+            placeholder="새로운 업무 내용을 입력하세요..."
+            value={newPrompt}
+            onChange={(e) => setNewPrompt(e.target.value)}
+            onKeyDown={(e) => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); handleStartNewBreakdown(); } }}
+            autoFocus
+          />
+          <div className="atp-new-prompt-actions">
+            <button className="atp-new-prompt-submit" onClick={handleStartNewBreakdown} disabled={!newPrompt.trim()}>
+              🤖 AI 분해 시작
+            </button>
+            <button className="atp-new-prompt-cancel" onClick={() => { setNewPromptOpen(false); setNewPrompt(""); }}>취소</button>
+          </div>
+        </div>
+      )}
 
       <div className="atp-body">
         {/* 트리 영역 */}
