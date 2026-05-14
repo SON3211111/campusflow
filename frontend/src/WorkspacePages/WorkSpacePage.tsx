@@ -577,6 +577,7 @@ export default function WorkSpacePage() {
         visible={showBoardView}
         initialCards={slideInitialCards}
         gradient={gradient}
+        workspaceId={workspace?.id}
         onCardClick={(card) => setSlideCard(card)}
         onStatusChange={handleBoardStatusChange}
       />

@@ -17,6 +17,7 @@ interface Props {
   visible: boolean;
   initialCards: CardItem[];
   gradient?: string;
+  workspaceId?: string;
   onCardClick?: (card: { title: string; desc: string; comments: any[] }) => void;
   onStatusChange?: (taskId: string, newColKey: string) => void;
 }
@@ -31,12 +32,12 @@ const STATUS_COLS = [
 
 type ColMap = { [key: string]: CardItem[] };
 
-const STORAGE_KEY = "board_slide_colmap";
+export default function BoardSlideView({ visible, initialCards, gradient: _gradient, workspaceId, onCardClick, onStatusChange }: Props) {
+  const storageKey = `board_slide_colmap_${workspaceId ?? "default"}`;
 
-export default function BoardSlideView({ visible, initialCards, gradient: _gradient, onCardClick, onStatusChange }: Props) {
   const [colMap, setColMap] = useState<ColMap>(() => {
     try {
-      const saved = localStorage.getItem(STORAGE_KEY);
+      const saved = localStorage.getItem(`board_slide_colmap_${workspaceId ?? "default"}`);
       if (saved) return JSON.parse(saved);
     } catch {}
     return { none: [], notStarted: [], inProgress: [], hold: [], done: [] };
@@ -51,7 +52,7 @@ export default function BoardSlideView({ visible, initialCards, gradient: _gradi
       const newCards = initialCards.filter((c) => !existingIds.has(c.id));
       if (newCards.length === 0) return prev;
       const next = { ...prev, none: [...prev.none, ...newCards] };
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(next));
+      localStorage.setItem(storageKey, JSON.stringify(next));
       return next;
     });
   }, [initialCards]);
@@ -82,7 +83,7 @@ export default function BoardSlideView({ visible, initialCards, gradient: _gradi
         [targetCol]: [...prev[targetCol], card],
       };
       saveStats(next);
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(next));
+      localStorage.setItem(storageKey, JSON.stringify(next));
       return next;
     });
     onStatusChange?.(taskId, targetCol);
