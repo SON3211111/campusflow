@@ -49,7 +49,7 @@ public class Task {
     private LocalDate dueDate;
 
     @Builder.Default
-    @Column(name = "deleted")
+    @Column(name = "is_deleted")
     private boolean deleted = false;
 
     @Column(name = "deleted_at")
