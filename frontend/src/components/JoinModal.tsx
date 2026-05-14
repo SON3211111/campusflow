@@ -11,7 +11,13 @@ interface Props {
 }
 
 function extractWorkspaceId(input: string): string {
-  // 초대 링크 형식: .../join/{workspaceId}
+  // 초대 링크 형식: .../join?workspaceId={id}
+  try {
+    const url = new URL(input);
+    const qp = url.searchParams.get("workspaceId");
+    if (qp) return qp;
+  } catch {}
+  // 레거시 형식: .../join/{workspaceId} (path param)
   const match = input.match(/\/join\/([a-zA-Z0-9-]+)/);
   if (match) return match[1];
   return input.trim();

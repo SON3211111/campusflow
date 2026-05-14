@@ -6,6 +6,7 @@
 import { useState, useRef, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import AITaskModal from "./AITaskModal";
+import client from "../api/client";
 import "./Header.css";
 
 interface WorkspaceItem {
@@ -52,13 +53,11 @@ export default function Header({ workspaces = [], showSearch = true, onLogout }:
     if (!userId) return;
     try {
       const [invRes, kickRes] = await Promise.all([
-        fetch(`/api/invitations?userId=${userId}`),
-        fetch(`/api/notifications?userId=${userId}`),
+        client.get(`/invitations?userId=${userId}`),
+        client.get(`/notifications?userId=${userId}`),
       ]);
-      const invJson = await invRes.json();
-      const kickJson = await kickRes.json();
-      setInvitations(invJson.data ?? []);
-      setKickNotis(kickJson.data ?? []);
+      setInvitations(invRes.data.data ?? []);
+      setKickNotis(kickRes.data.data ?? []);
     } catch {
       setInvitations([]);
       setKickNotis([]);
@@ -80,7 +79,7 @@ export default function Header({ workspaces = [], showSearch = true, onLogout }:
 
   const handleAccept = async (invitationId: string) => {
     const inv = invitations.find((i) => i.invitationId === invitationId);
-    await fetch(`/api/invitations/${invitationId}/accept`, { method: "POST" });
+    await client.post(`/invitations/${invitationId}/accept`);
     if (inv) addWorkspaceActivity(inv.workspaceId, `${userName}가 ${inv.workspaceName} 워크스페이스에 참가하였습니다.`);
     setInvitations((prev) => prev.filter((i) => i.invitationId !== invitationId));
     setNotiOpen(false);
@@ -92,7 +91,7 @@ export default function Header({ workspaces = [], showSearch = true, onLogout }:
   };
 
   const handleReject = async (invitationId: string) => {
-    await fetch(`/api/invitations/${invitationId}/reject`, { method: "POST" });
+    await client.post(`/invitations/${invitationId}/reject`);
     setInvitations((prev) => prev.filter((i) => i.invitationId !== invitationId));
   };
 
@@ -188,11 +187,11 @@ export default function Header({ workspaces = [], showSearch = true, onLogout }:
                               </p>
                               <div className="noti-actions">
                                 <button className="noti-reject-btn" onClick={async () => {
-                                  await fetch(`/api/workspaces/join-requests/${n.notificationId}/reject`, { method: "POST" });
+                                  await client.post(`/workspaces/join-requests/${n.notificationId}/reject`);
                                   setKickNotis((prev) => prev.filter((x) => x.notificationId !== n.notificationId));
                                 }}>거절</button>
                                 <button className="noti-accept-btn" onClick={async () => {
-                                  await fetch(`/api/workspaces/join-requests/${n.notificationId}/accept`, { method: "POST" });
+                                  await client.post(`/workspaces/join-requests/${n.notificationId}/accept`);
                                   addWorkspaceActivity(parts[3], `${parts[2]}가 ${parts[4]} 워크스페이스에 참가하였습니다.`);
                                   setKickNotis((prev) => prev.filter((x) => x.notificationId !== n.notificationId));
                                   setNotiOpen(false);
@@ -210,7 +209,7 @@ export default function Header({ workspaces = [], showSearch = true, onLogout }:
                             <p className="noti-msg">{icon} <strong>{n.message}</strong></p>
                             <div className="noti-actions">
                               <button className="noti-reject-btn" onClick={async () => {
-                                await fetch(`/api/notifications/${n.notificationId}/read`, { method: "POST" });
+                                await client.post(`/notifications/${n.notificationId}/read`);
                                 setKickNotis((prev) => prev.filter((x) => x.notificationId !== n.notificationId));
                                 if (isAccepted) navigate('/workspace');
                               }}>확인</button>

@@ -38,9 +38,11 @@ const Login: React.FC = () => {
     } catch (err: any) {
       const status = err.response?.status;
       if (status === 404) {
-        setErrorMsg('계정이 없습니다.');
+        setErrorMsg('존재하지 않는 계정입니다.');
       } else if (status === 401) {
         setErrorMsg('비밀번호가 일치하지 않습니다.');
+      } else if (status === 403) {
+        setErrorMsg('비활성화된 계정입니다. 관리자에게 문의하세요.');
       } else {
         setErrorMsg('서버에 연결할 수 없습니다.');
       }

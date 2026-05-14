@@ -33,18 +33,23 @@ public class WorkspaceService {
 
     /** 새 워크스페이스 생성 (API용) */
     @Transactional
-    public Workspace createWorkspace(String userId, String name, WorkspaceType type) {
+    public Workspace createWorkspace(String userId, String name, WorkspaceType type, String gradient) {
         User owner = userRepository.findById(userId)
                 .orElseThrow(() -> new IllegalArgumentException("존재하지 않는 유저입니다."));
         WorkspaceType wsType = (type != null) ? type : WorkspaceType.TEAM;
-        return createWorkspaceInternal(owner, name, wsType);
+        return createWorkspaceInternal(owner, name, wsType, gradient);
     }
 
     private Workspace createWorkspaceInternal(User owner, String name, WorkspaceType type) {
+        return createWorkspaceInternal(owner, name, type, null);
+    }
+
+    private Workspace createWorkspaceInternal(User owner, String name, WorkspaceType type, String gradient) {
         Workspace workspace = Workspace.builder()
                 .name(name)
                 .type(type)
                 .owner(owner)
+                .gradient(gradient)
                 .build();
         workspaceRepository.save(workspace);
 

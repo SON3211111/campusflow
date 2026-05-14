@@ -55,7 +55,7 @@ public class WorkspaceController {
             @RequestBody WorkspaceRequest request) {
 
         // request.getType()은 Enum(WorkspaceType)으로 전달된다고 가정합니다.
-        Workspace newWorkspace = workspaceService.createWorkspace(userId, request.getName(), request.getType());
+        Workspace newWorkspace = workspaceService.createWorkspace(userId, request.getName(), request.getType(), request.getGradient());
         return ResponseEntity.status(HttpStatus.CREATED)
                 .body(ApiResponse.success(201, "워크스페이스 생성 성공", WorkspaceResponse.from(newWorkspace)));
     }

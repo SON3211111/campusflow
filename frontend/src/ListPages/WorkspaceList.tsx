@@ -90,8 +90,9 @@ export default function WorkspaceList() {
       return;
     }
     try {
-      const res = await client.post(`/workspaces?userId=${userId}`, { name, type });
+      const res = await client.post(`/workspaces?userId=${userId}`, { name, type, gradient });
       const created = res.data.data;
+      localStorage.setItem(`ws_gradient_${created.workspaceId}`, gradient);
       const newWs: Workspace = {
         id: created.workspaceId,
         name: created.name,

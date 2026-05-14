@@ -9,6 +9,8 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.Map;
+
 import java.util.List;
 
 /**
@@ -110,6 +112,19 @@ public class WorkspaceTaskController {
             @PathVariable String taskId,
             @RequestParam String dueDate) {
         taskService.updateDueDate(taskId, dueDate);
+        return ResponseEntity.ok().build();
+    }
+
+    /**
+     * 태스크 설명 수정
+     * PATCH /api/workspaces/{workspaceId}/tasks/{taskId}/description
+     * body: { "description": "..." }
+     */
+    @PatchMapping("/{taskId}/description")
+    public ResponseEntity<Void> updateDescription(
+            @PathVariable String taskId,
+            @RequestBody Map<String, String> body) {
+        taskService.updateDescription(taskId, body.getOrDefault("description", ""));
         return ResponseEntity.ok().build();
     }
 }

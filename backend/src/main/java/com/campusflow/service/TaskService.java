@@ -111,6 +111,14 @@ public class TaskService {
         task.setDueDate(LocalDate.parse(dueDate));
     }
 
+    /** 태스크 설명 업데이트 */
+    @Transactional
+    public void updateDescription(String taskId, String description) {
+        Task task = taskRepository.findById(taskId)
+                .orElseThrow(() -> new IllegalArgumentException("태스크를 찾을 수 없습니다. ID: " + taskId));
+        task.setDescription(description);
+    }
+
     // ── 기존: 칸반 맵 조회 (TaskController에서 사용) ─────────
 
     /** 상태별 그룹화된 태스크 맵 반환 */

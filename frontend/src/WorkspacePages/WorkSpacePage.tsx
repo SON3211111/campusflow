@@ -317,8 +317,13 @@ export default function WorkSpacePage() {
     panState.current.active = false;
   };
 
-  const handleSaveDesc = (col: string, id: string, desc: string) => {
+  const handleSaveDesc = async (col: string, id: string, desc: string) => {
     setCards((prev) => ({ ...prev, [col]: prev[col].map((c) => c.id === id ? { ...c, desc } : c) }));
+    if (workspace?.id) {
+      try {
+        await client.patch(`/workspaces/${workspace.id}/tasks/${id}/description`, { description: desc });
+      } catch {}
+    }
   };
 
   const handleSaveDueDate = async (col: string, id: string, dueDate: string) => {
@@ -440,7 +445,7 @@ export default function WorkSpacePage() {
 
         {/* 오른쪽: Board */}
         <main className="wsp-board">
-          <BoardSubHeader wsName={wsName} members={wsMembers} workspace={workspace} workspaces={workspaces} />
+          <BoardSubHeader wsName={wsName} members={wsMembers} workspace={workspace} workspaces={workspaces} onAiTaskClick={() => setAiTaskOpen(true)} />
 
           {loading && (
             <div className="wsp-loading">

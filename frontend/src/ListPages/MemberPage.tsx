@@ -65,15 +65,15 @@ export default function MemberPage() {
     setSearchResult(null);
     setSearchError("");
     try {
-      const res = await fetch(`/api/auth/search?email=${encodeURIComponent(inviteEmail.trim())}`);
-      if (res.status === 404) {
+      const res = await client.get(`/auth/search?email=${encodeURIComponent(inviteEmail.trim())}`);
+      const data = res.data.data;
+      setSearchResult({ userId: data.userId, name: data.name, email: data.email });
+    } catch (err: any) {
+      if (err.response?.status === 404) {
         setSearchError("계정을 찾을 수 없습니다.");
-        return;
+      } else {
+        setSearchError("검색에 실패했습니다.");
       }
-      const json = await res.json();
-      setSearchResult({ userId: json.data.userId, name: json.data.name, email: json.data.email });
-    } catch {
-      setSearchError("계정을 찾을 수 없습니다.");
     }
   };
 
@@ -292,9 +292,14 @@ export default function MemberPage() {
                   className="invite-result-add-btn"
                   onClick={async () => {
                     const inviterId = localStorage.getItem("userId") ?? "";
-                    await fetch(`/api/invitations?inviterId=${inviterId}&inviteeId=${searchResult.userId}&workspaceId=${workspace.id}`, { method: "POST" });
-                    setInviteSentMsg(`${searchResult.name}님께 초대를 보냈습니다.`);
-                    setTimeout(() => setInviteSentMsg(""), 3000);
+                    try {
+                      await client.post(`/invitations?inviterId=${inviterId}&inviteeId=${searchResult.userId}&workspaceId=${workspace.id}`);
+                      setInviteSentMsg(`${searchResult.name}님께 초대를 보냈습니다.`);
+                      setTimeout(() => setInviteSentMsg(""), 3000);
+                    } catch {
+                      setInviteSentMsg("초대 전송에 실패했습니다.");
+                      setTimeout(() => setInviteSentMsg(""), 3000);
+                    }
                   }}
                 >+</button>
               </div>
@@ -310,7 +315,7 @@ export default function MemberPage() {
               <button
                 className="invite-link-btn"
                 onClick={() => {
-                  navigator.clipboard.writeText(`${window.location.origin}/join/${workspace.id}`);
+                  navigator.clipboard.writeText(`${window.location.origin}/join?workspaceId=${workspace.id}`);
                   setLinkCopied(true);
                 }}
               >

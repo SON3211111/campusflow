@@ -5,7 +5,7 @@
  */
 import { useEffect, useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
-import axios from "axios";
+import client from "../api/client";
 import Header from "../components/Header";
 import "./TaskBreakdownPage.css";
 
@@ -102,7 +102,7 @@ export default function TaskBreakdownPage() {
     setError("");
     try {
       const params = new URLSearchParams({ title: prompt, description: prompt });
-      const res = await axios.post(`/api/ai/generate-tasks?${params}`, {}, { timeout: 120000 });
+      const res = await client.post(`/ai/generate-tasks?${params}`, {}, { timeout: 120000 });
       setResult(convertToBreakdownResult(res.data, prompt));
     } catch (err: any) {
       const detail = err?.response?.data?.detail ?? err?.message ?? String(err);

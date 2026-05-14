@@ -12,6 +12,7 @@ import org.springframework.web.filter.OncePerRequestFilter;
 
 import java.io.IOException;
 import java.util.Collections;
+import java.util.Set;
 
 /**
  * JWT 인증 필터 - 모든 HTTP 요청에 대해 JWT 토큰을 검증하고 인증 정보를 등록
@@ -24,22 +25,35 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
     private final TokenProvider tokenProvider;
 
+    private static final Set<String> PUBLIC_PATHS = Set.of(
+            "/api/auth/login", "/api/auth/signup", "/api/auth/search"
+    );
+
     @Override
     protected void doFilterInternal(HttpServletRequest request,
                                     HttpServletResponse response,
                                     FilterChain filterChain) throws ServletException, IOException {
-        // 1. 요청 헤더에서 JWT 토큰 추출
         String token = extractToken(request);
 
-        // 2. 토큰이 유효하면 SecurityContext에 인증 정보 등록
-        if (token != null && tokenProvider.validateToken(token)) {
-            String email = tokenProvider.getEmail(token);
-            UsernamePasswordAuthenticationToken auth =
-                    new UsernamePasswordAuthenticationToken(email, null, Collections.emptyList());
-            SecurityContextHolder.getContext().setAuthentication(auth);
+        if (token != null) {
+            if (tokenProvider.validateToken(token)) {
+                // 유효한 토큰 → SecurityContext에 인증 정보 등록
+                String email = tokenProvider.getEmail(token);
+                UsernamePasswordAuthenticationToken auth =
+                        new UsernamePasswordAuthenticationToken(email, null, Collections.emptyList());
+                SecurityContextHolder.getContext().setAuthentication(auth);
+            } else {
+                // 토큰이 존재하지만 만료/위조된 경우 → 401 반환 (로그인/회원가입 경로 제외)
+                String path = request.getRequestURI();
+                if (!PUBLIC_PATHS.contains(path)) {
+                    response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
+                    response.setContentType("application/json;charset=UTF-8");
+                    response.getWriter().write("{\"status\":401,\"message\":\"토큰이 만료되었습니다.\",\"data\":null}");
+                    return;
+                }
+            }
         }
 
-        // 3. 다음 필터 체인으로 요청 전달
         filterChain.doFilter(request, response);
     }
 
