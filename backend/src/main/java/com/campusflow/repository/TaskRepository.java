@@ -15,6 +15,9 @@ public interface TaskRepository extends JpaRepository<Task, String> {
     List<Task> findAllByWorkspace_WorkspaceIdAndStatus(String workspaceId, TaskStatus status);
     List<Task> findAllByWorkspace_WorkspaceIdAndAssignee_UserId(String workspaceId, String userId);
 
+    // 대시보드 진행률 계산용
+    List<Task> findAllByProject_ProjectId(Long projectId);
+
     // 칸반 보드용: 삭제되지 않은 태스크만 조회
     List<Task> findAllByWorkspace_WorkspaceIdAndDeletedFalse(String workspaceId);
 
