@@ -1,6 +1,7 @@
 package com.campusflow.config;
 
 import com.campusflow.dto.ApiResponse;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -16,6 +17,7 @@ import org.springframework.web.bind.annotation.RestControllerAdvice;
  * - 그 외: 서버 오류 (500)
  * 모든 에러 응답은 AuthController와 동일한 ApiResponse 포맷 사용
  */
+@Slf4j
 @RestControllerAdvice
 public class GlobalExceptionHandler {
 
@@ -43,7 +45,8 @@ public class GlobalExceptionHandler {
 
     @ExceptionHandler(Exception.class)
     public ResponseEntity<ApiResponse<?>> handleGeneral(Exception ex) {
+        log.error("[500] {} : {}", ex.getClass().getName(), ex.getMessage(), ex);
         return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-                .body(ApiResponse.error(500, "서버 오류가 발생했습니다: " + ex.getClass().getSimpleName()));
+                .body(ApiResponse.error(500, ex.getClass().getSimpleName() + ": " + ex.getMessage()));
     }
 }

@@ -301,7 +301,7 @@ export default function AiTaskPage() {
       showMsg("보드에 업무를 저장했습니다");
       navigate("/workspace-board", { state: { workspaces, workspace } });
     } catch (err: any) {
-      alert(`업무 저장에 실패했습니다: ${err?.response?.data?.detail ?? err?.message ?? err}`);
+      alert(`업무 저장에 실패했습니다: ${err?.response?.data?.message ?? err?.message ?? err}`);
     }
   };
 
