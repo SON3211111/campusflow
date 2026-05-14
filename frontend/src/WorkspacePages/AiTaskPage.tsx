@@ -1,9 +1,8 @@
 /**
- * AI 태스크 관리 페이지
- * AI가 분해한 업무 트리를 시각화하고, 드래그앤드롭으로 배정 바구니에 담아 보드로 전송
- * - 세부 분할: 태스크 하나를 AI로 2개의 서브태스크로 재분해
- * - 다시 설정: 원본 프롬프트로 AI 재호출하여 새 트리 생성
- * - 세션 저장: 현재 트리 상태를 localStorage에 자동 저장하여 새로고침 복원
+ * AI 태스크 관리 페이지 (팀 다중 슬롯 장바구니)
+ * - 워크스페이스 멤버를 서버에서 조회하여 멤버별 장바구니 슬롯 렌더링
+ * - 드래그앤드롭으로 원하는 팀원 슬롯에 업무 배정
+ * - 보드로 보내기 시 각 업무에 assigneeId 포함하여 저장
  */
 import { useState, useRef, useEffect } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
@@ -24,6 +23,12 @@ interface Category {
   taskColor: string;
 }
 
+interface Member {
+  userId: string;
+  name: string;
+  role: string;
+}
+
 interface WorkspaceItem {
   id: string;
   name: string;
@@ -39,7 +44,6 @@ interface AiTaskSession {
   title: string;
   categories: Category[];
   tasks: Task[];
-  basket: Task[];
   prompt: string;
   result: AiResult;
 }
@@ -62,21 +66,18 @@ export default function AiTaskPage() {
     };
   };
   const navigate = useNavigate();
-  const workspaces   = state?.workspaces ?? [];
-  const workspace    = state?.workspace ?? workspaces[0];
-  const sessionKey   = `ai_task_session_${workspace?.id ?? "default"}`;
-  const storedSession: AiTaskSession | null = (() => {
-    try {
-      return JSON.parse(localStorage.getItem(sessionKey) ?? "null");
-    } catch {
-      return null;
-    }
-  })();
-  const shouldRestoreSession = !state?.result && !!storedSession;
-  const aiResult     = state?.result ?? storedSession?.result ?? null;
-  const origPrompt   = state?.prompt ?? storedSession?.prompt ?? "";
+  const workspaces = state?.workspaces ?? [];
+  const workspace  = state?.workspace ?? workspaces[0];
+  const sessionKey = `ai_task_session_${workspace?.id ?? "default"}`;
 
-  const userName = localStorage.getItem("userName") ?? "나";
+  const storedSession: AiTaskSession | null = (() => {
+    try { return JSON.parse(localStorage.getItem(sessionKey) ?? "null"); }
+    catch { return null; }
+  })();
+
+  const shouldRestoreSession = !state?.result && !!storedSession;
+  const aiResult   = state?.result ?? storedSession?.result ?? null;
+  const origPrompt = state?.prompt ?? storedSession?.prompt ?? "";
 
   useEffect(() => {
     if (!aiResult) navigate("/workspace-board", { replace: true, state: { workspace, workspaces } });
@@ -96,51 +97,84 @@ export default function AiTaskPage() {
       cat.tasks.map((t, ti) => ({ id: `c${ci}-t${ti}`, name: t, categoryIdx: ci }))
     );
 
-  const [title, setTitle]               = useState<string>(shouldRestoreSession ? storedSession?.title ?? "" : aiResult.title ?? "");
-  const [categories, setCategories]     = useState<Category[]>(shouldRestoreSession ? storedSession?.categories ?? [] : buildCategories(aiResult));
-  const [tasks, setTasks]               = useState<Task[]>(shouldRestoreSession ? storedSession?.tasks ?? [] : buildTasks(aiResult));
-  const [basket, setBasket]             = useState<Task[]>(shouldRestoreSession ? storedSession?.basket ?? [] : []);
-  const [draggingId, setDraggingId]     = useState<string | null>(null);
-  const [dragOver, setDragOver]         = useState(false);
-  const [loadingId, setLoadingId]       = useState<string | null>(null);
-  const [resetLoading, setResetLoading] = useState(false);
-  const [saved, setSaved]               = useState(false);
-  const [saveMsg, setSaveMsg]           = useState("");
-  const [cooldown, setCooldown]         = useState(0);
-  const cooldownRef                     = useRef<ReturnType<typeof setInterval> | null>(null);
+  const [title, setTitle]           = useState(shouldRestoreSession ? storedSession?.title ?? "" : aiResult.title ?? "");
+  const [categories, setCategories] = useState<Category[]>(shouldRestoreSession ? storedSession?.categories ?? [] : buildCategories(aiResult));
+  const [tasks, setTasks]           = useState<Task[]>(shouldRestoreSession ? storedSession?.tasks ?? [] : buildTasks(aiResult));
+
+  // 멤버별 장바구니: { [userId]: Task[] }
+  const [members, setMembers]             = useState<Member[]>([]);
+  const [memberBaskets, setMemberBaskets] = useState<Record<string, Task[]>>({});
+
+  const [draggingId, setDraggingId]               = useState<string | null>(null);
+  const [draggingFromUserId, setDraggingFromUserId] = useState<string | null>(null);
+  const [dragOverUserId, setDragOverUserId]         = useState<string | null>(null);
+  const [loadingId, setLoadingId]                   = useState<string | null>(null);
+  const [resetLoading, setResetLoading]             = useState(false);
+  const [saved, setSaved]                           = useState(false);
+  const [saveMsg, setSaveMsg]                       = useState("");
+  const [cooldown, setCooldown]                     = useState(0);
+  const cooldownRef = useRef<ReturnType<typeof setInterval> | null>(null);
+
+  // 워크스페이스 멤버 목록 조회
+  useEffect(() => {
+    if (!workspace?.id) return;
+    client.get(`/workspaces/${workspace.id}/members`)
+      .then((res) => {
+        const list: Member[] = (res.data.data ?? []).map((m: any) => ({
+          userId: m.userId,
+          name: m.name,
+          role: m.role,
+        }));
+        setMembers(list);
+        // 각 멤버의 장바구니 슬롯 초기화
+        setMemberBaskets(Object.fromEntries(list.map((m) => [m.userId, []])));
+      })
+      .catch(() => {
+        // 멤버 조회 실패 시 현재 로그인 유저로 폴백
+        const userId = localStorage.getItem("userId") ?? "me";
+        const userName = localStorage.getItem("userName") ?? "나";
+        setMembers([{ userId, name: userName, role: "MEMBER" }]);
+        setMemberBaskets({ [userId]: [] });
+      });
+  }, [workspace?.id]);
+
+  // 세션 자동 저장 (basket 제외 - 멤버 슬롯은 서버 기준이므로)
+  useEffect(() => {
+    localStorage.setItem(sessionKey, JSON.stringify({ title, categories, tasks, prompt: origPrompt, result: aiResult }));
+  }, [title, categories, tasks, origPrompt, sessionKey]);
 
   const showMsg = (msg: string) => {
     setSaveMsg(msg);
     setTimeout(() => setSaveMsg(""), 5000);
   };
 
-  useEffect(() => {
-    localStorage.setItem(sessionKey, JSON.stringify({
-      title,
-      categories,
-      tasks,
-      basket,
-      prompt: origPrompt,
-      result: aiResult,
-    }));
-  }, [title, categories, tasks, basket, origPrompt, sessionKey]);
+  const startCooldown = () => {
+    setCooldown(3);
+    if (cooldownRef.current) clearInterval(cooldownRef.current);
+    cooldownRef.current = setInterval(() => {
+      setCooldown((prev) => {
+        if (prev <= 1) { clearInterval(cooldownRef.current!); return 0; }
+        return prev - 1;
+      });
+    }, 1000);
+  };
 
-  const buildCurrentResult = (): AiResult => ({
-    title,
-    categories: categories.map((cat, ci) => ({
-      id: `c${ci + 1}`,
-      name: cat.name,
-      tasks: [...tasks, ...basket]
-        .filter((task) => task.categoryIdx === ci)
-        .map((task) => task.name),
-    })),
-  });
+  const buildCurrentResult = (): AiResult => {
+    const allBasketTasks = Object.values(memberBaskets).flat();
+    return {
+      title,
+      categories: categories.map((cat, ci) => ({
+        id: `c${ci + 1}`,
+        name: cat.name,
+        tasks: [...tasks, ...allBasketTasks]
+          .filter((t) => t.categoryIdx === ci)
+          .map((t) => t.name),
+      })),
+    };
+  };
 
   const handleSaveTask = () => {
-    if (saved) {
-      showMsg("이미 저장되었습니다");
-      return;
-    }
+    if (saved) { showMsg("이미 저장되었습니다"); return; }
     const list = JSON.parse(localStorage.getItem("saved_ai_tasks") ?? "[]");
     const newEntry = { id: Date.now().toString(), title, prompt: origPrompt, result: buildCurrentResult() };
     localStorage.setItem("saved_ai_tasks", JSON.stringify([...list, newEntry]));
@@ -149,10 +183,7 @@ export default function AiTaskPage() {
   };
 
   const handleReset = async () => {
-    if (!origPrompt) {
-      alert("프롬프트 정보가 없습니다. 워크스페이스에서 다시 시작해주세요.");
-      return;
-    }
+    if (!origPrompt) { alert("프롬프트 정보가 없습니다. 워크스페이스에서 다시 시작해주세요."); return; }
     setResetLoading(true);
     try {
       const params = new URLSearchParams({ title: origPrompt, description: origPrompt });
@@ -165,27 +196,15 @@ export default function AiTaskPage() {
       });
       const json = {
         title: origPrompt.slice(0, 15),
-        categories: Array.from(categoryMap.entries()).map(([name, tasks], i) => ({
-          id: `c${i + 1}`,
-          name,
-          tasks,
-        })),
+        categories: Array.from(categoryMap.entries()).map(([name, tasks], i) => ({ id: `c${i + 1}`, name, tasks })),
       };
       setTitle(json.title);
       setCategories(buildCategories(json));
       setTasks(buildTasks(json));
-      setBasket([]);
+      // 장바구니 초기화
+      setMemberBaskets(Object.fromEntries(members.map((m) => [m.userId, []])));
       setSaved(false);
-      localStorage.setItem(sessionKey, JSON.stringify({
-        title: json.title,
-        categories: buildCategories(json),
-        tasks: buildTasks(json),
-        basket: [],
-        prompt: origPrompt,
-        result: json,
-      }));
     } catch (err: any) {
-      console.error("[AI reset]", err);
       alert(`다시 설정에 실패했습니다: ${err?.response?.data?.detail ?? err?.message ?? err}`);
     } finally {
       setResetLoading(false);
@@ -196,16 +215,9 @@ export default function AiTaskPage() {
     setLoadingId(task.id);
     try {
       const category = categories[task.categoryIdx]?.name ?? "";
-      const res = await axios.post(
-        "/api/ai/subdivide-task",
-        { task: task.name, category },
-        { timeout: 60000 }
-      );
+      const res = await axios.post("/api/ai/subdivide-task", { task: task.name, category }, { timeout: 60000 });
       const subtasks: string[] = res.data.tasks ?? [];
-      if (subtasks.length === 0) {
-        alert("더 이상 분할 할 수 없습니다.");
-        return;
-      }
+      if (subtasks.length === 0) { alert("더 이상 분할 할 수 없습니다."); return; }
       const newTasks: Task[] = subtasks.map((t, i) => ({
         id: `${task.id}-sub${i}`,
         name: t,
@@ -218,86 +230,83 @@ export default function AiTaskPage() {
         return next;
       });
     } catch (err: any) {
-      console.error("[AI subdivide]", err);
       alert(`세부 분할에 실패했습니다: ${err?.response?.data?.detail ?? err?.message ?? err}`);
     } finally {
       setLoadingId(null);
     }
   };
 
-  const handleDragStart = (id: string) => setDraggingId(id);
+  // 트리에서 드래그 시작
+  const handleDragStart = (id: string) => {
+    setDraggingId(id);
+    setDraggingFromUserId(null);
+  };
 
-  const handleDrop = () => {
-    if (!draggingId) return;
-    if (cooldown > 0) return;
+  // 특정 멤버 슬롯에 드롭
+  const handleDrop = (userId: string) => {
+    if (!draggingId || cooldown > 0) return;
     const task = tasks.find((t) => t.id === draggingId);
     if (!task) return;
-    setBasket((prev) => prev.some((item) => item.id === task.id) ? prev : [...prev, task]);
+    setMemberBaskets((prev) => {
+      const basket = prev[userId] ?? [];
+      if (basket.some((item) => item.id === task.id)) return prev;
+      return { ...prev, [userId]: [...basket, task] };
+    });
     setTasks((prev) => prev.filter((t) => t.id !== draggingId));
     setDraggingId(null);
-    setDragOver(false);
-    setCooldown(3);
-    if (cooldownRef.current) clearInterval(cooldownRef.current);
-    cooldownRef.current = setInterval(() => {
-      setCooldown((prev) => {
-        if (prev <= 1) {
-          clearInterval(cooldownRef.current!);
-          return 0;
-        }
-        return prev - 1;
-      });
-    }, 1000);
+    setDragOverUserId(null);
+    startCooldown();
   };
 
-  const handleReturnDragStart = (id: string) => setDraggingId(id);
+  // 장바구니에서 트리로 반환 드래그 시작
+  const handleReturnDragStart = (id: string, userId: string) => {
+    setDraggingId(id);
+    setDraggingFromUserId(userId);
+  };
 
+  // 트리 영역에 드롭 → 장바구니에서 트리로 복귀
   const handleReturnDrop = (e: React.DragEvent) => {
     e.preventDefault();
-    if (!draggingId) return;
-    const task = basket.find((t) => t.id === draggingId);
+    if (!draggingId || !draggingFromUserId) return;
+    const task = memberBaskets[draggingFromUserId]?.find((t) => t.id === draggingId);
     if (!task) return;
     setTasks((prev) => [...prev, task]);
-    setBasket((prev) => prev.filter((t) => t.id !== draggingId));
+    setMemberBaskets((prev) => ({
+      ...prev,
+      [draggingFromUserId]: (prev[draggingFromUserId] ?? []).filter((t) => t.id !== draggingId),
+    }));
     setDraggingId(null);
+    setDraggingFromUserId(null);
   };
 
-  const tasksByCategory = categories.map((_, ci) =>
-    tasks.filter((t) => t.categoryIdx === ci)
-  );
-
+  // 모든 멤버 슬롯의 업무를 assigneeId와 함께 보드에 저장
   const sendBasketToWorkspace = async () => {
-    if (!workspace?.id) {
-      alert("워크스페이스 정보가 없습니다.");
-      return;
-    }
-    if (basket.length === 0) {
+    if (!workspace?.id) { alert("워크스페이스 정보가 없습니다."); return; }
+    const allEmpty = Object.values(memberBaskets).every((b) => b.length === 0);
+    if (allEmpty) {
       navigate("/workspace-board", { state: { workspaces, workspace } });
       return;
     }
-
     try {
-      for (const task of basket) {
-        await client.post(`/workspaces/${workspace.id}/tasks`, {
-          title: task.name,
-          description: categories[task.categoryIdx]?.name ?? "",
-          status: "TODO",
-        });
+      for (const [userId, basket] of Object.entries(memberBaskets)) {
+        for (const task of basket) {
+          await client.post(`/workspaces/${workspace.id}/tasks`, {
+            title: task.name,
+            description: categories[task.categoryIdx]?.name ?? "",
+            status: "TODO",
+            assigneeId: userId,
+          });
+        }
       }
-      setBasket([]);
-      localStorage.setItem(sessionKey, JSON.stringify({
-        title,
-        categories,
-        tasks,
-        basket: [],
-        prompt: origPrompt,
-        result: aiResult,
-      }));
+      setMemberBaskets(Object.fromEntries(members.map((m) => [m.userId, []])));
       showMsg("보드에 업무를 저장했습니다");
       navigate("/workspace-board", { state: { workspaces, workspace } });
     } catch (err: any) {
       alert(`업무 저장에 실패했습니다: ${err?.response?.data?.detail ?? err?.message ?? err}`);
     }
   };
+
+  const tasksByCategory = categories.map((_, ci) => tasks.filter((t) => t.categoryIdx === ci));
 
   return (
     <div className="atp-page">
@@ -313,10 +322,7 @@ export default function AiTaskPage() {
           <button className="atp-save-btn" onClick={handleSaveTask}>task 저장</button>
           {saveMsg && <span className="atp-save-msg">{saveMsg}</span>}
         </div>
-        <button
-          className="atp-workspace-btn"
-          onClick={sendBasketToWorkspace}
-        >보드로 보내기</button>
+        <button className="atp-workspace-btn" onClick={sendBasketToWorkspace}>보드로 보내기</button>
       </div>
 
       <div className="atp-body">
@@ -326,7 +332,6 @@ export default function AiTaskPage() {
           onDragOver={(e) => e.preventDefault()}
           onDrop={handleReturnDrop}
         >
-          {/* 루트 */}
           <div className="atp-root-wrap">
             <div className="atp-root-node">
               <span className="atp-root-icon">⊛</span>
@@ -335,7 +340,6 @@ export default function AiTaskPage() {
             <div className="atp-root-line" />
           </div>
 
-          {/* 카테고리 */}
           <div className="atp-categories">
             {categories.map((cat, ci) => (
               <div key={ci} className="atp-category-col">
@@ -371,36 +375,42 @@ export default function AiTaskPage() {
           </div>
         </div>
 
-        {/* 장바구니 */}
+        {/* 팀원별 장바구니 슬롯 */}
         <div className="atp-basket-bar">
           <div className="atp-basket-outer">
-          <div className="atp-user-slot">
             {cooldown > 0 && <span className="atp-cooldown-msg">{cooldown}초 대기</span>}
-            <div
-              className={`atp-basket-box ${dragOver && cooldown === 0 ? "drag-over" : ""} ${cooldown > 0 ? "basket-locked" : ""}`}
-              onDragOver={(e) => { e.preventDefault(); if (cooldown === 0) setDragOver(true); }}
-              onDragLeave={() => setDragOver(false)}
-              onDrop={handleDrop}
-            >
-              {basket.length === 0 && (
-                <span className="atp-drop-hint">여기에 놓기</span>
-              )}
-              {basket.map((task) => (
-                <div
-                  key={task.id}
-                  className="atp-basket-card"
-                  style={{ background: CAT_COLORS[task.categoryIdx % CAT_COLORS.length].taskColor }}
-                  draggable
-                  onDragStart={() => handleReturnDragStart(task.id)}
-                >
-                  <span className="atp-basket-card-name">{task.name}</span>
-                  <span className="atp-basket-card-tag">{categories[task.categoryIdx]?.name}</span>
+            {members.map((member) => {
+              const basket = memberBaskets[member.userId] ?? [];
+              const isOver = dragOverUserId === member.userId;
+              return (
+                <div key={member.userId} className="atp-user-slot">
+                  <div
+                    className={`atp-basket-box ${isOver && cooldown === 0 ? "drag-over" : ""} ${cooldown > 0 ? "basket-locked" : ""}`}
+                    onDragOver={(e) => { e.preventDefault(); if (cooldown === 0) setDragOverUserId(member.userId); }}
+                    onDragLeave={() => setDragOverUserId(null)}
+                    onDrop={() => handleDrop(member.userId)}
+                  >
+                    {basket.length === 0 && (
+                      <span className="atp-drop-hint">여기에 놓기</span>
+                    )}
+                    {basket.map((task) => (
+                      <div
+                        key={task.id}
+                        className="atp-basket-card"
+                        style={{ background: CAT_COLORS[task.categoryIdx % CAT_COLORS.length].taskColor }}
+                        draggable
+                        onDragStart={() => handleReturnDragStart(task.id, member.userId)}
+                      >
+                        <span className="atp-basket-card-name">{task.name}</span>
+                        <span className="atp-basket-card-tag">{categories[task.categoryIdx]?.name}</span>
+                      </div>
+                    ))}
+                  </div>
+                  <div className="atp-avatar">{member.name[0]}</div>
+                  <span className="atp-user-name">{member.name}</span>
                 </div>
-              ))}
-            </div>
-            <div className="atp-avatar">{userName[0]}</div>
-            <span className="atp-user-name">{userName}</span>
-          </div>
+              );
+            })}
           </div>
         </div>
       </div>

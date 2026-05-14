@@ -58,11 +58,18 @@ public class TaskService {
             status = TaskStatus.TODO;
         }
 
+        // assigneeId가 있으면 담당자 조회 (없으면 null → 미배정)
+        User assignee = null;
+        if (req.assigneeId() != null && !req.assigneeId().isBlank()) {
+            assignee = userRepository.findById(req.assigneeId()).orElse(null);
+        }
+
         Task task = Task.builder()
                 .workspace(workspace)
                 .title(req.title())
                 .description(req.description())
                 .status(status)
+                .assignee(assignee)
                 .deleted(false)
                 .build();
 
