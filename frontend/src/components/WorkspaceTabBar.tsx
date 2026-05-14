@@ -5,22 +5,28 @@ type Tab = "planner" | "community" | "board" | "personal";
 interface Props {
   active?: Tab;
   onTabChange?: (tab: Tab) => void;
+  onTrashClick?: () => void;
+  trashCount?: number;
 }
 
-export default function WorkspaceTabBar({ active, onTabChange }: Props) {
+export default function WorkspaceTabBar({ active, onTabChange, onTrashClick, trashCount = 0 }: Props) {
   return (
     <div className="wtb-wrap">
       <button className={`wtb-tab ${active === "planner" ? "active" : ""}`} onClick={() => onTabChange?.("planner")}>
-        📅 플래너
+        planner
       </button>
       <button className={`wtb-tab ${active === "community" ? "active" : ""}`} onClick={() => onTabChange?.("community")}>
-        💬 커뮤
+        community
       </button>
       <button className={`wtb-tab ${active === "board" ? "active" : ""}`} onClick={() => onTabChange?.("board")}>
-        🖥 보드
+        board
       </button>
       <button className={`wtb-tab ${active === "personal" ? "active" : ""}`} onClick={() => onTabChange?.("personal")}>
-        개인 워크스페이스
+        My workspace
+      </button>
+      <div className="wtb-divider" />
+      <button className="wtb-tab" onClick={onTrashClick}>
+        🗑 {trashCount > 0 && <span className="wtb-trash-count">{trashCount}</span>}
       </button>
     </div>
   );

@@ -127,7 +127,7 @@ export default function TaskBreakdownPage() {
       <div className="tbp-topbar">
         <button className="tbp-back-btn" onClick={() => navigate(-1)}>← 뒤로가기</button>
         {!loading && !error && result && (
-          <button className="tbp-retry-btn" onClick={callAI}>🔄 다시 생성</button>
+          <button className="tbp-retry-btn" onClick={callAI}>다시 생성</button>
         )}
       </div>
 

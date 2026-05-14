@@ -348,7 +348,7 @@ export default function WorkSpacePage() {
         {/* 왼쪽: Community */}
         <aside className={`wsp-community ${showCommunity ? "panel-visible" : "panel-hidden"}`}>
           <div className="wsp-panel-title">
-            <span className="wsp-panel-icon">💬</span> community
+            <span className="wsp-panel-icon"></span> community
           </div>
           <input className="wsp-search" placeholder="채널 및 메시지 검색..." />
           <div className="wsp-channel-label">채널 및 스레드</div>
@@ -390,14 +390,14 @@ export default function WorkSpacePage() {
               </div>
             </div>
           ) : (
-            <button className="wsp-new-msg-btn" onClick={() => setWritingMsg(true)}>✎ 새 메시지 작성</button>
+            <button className="wsp-new-msg-btn" onClick={() => setWritingMsg(true)}>새 메시지 작성</button>
           )}
         </aside>
 
         {/* 가운데: Planner */}
         <aside className={`wsp-planner ${showPlanner ? "panel-visible" : "panel-hidden"}`}>
           <div className="wsp-panel-title">
-            <span className="wsp-panel-icon">📅</span> Planner
+            <span className="wsp-panel-icon"></span> Planner
           </div>
           <div className="wsp-cal-header">
             <button className="wsp-cal-nav" onClick={prevMonth}>‹</button>
@@ -425,18 +425,6 @@ export default function WorkSpacePage() {
         <main className="wsp-board">
           <BoardSubHeader wsName={wsName} memberCount={1} workspace={workspace} workspaces={workspaces} />
 
-          <div className="wsp-board-tools">
-            <button
-              className="wsp-tool-btn"
-              onClick={() => navigate("/ai-task", { state: { workspace, workspaces } })}
-            >
-              AI Task
-            </button>
-            <button className="wsp-tool-btn" onClick={openTrash}>
-              Trash ({deletedCards.length})
-            </button>
-          </div>
-
           {loading && (
             <div className="wsp-loading">
               <span className="wsp-loading-text">불러오는 중...</span>
@@ -451,13 +439,13 @@ export default function WorkSpacePage() {
               <div className="wsp-landing-actions">
                 <button className="wsp-landing-btn ai"
                   onClick={() => setAiTaskOpen(true)}>
-                  <span className="wsp-lbtn-icon">🤖</span>
+                  <span className="wsp-lbtn-icon"></span>
                   <span className="wsp-lbtn-title">AI 업무 생성</span>
                   <span className="wsp-lbtn-desc">AI가 업무를 자동으로 분해합니다</span>
                 </button>
                 <button className="wsp-landing-btn start"
                   onClick={() => setShowLanding(false)}>
-                  <span className="wsp-lbtn-icon">▶</span>
+                  <span className="wsp-lbtn-icon"></span>
                   <span className="wsp-lbtn-title">바로 시작하기</span>
                   <span className="wsp-lbtn-desc">빈 보드에서 직접 업무를 추가합니다</span>
                 </button>
@@ -564,6 +552,8 @@ export default function WorkSpacePage() {
           if (t === "community") setShowCommunity((v) => !v);
           if (t === "board") setShowBoardView((v) => !v);
         }}
+        onTrashClick={openTrash}
+        trashCount={deletedCards.length}
       />
 
       <BoardSlideView

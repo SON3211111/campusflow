@@ -54,7 +54,7 @@ export default function Header({ workspaces = [], showSearch = true, onLogout }:
   return (
     <>
     <header className="header">
-      <div className="header-logo" onClick={() => navigate("/")}>CAMPUS_FLOW</div>
+      <div className="header-logo" onClick={() => navigate("/")}>C'FLOW</div>
 
       {showSearch && (
         <div className="header-search" ref={searchRef}>
@@ -79,7 +79,7 @@ export default function Header({ workspaces = [], showSearch = true, onLogout }:
               </div>
             )}
           </div>
-          <button className="header-create-btn">Create</button>
+          <button className="header-create-btn">Search</button>
         </div>
       )}
 

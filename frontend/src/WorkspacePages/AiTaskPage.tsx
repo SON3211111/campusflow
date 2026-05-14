@@ -299,13 +299,13 @@ export default function AiTaskPage() {
       <Header workspaces={workspaces} />
 
       <div className="atp-topbar">
-        <button className="atp-back-btn" onClick={() => navigate("/workspace")}>← 뒤로가기</button>
+        <button className="atp-back-btn" onClick={() => navigate("/workspace")}>뒤로가기</button>
         {title && <span className="atp-project-title">{title}</span>}
         <button className="atp-reset-btn" onClick={handleReset} disabled={resetLoading}>
-          {resetLoading ? "분석 중..." : "🔄 다시 설정"}
+          {resetLoading ? "분석 중..." : "다시 설정"}
         </button>
         <div className="atp-save-wrap">
-          <button className="atp-save-btn" onClick={handleSaveTask}>💾 task 저장</button>
+          <button className="atp-save-btn" onClick={handleSaveTask}>task 저장</button>
           {saveMsg && <span className="atp-save-msg">{saveMsg}</span>}
         </div>
         <button
