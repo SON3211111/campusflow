@@ -20,16 +20,81 @@ interface HeaderProps {
   onLogout?: () => void;
 }
 
+interface Invitation {
+  invitationId: string;
+  workspaceId: string;
+  workspaceName: string;
+  inviterName: string;
+}
+
+interface KickNotification {
+  notificationId: string;
+  message: string;
+}
+
 export default function Header({ workspaces = [], showSearch = true, onLogout }: HeaderProps) {
   const navigate = useNavigate();
   const isLoggedIn = !!localStorage.getItem('accessToken');
   const userName = localStorage.getItem('userName') ?? '사용자';
+  const userId = localStorage.getItem('userId') ?? '';
   const [query, setQuery] = useState('');
   const [searchOpen, setSearchOpen] = useState(false);
   const [userMenuOpen, setUserMenuOpen] = useState(false);
   const [aiTaskOpen, setAiTaskOpen] = useState(false);
+  const [notiOpen, setNotiOpen] = useState(false);
+  const [invitations, setInvitations] = useState<Invitation[]>([]);
+  const [kickNotis, setKickNotis] = useState<KickNotification[]>([]);
   const searchRef = useRef<HTMLDivElement>(null);
   const userMenuRef = useRef<HTMLDivElement>(null);
+  const notiRef = useRef<HTMLDivElement>(null);
+
+  const fetchNotifications = async () => {
+    if (!userId) return;
+    try {
+      const [invRes, kickRes] = await Promise.all([
+        fetch(`/api/invitations?userId=${userId}`),
+        fetch(`/api/notifications?userId=${userId}`),
+      ]);
+      const invJson = await invRes.json();
+      const kickJson = await kickRes.json();
+      setInvitations(invJson.data ?? []);
+      setKickNotis(kickJson.data ?? []);
+    } catch {
+      setInvitations([]);
+      setKickNotis([]);
+    }
+  };
+
+  useEffect(() => {
+    fetchNotifications();
+    const timer = setInterval(fetchNotifications, 15000);
+    return () => clearInterval(timer);
+  }, [userId]);
+
+  const addWorkspaceActivity = (workspaceId: string, message: string) => {
+    const key = `workspace_activity_${workspaceId}`;
+    const existing = JSON.parse(localStorage.getItem(key) ?? "[]");
+    const newEntry = { message, time: new Date().toLocaleString() };
+    localStorage.setItem(key, JSON.stringify([newEntry, ...existing].slice(0, 20)));
+  };
+
+  const handleAccept = async (invitationId: string) => {
+    const inv = invitations.find((i) => i.invitationId === invitationId);
+    await fetch(`/api/invitations/${invitationId}/accept`, { method: "POST" });
+    if (inv) addWorkspaceActivity(inv.workspaceId, `${userName}가 ${inv.workspaceName} 워크스페이스에 참가하였습니다.`);
+    setInvitations((prev) => prev.filter((i) => i.invitationId !== invitationId));
+    setNotiOpen(false);
+    if (window.location.pathname === '/workspace') {
+      window.location.reload();
+    } else {
+      navigate('/workspace');
+    }
+  };
+
+  const handleReject = async (invitationId: string) => {
+    await fetch(`/api/invitations/${invitationId}/reject`, { method: "POST" });
+    setInvitations((prev) => prev.filter((i) => i.invitationId !== invitationId));
+  };
 
   const filtered = query.trim()
     ? workspaces.filter((ws) => ws.name.includes(query))
@@ -42,6 +107,9 @@ export default function Header({ workspaces = [], showSearch = true, onLogout }:
       }
       if (userMenuRef.current && !userMenuRef.current.contains(e.target as Node)) {
         setUserMenuOpen(false);
+      }
+      if (notiRef.current && !notiRef.current.contains(e.target as Node)) {
+        setNotiOpen(false);
       }
     };
     document.addEventListener('mousedown', handleClick);
@@ -95,7 +163,77 @@ export default function Header({ workspaces = [], showSearch = true, onLogout }:
               <span className="grid-icon">⊞</span>
               <span>My projects</span>
             </div>
-            <button className="header-icon-btn">🔔</button>
+            <div className="header-noti-wrap" ref={notiRef}>
+              <button className="header-icon-btn noti-btn" onClick={() => setNotiOpen((v) => !v)}>
+                🔔
+                {(invitations.length + kickNotis.length) > 0 && <span className="noti-badge">!</span>}
+              </button>
+              {notiOpen && (
+                <div className="noti-dropdown">
+                  <p className="noti-title">알림</p>
+                  {invitations.length === 0 && kickNotis.length === 0 ? (
+                    <p className="noti-empty">새 알림이 없습니다.</p>
+                  ) : (
+                    <>
+                      {kickNotis.map((n) => {
+                        const isJoinRequest = n.message.startsWith("JOIN_REQUEST|");
+                        if (isJoinRequest) {
+                          const parts = n.message.split("|");
+                          const requesterName = parts[2];
+                          const workspaceName = parts[4];
+                          return (
+                            <div key={n.notificationId} className="noti-item">
+                              <p className="noti-msg">
+                                👋 <strong>{requesterName}</strong>님이 <strong>{workspaceName}</strong> 워크스페이스에 참가하고 싶어합니다.
+                              </p>
+                              <div className="noti-actions">
+                                <button className="noti-reject-btn" onClick={async () => {
+                                  await fetch(`/api/workspaces/join-requests/${n.notificationId}/reject`, { method: "POST" });
+                                  setKickNotis((prev) => prev.filter((x) => x.notificationId !== n.notificationId));
+                                }}>거절</button>
+                                <button className="noti-accept-btn" onClick={async () => {
+                                  await fetch(`/api/workspaces/join-requests/${n.notificationId}/accept`, { method: "POST" });
+                                  addWorkspaceActivity(parts[3], `${parts[2]}가 ${parts[4]} 워크스페이스에 참가하였습니다.`);
+                                  setKickNotis((prev) => prev.filter((x) => x.notificationId !== n.notificationId));
+                                  setNotiOpen(false);
+                                }}>수락</button>
+                              </div>
+                            </div>
+                          );
+                        }
+                        const isAccepted = n.message.includes("수락");
+                        const isRejected = n.message.includes("거절");
+                        const icon = isAccepted ? "✅" : isRejected ? "❌" : "🚫";
+                        const itemClass = isAccepted ? "noti-item noti-item-accept" : "noti-item noti-item-kick";
+                        return (
+                          <div key={n.notificationId} className={itemClass}>
+                            <p className="noti-msg">{icon} <strong>{n.message}</strong></p>
+                            <div className="noti-actions">
+                              <button className="noti-reject-btn" onClick={async () => {
+                                await fetch(`/api/notifications/${n.notificationId}/read`, { method: "POST" });
+                                setKickNotis((prev) => prev.filter((x) => x.notificationId !== n.notificationId));
+                                if (isAccepted) navigate('/workspace');
+                              }}>확인</button>
+                            </div>
+                          </div>
+                        );
+                      })}
+                      {invitations.map((inv) => (
+                        <div key={inv.invitationId} className="noti-item">
+                          <p className="noti-msg">
+                            <strong>{inv.inviterName}</strong>님이 <strong>{inv.workspaceName}</strong> 워크스페이스에 초대했습니다.
+                          </p>
+                          <div className="noti-actions">
+                            <button className="noti-reject-btn" onClick={() => handleReject(inv.invitationId)}>거절</button>
+                            <button className="noti-accept-btn" onClick={() => handleAccept(inv.invitationId)}>수락</button>
+                          </div>
+                        </div>
+                      ))}
+                    </>
+                  )}
+                </div>
+              )}
+            </div>
           </>
         )}
 

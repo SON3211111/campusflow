@@ -31,28 +31,29 @@ public class Task {
     @Builder.Default
     private TaskStatus status = TaskStatus.TODO;
 
-    // --- [추가] 대시보드 및 AI 장바구니 핵심 필드 ---
-
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "project_id") // 어느 프로젝트 대시보드에 보일 것인가
+    @JoinColumn(name = "project_id")
     @JsonIgnore
     private Project project;
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "assignee_id") // 누가 작업 중인가 (시각화용)
+    @JoinColumn(name = "assignee_id")
+    @JsonIgnore
     private User assignee;
 
     @Builder.Default
+    @Column(name = "is_ai_generated")
     private boolean isAiGenerated = false;
 
+    @Column(name = "due_date")
     private LocalDate dueDate;
 
     @Builder.Default
-    private boolean isDeleted = false;
+    @Column(name = "deleted")
+    private boolean deleted = false;
 
+    @Column(name = "deleted_at")
     private LocalDateTime deletedAt;
-
-    // ------------------------------------------
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "workspace_id")

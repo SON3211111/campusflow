@@ -35,13 +35,13 @@ public class TaskService {
     /** 워크스페이스의 활성 태스크 목록 반환 (소프트 삭제 제외) */
     @Transactional(readOnly = true)
     public List<Task> getActiveTasks(String workspaceId) {
-        return taskRepository.findAllByWorkspace_WorkspaceIdAndIsDeletedFalse(workspaceId);
+        return taskRepository.findAllByWorkspace_WorkspaceIdAndDeletedFalse(workspaceId);
     }
 
     /** 워크스페이스의 소프트 삭제된 태스크 목록 반환 (휴지통) */
     @Transactional(readOnly = true)
     public List<Task> getDeletedTasks(String workspaceId) {
-        return taskRepository.findAllByWorkspace_WorkspaceIdAndIsDeletedTrue(workspaceId);
+        return taskRepository.findAllByWorkspace_WorkspaceIdAndDeletedTrue(workspaceId);
     }
 
     /** 태스크 생성 후 저장된 엔티티 반환 */
@@ -63,7 +63,7 @@ public class TaskService {
                 .title(req.title())
                 .description(req.description())
                 .status(status)
-                .isDeleted(false)
+                .deleted(false)
                 .build();
 
         return taskRepository.save(task);

@@ -16,6 +16,7 @@ import BoardPage from './ListPages/BoardPage';
 import MemberPage from './ListPages/MemberPage';
 import SettingPage from './ListPages/SettingPage';
 import TemplatePage from './ListPages/TemplatePage';
+import JoinPage from './ListPages/JoinPage';
 
 function PrivateRoute({ children }: { children: React.ReactNode }) {
   const token = localStorage.getItem('accessToken');
@@ -40,6 +41,7 @@ function App() {
         <Route path="/ai-task" element={<PrivateRoute><AiTaskPage /></PrivateRoute>} />
         <Route path="/workspace-board" element={<PrivateRoute><WorkSpacePage /></PrivateRoute>} />
         <Route path="/dashboard" element={<PrivateRoute><DashboardPage /></PrivateRoute>} />
+        <Route path="/join" element={<PrivateRoute><JoinPage /></PrivateRoute>} />
       </Routes>
     </Router>
   );

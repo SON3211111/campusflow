@@ -87,6 +87,7 @@ export default function WorkSpacePage() {
   const basketTasks = (state?.basketTasks ?? []) as CardItem[];
 
   const [tab, setTab]                     = useState<"board" | "planner" | "community" | "personal">("board");
+  const [wsMembers, setWsMembers]         = useState<{ userId: string; name: string }[]>([]);
   const [showPlanner, setShowPlanner]     = useState(true);
   const [showCommunity, setShowCommunity] = useState(true);
   const [showBoardView, setShowBoardView] = useState(basketTasks.length > 0);
@@ -122,6 +123,14 @@ export default function WorkSpacePage() {
   const hasPostedBasket = useRef(false);
   const columnsRef = useRef<HTMLDivElement>(null);
   const panState = useRef({ active: false, x: 0, scrollLeft: 0, moved: false });
+
+  useEffect(() => {
+    if (workspace?.id) {
+      client.get(`/workspaces/${workspace.id}/members`)
+        .then((res) => setWsMembers(res.data.data ?? []))
+        .catch(() => {});
+    }
+  }, [workspace?.id]);
 
   useEffect(() => {
     if (!workspace?.id) {
@@ -431,7 +440,7 @@ export default function WorkSpacePage() {
 
         {/* 오른쪽: Board */}
         <main className="wsp-board">
-          <BoardSubHeader wsName={wsName} memberCount={1} workspace={workspace} workspaces={workspaces} />
+          <BoardSubHeader wsName={wsName} members={wsMembers} workspace={workspace} workspaces={workspaces} />
 
           {loading && (
             <div className="wsp-loading">
@@ -568,6 +577,7 @@ export default function WorkSpacePage() {
         visible={showBoardView}
         initialCards={slideInitialCards}
         gradient={gradient}
+        workspaceId={workspace?.id}
         onCardClick={(card) => setSlideCard(card)}
         onStatusChange={handleBoardStatusChange}
       />
