@@ -150,12 +150,14 @@ export default function WorkSpacePage() {
     const init = async () => {
       if (!hasPostedBasket.current && basketTasks.length > 0) {
         hasPostedBasket.current = true;
+        const currentUserId = localStorage.getItem("userId");
         for (const bt of basketTasks) {
           try {
             await client.post(`/workspaces/${workspace.id}/tasks`, {
               title: bt.title,
               description: bt.desc || "",
               status: "TODO",
+              assigneeId: currentUserId,
             });
           } catch {}
         }
@@ -243,10 +245,12 @@ export default function WorkSpacePage() {
 
     if (workspace?.id) {
       try {
+        const currentUserId = localStorage.getItem("userId");
         const res = await client.post(`/workspaces/${workspace.id}/tasks`, {
           title,
           description: "",
           status,
+          assigneeId: currentUserId,
         });
         const newCard: CardItem = {
           id: res.data.data.taskId,
