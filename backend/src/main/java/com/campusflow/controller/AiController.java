@@ -1,5 +1,6 @@
 package com.campusflow.controller;
 
+import com.campusflow.dto.ApiResponse;
 import com.campusflow.dto.SubdivideResponseDto;
 import com.campusflow.dto.TaskListDto;
 import com.campusflow.service.AiService;
@@ -23,27 +24,29 @@ public class AiController {
 
     // 업무 트리 생성: 제목+설명 → 카테고리별 태스크 목록 반환
     @PostMapping("/generate-tasks")
-    public ResponseEntity<TaskListDto> generateTasks(
+    public ResponseEntity<ApiResponse<TaskListDto>> generateTasks(
             @RequestParam("title") String title,
             @RequestParam("description") String description) {
         try {
             TaskListDto result = aiService.generateTasks(title, description);
-            return ResponseEntity.ok(result);
+            return ResponseEntity.ok(ApiResponse.success(200, "업무 생성 성공", result));
         } catch (RuntimeException e) {
-            return ResponseEntity.internalServerError().build();
+            return ResponseEntity.internalServerError()
+                    .body(ApiResponse.error(500, "AI 서버 오류: " + e.getMessage()));
         }
     }
 
     // 단일 업무 세부 분해: task + category → 2개 서브태스크 반환
     @PostMapping("/subdivide-task")
-    public ResponseEntity<SubdivideResponseDto> subdivideTask(@RequestBody Map<String, String> body) {
+    public ResponseEntity<ApiResponse<SubdivideResponseDto>> subdivideTask(@RequestBody Map<String, String> body) {
         String task     = body.getOrDefault("task", "");
         String category = body.getOrDefault("category", "");
         try {
             SubdivideResponseDto result = aiService.subdivideTask(task, category);
-            return ResponseEntity.ok(result);
+            return ResponseEntity.ok(ApiResponse.success(200, "분해 성공", result));
         } catch (RuntimeException e) {
-            return ResponseEntity.internalServerError().build();
+            return ResponseEntity.internalServerError()
+                    .body(ApiResponse.error(500, "AI 서버 오류: " + e.getMessage()));
         }
     }
 }

@@ -103,7 +103,7 @@ export default function TaskBreakdownPage() {
     try {
       const params = new URLSearchParams({ title: prompt, description: prompt });
       const res = await client.post(`/ai/generate-tasks?${params}`, {}, { timeout: 120000 });
-      setResult(convertToBreakdownResult(res.data, prompt));
+      setResult(convertToBreakdownResult(res.data.data, prompt));
     } catch (err: any) {
       const detail = err?.response?.data?.detail ?? err?.message ?? String(err);
       setError(`AI 오류: ${detail}`);

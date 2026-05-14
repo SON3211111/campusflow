@@ -156,7 +156,7 @@ export default function WorkSpacePage() {
       try {
         const res = await client.get(`/workspaces/${workspace.id}/tasks`);
         const newCards = emptyCards();
-        for (const t of res.data) {
+        for (const t of (res.data.data ?? [])) {
           const col = STATUS_TO_COL[t.status] ?? "상태 없음";
           if (newCards[col]) {
             newCards[col].push({ id: t.taskId, title: t.title, desc: t.description ?? "", dueDate: t.dueDate ?? "", comments: [] });
@@ -180,7 +180,7 @@ export default function WorkSpacePage() {
     try {
       const res = await client.get(`/workspaces/${workspace.id}/tasks/trash`);
       setDeletedCards(
-        res.data.map((t: any) => ({
+        (res.data.data ?? []).map((t: any) => ({
           id: t.taskId,
           title: t.title,
           desc: t.description ?? "",
@@ -241,10 +241,10 @@ export default function WorkSpacePage() {
           status,
         });
         const newCard: CardItem = {
-          id: res.data.taskId,
-          title: res.data.title,
-          desc: res.data.description ?? "",
-          dueDate: res.data.dueDate ?? "",
+          id: res.data.data.taskId,
+          title: res.data.data.title,
+          desc: res.data.data.description ?? "",
+          dueDate: res.data.data.dueDate ?? "",
           comments: [],
         };
         setCards((prev) => ({ ...prev, [col]: [...(prev[col] ?? []), newCard] }));
@@ -276,13 +276,13 @@ export default function WorkSpacePage() {
     try {
       const res = await client.patch(`/workspaces/${workspace.id}/tasks/${card.id}/restore`);
       const restored: CardItem = {
-        id: res.data.taskId,
-        title: res.data.title,
-        desc: res.data.description ?? "",
-        dueDate: res.data.dueDate ?? "",
+        id: res.data.data.taskId,
+        title: res.data.data.title,
+        desc: res.data.data.description ?? "",
+        dueDate: res.data.data.dueDate ?? "",
         comments: [],
       };
-      const col = STATUS_TO_COL[res.data.status] ?? "상태 없음";
+      const col = STATUS_TO_COL[res.data.data.status] ?? "상태 없음";
       setCards((prev) => ({ ...prev, [col]: [...(prev[col] ?? []), restored] }));
       setDeletedCards((prev) => prev.filter((c) => c.id !== card.id));
       setShowLanding(false);

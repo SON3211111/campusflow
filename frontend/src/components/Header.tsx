@@ -175,15 +175,14 @@ export default function Header({ workspaces = [], showSearch = true, onLogout }:
                   ) : (
                     <>
                       {kickNotis.map((n) => {
-                        const isJoinRequest = n.message.startsWith("JOIN_REQUEST|");
-                        if (isJoinRequest) {
-                          const parts = n.message.split("|");
-                          const requesterName = parts[2];
-                          const workspaceName = parts[4];
+                        let joinReq: { type?: string; requesterId?: string; requesterName?: string; workspaceId?: string; workspaceName?: string } | null = null;
+                        try { joinReq = JSON.parse(n.message); } catch {}
+                        const isJoinRequest = joinReq?.type === "JOIN_REQUEST";
+                        if (isJoinRequest && joinReq) {
                           return (
                             <div key={n.notificationId} className="noti-item">
                               <p className="noti-msg">
-                                👋 <strong>{requesterName}</strong>님이 <strong>{workspaceName}</strong> 워크스페이스에 참가하고 싶어합니다.
+                                👋 <strong>{joinReq.requesterName}</strong>님이 <strong>{joinReq.workspaceName}</strong> 워크스페이스에 참가하고 싶어합니다.
                               </p>
                               <div className="noti-actions">
                                 <button className="noti-reject-btn" onClick={async () => {
@@ -192,7 +191,7 @@ export default function Header({ workspaces = [], showSearch = true, onLogout }:
                                 }}>거절</button>
                                 <button className="noti-accept-btn" onClick={async () => {
                                   await client.post(`/workspaces/join-requests/${n.notificationId}/accept`);
-                                  addWorkspaceActivity(parts[3], `${parts[2]}가 ${parts[4]} 워크스페이스에 참가하였습니다.`);
+                                  if (joinReq!.workspaceId) addWorkspaceActivity(joinReq!.workspaceId, `${joinReq!.requesterName}가 ${joinReq!.workspaceName} 워크스페이스에 참가하였습니다.`);
                                   setKickNotis((prev) => prev.filter((x) => x.notificationId !== n.notificationId));
                                   setNotiOpen(false);
                                 }}>수락</button>

@@ -187,7 +187,7 @@ export default function AiTaskPage() {
     try {
       const params = new URLSearchParams({ title: origPrompt, description: origPrompt });
       const res = await client.post(`/ai/generate-tasks?${params}`, {}, { timeout: 120000 });
-      const data = res.data;
+      const data = res.data.data;
       const categoryMap = new Map<string, string[]>();
       (data.tasks ?? []).forEach((task: any) => {
         if (!categoryMap.has(task.category)) categoryMap.set(task.category, []);
@@ -215,7 +215,7 @@ export default function AiTaskPage() {
     try {
       const category = categories[task.categoryIdx]?.name ?? "";
       const res = await client.post("/ai/subdivide-task", { task: task.name, category }, { timeout: 60000 });
-      const subtasks: string[] = res.data.tasks ?? [];
+      const subtasks: string[] = res.data.data?.tasks ?? [];
       if (subtasks.length === 0) { alert("더 이상 분할 할 수 없습니다."); return; }
       const newTasks: Task[] = subtasks.map((t, i) => ({
         id: `${task.id}-sub${i}`,

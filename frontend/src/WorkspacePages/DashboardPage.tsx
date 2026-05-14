@@ -18,6 +18,7 @@ interface Task {
   description?: string;
   status: string;
   dueDate?: string;
+  assigneeId?: string;
 }
 
 const R = 35;
@@ -42,6 +43,7 @@ export default function DashboardPage() {
 
   const [donut, setDonut] = useState({ progress: 0, done: 0, hold: 0, notStarted: 0, todo: 0 });
   const [wsMembers, setWsMembers] = useState<{ userId: string; name: string }[]>([]);
+  const [memberStats, setMemberStats] = useState<Record<string, { done: number; progress: number; hold: number; total: number }>>({});
 
   useEffect(() => {
     if (workspace?.id) {
@@ -59,18 +61,27 @@ export default function DashboardPage() {
     }
     client.get(`/workspaces/${workspace.id}/tasks`)
       .then((res) => {
-        const tasks: Task[] = res.data ?? [];
+        const tasks: Task[] = res.data.data ?? [];
         const counts = { progress: 0, done: 0, hold: 0, notStarted: 0, todo: 0 };
-        
-        // 상태별 집계
+        const perMember: Record<string, { done: number; progress: number; hold: number; total: number }> = {};
+
         for (const t of tasks) {
           if (t.status === "DOING")       counts.progress++;
           else if (t.status === "DONE")   counts.done++;
           else if (t.status === "ISSUE")  counts.hold++;
           else if (t.status === "REVIEW") counts.notStarted++;
           else if (t.status === "TODO")   counts.todo++;
+
+          if (t.assigneeId) {
+            if (!perMember[t.assigneeId]) perMember[t.assigneeId] = { done: 0, progress: 0, hold: 0, total: 0 };
+            perMember[t.assigneeId].total++;
+            if (t.status === "DONE")        perMember[t.assigneeId].done++;
+            else if (t.status === "DOING")  perMember[t.assigneeId].progress++;
+            else if (t.status === "ISSUE")  perMember[t.assigneeId].hold++;
+          }
         }
         setDonut(counts);
+        setMemberStats(perMember);
         
         // 마감 임박 작업 필터링 (오늘 기준 7일 이내)
         const today = new Date();
@@ -142,21 +153,18 @@ export default function DashboardPage() {
   })();
 
   const TOTAL = total || 1;
-  const currentUserId = localStorage.getItem("userId") ?? "";
   const GRAPH = wsMembers.length > 0
-    ? wsMembers.map((m) => ({
-        name: m.name,
-        value: m.userId === currentUserId && TOTAL > 0 ? Math.round((donut.done / TOTAL) * 100) : 0,
-      }))
+    ? wsMembers.map((m) => {
+        const s = memberStats[m.userId] ?? { done: 0, progress: 0, hold: 0, total: 0 };
+        return { name: m.name, value: s.total > 0 ? Math.round((s.done / s.total) * 100) : 0 };
+      })
     : [{ name: userName, value: TOTAL > 0 ? Math.round((donut.done / TOTAL) * 100) : 0 }];
 
   const TEAM_BARS = wsMembers.length > 0
-    ? wsMembers.map((m) => ({
-        name: m.name,
-        done:     m.userId === currentUserId ? donut.done     : 0,
-        progress: m.userId === currentUserId ? donut.progress : 0,
-        hold:     m.userId === currentUserId ? donut.hold     : 0,
-      }))
+    ? wsMembers.map((m) => {
+        const s = memberStats[m.userId] ?? { done: 0, progress: 0, hold: 0, total: 0 };
+        return { name: m.name, done: s.done, progress: s.progress, hold: s.hold };
+      })
     : [{ name: userName, done: donut.done, progress: donut.progress, hold: donut.hold }];
 
   const doneDash       = arc(donut.done,       0,                                                                    TOTAL);

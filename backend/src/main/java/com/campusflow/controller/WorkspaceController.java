@@ -148,7 +148,13 @@ public class WorkspaceController {
 
         // 오너에게 참여 요청 알림 전송
         String ownerId = workspace.getOwner().getUserId();
-        String message = "JOIN_REQUEST|" + userId + "|" + requester.getName() + "|" + workspaceId + "|" + workspace.getName();
+        String message = String.format(
+            "{\"type\":\"JOIN_REQUEST\",\"requesterId\":\"%s\",\"requesterName\":\"%s\",\"workspaceId\":\"%s\",\"workspaceName\":\"%s\"}",
+            userId.replace("\"", "\\\""),
+            requester.getName().replace("\"", "\\\""),
+            workspaceId.replace("\"", "\\\""),
+            workspace.getName().replace("\"", "\\\"")
+        );
 
         Notification noti = Notification.builder()
                 .userId(ownerId)
@@ -165,9 +171,8 @@ public class WorkspaceController {
         Notification noti = notificationRepository.findById(notificationId)
                 .orElseThrow(() -> new IllegalArgumentException("알림을 찾을 수 없습니다."));
 
-        String[] parts = noti.getMessage().split("\\|");
-        String requesterId = parts[1];
-        String workspaceId = parts[3];
+        String requesterId = parseJsonField(noti.getMessage(), "requesterId");
+        String workspaceId = parseJsonField(noti.getMessage(), "workspaceId");
 
         workspaceService.joinWorkspace(workspaceId, requesterId);
 
@@ -185,14 +190,22 @@ public class WorkspaceController {
         return ResponseEntity.ok(ApiResponse.success(200, "참여 요청 수락 완료", null));
     }
 
+    private String parseJsonField(String json, String field) {
+        String key = "\"" + field + "\":\"";
+        int start = json.indexOf(key);
+        if (start < 0) return "";
+        start += key.length();
+        int end = json.indexOf("\"", start);
+        return end < 0 ? "" : json.substring(start, end).replace("\\\"", "\"");
+    }
+
     @Operation(summary = "참여 요청 거절")
     @PostMapping("/join-requests/{notificationId}/reject")
     public ResponseEntity<ApiResponse<?>> rejectJoinRequest(@PathVariable String notificationId) {
         Notification noti = notificationRepository.findById(notificationId)
                 .orElseThrow(() -> new IllegalArgumentException("알림을 찾을 수 없습니다."));
 
-        String[] parts = noti.getMessage().split("\\|");
-        String requesterId = parts[1];
+        String requesterId = parseJsonField(noti.getMessage(), "requesterId");
 
         // 요청자에게 거절 알림
         Notification rejectNoti = Notification.builder()

@@ -34,6 +34,7 @@ const Login: React.FC = () => {
       localStorage.setItem('accessToken', data.accessToken);
       localStorage.setItem('userId', String(data.userId));
       localStorage.setItem('userName', data.name);
+      localStorage.setItem('role', String(data.role));
       navigate('/workspace');
     } catch (err: any) {
       const status = err.response?.status;

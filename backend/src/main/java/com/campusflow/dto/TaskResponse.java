@@ -14,7 +14,9 @@ public record TaskResponse(
         String status,
         String dueDate,
         boolean deleted,
-        String deletedAt
+        String deletedAt,
+        String assigneeId,
+        String assigneeName
 ) {
     public static TaskResponse from(Task task) {
         return new TaskResponse(
@@ -24,7 +26,9 @@ public record TaskResponse(
                 task.getStatus().name(),
                 task.getDueDate() != null ? task.getDueDate().toString() : null,
                 task.isDeleted(),
-                task.getDeletedAt() != null ? task.getDeletedAt().toString() : null
+                task.getDeletedAt() != null ? task.getDeletedAt().toString() : null,
+                task.getAssignee() != null ? task.getAssignee().getUserId() : null,
+                task.getAssignee() != null ? task.getAssignee().getName() : null
         );
     }
 }
