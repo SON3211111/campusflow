@@ -79,6 +79,13 @@ services:
     restart: unless-stopped
     profiles:
       - ai
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: all
+              capabilities: [gpu]
 
   ai:
     build:
