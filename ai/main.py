@@ -12,13 +12,12 @@ app = FastAPI()
 
 # Ollama 서버 주소 및 사용할 AI 모델 환경변수로 관리
 OLLAMA_URL = os.getenv("OLLAMA_URL", "http://ollama:11434")
-OLLAMA_MODEL = os.getenv("OLLAMA_MODEL", "gemma4:e4b")
+OLLAMA_MODEL = os.getenv("OLLAMA_MODEL", "qwen2.5:14b")
 OLLAMA_MODELS = [m.strip() for m in os.getenv("OLLAMA_MODELS", OLLAMA_MODEL).split(",")]
 
 
 # /generate-tasks 용 요청 구조 (프로젝트 제목 + 설명)
 class TaskGenerateRequest(BaseModel):
-    title: str
     description: str
     model: str | None = None
 
@@ -78,32 +77,35 @@ Name: {task}
 Category: {category}
 
 Rules:
-- Split into EXACTLY 2 subtasks.
-- Each subtask must be meaningfully different from the other (not just numbered variants of the same action).
-- If the task cannot be meaningfully split, return an empty tasks array.
-- Write task names in Korean. Technical terms (API, UI/UX, etc.) may stay in English.
-- Keep each subtask name concise (under 20 characters).
+- Split into EXACTLY 2 subtasks.                                                                                               # 반드시 2개
+- Each subtask must be meaningfully different from the other (not just numbered variants of the same action).                  # 비슷한 거 2개 금지
+- One subtask should focus on preparation or planning (e.g. research, design, setup), the other on execution or implementation. # 준비 하나, 실행 하나
+- If the task cannot be meaningfully split, return an empty tasks array.                                                       # 분해 불가 시 빈 배열
+- Write task names in Korean. Technical terms (API, UI/UX, etc.) may stay in English.                                         # 한국어 출력
+- Keep each subtask name concise (under 20 characters).                                                                       # 20자 이하
 
 Respond with ONLY the following JSON and nothing else:
 {{"tasks": ["subtask1", "subtask2"]}}"""
 
 
-def _build_generate_prompt(title: str, description: str) -> str:
+def _build_generate_prompt(description: str) -> str:
     # AI에게 보낼 업무 분해 프롬프트 생성
     # 영어로 작성한 이유: 오픈소스 모델은 영어 지시를 더 정확하게 따름
     return f"""You are a project task breakdown AI. Analyze the project below and break it down into concrete tasks.
 
 [Project]
-Title: {title}
 Description: {description}
 
 Rules:
-- Break the project into 4 to 8 concrete, actionable tasks.
-- Each task should be independent enough for one person to pick up and work on.
-- Set priority to HIGH, MEDIUM, or LOW based on importance and urgency.
-- Estimate hours as a positive integer (realistic working hours for one person).
-- Do NOT assign tasks to anyone. Tasks will be claimed by team members themselves.
-- Set category to ONE of: 기획, 디자인, 프론트, 백엔드, 테스트
+- Break the project into 4 to 8 concrete, actionable tasks.                                                                                                              # 태스크 4~8개
+- Each task should be independent enough for one person to pick up and work on.                                                                                           # 1인 단독 수행 가능하게
+- Set priority to HIGH, MEDIUM, or LOW based on importance and urgency.                                                                                                   # 중요도/긴급도 기준 우선순위
+- Estimate hours as a positive integer between 1 and 16 (realistic working hours for one person).                                                                         # 시간 추정 1~16시간
+- Do NOT assign tasks to anyone. Tasks will be claimed by team members themselves.                                                                                        # 담당자 지정 금지
+- Infer 3 to 5 category names from the project domain (e.g. 기획, 리서치, 설계, 제작, 검토). Do NOT use fixed categories. Choose words that naturally fit the project type. # 카테고리 자동 추론
+- Write all task titles and descriptions in Korean. Technical terms (API, UI/UX, DB, etc.) may stay in English.                                                           # 한국어 출력
+- Keep each task title concise (under 20 characters).                                                                                                                     # title 20자 이하
+- Keep each task description concise (under 60 characters).                                                                                                               # description 60자 이하
 
 Respond with ONLY the following JSON and nothing else:
 {{
@@ -111,7 +113,7 @@ Respond with ONLY the following JSON and nothing else:
     {{
       "title": "task title",
       "description": "what needs to be done",
-      "category": "백엔드",
+      "category": "카테고리명",
       "priority": "HIGH",
       "estimated_hours": 4
     }}
@@ -190,7 +192,7 @@ async def generate_tasks(req: TaskGenerateRequest):
             detail=f"지원하지 않는 모델: {model}. 사용 가능: {OLLAMA_MODELS}",
         )
 
-    prompt = _build_generate_prompt(req.title, req.description)
+    prompt = _build_generate_prompt(req.description)
 
     async with httpx.AsyncClient(timeout=300.0) as client:
         try:
