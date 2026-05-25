@@ -187,7 +187,7 @@ export default function AiTaskPage() {
     if (!origPrompt) { alert("프롬프트 정보가 없습니다. 워크스페이스에서 다시 시작해주세요."); return; }
     setResetLoading(true);
     try {
-      const params = new URLSearchParams({ title: origPrompt, description: origPrompt });
+      const params = new URLSearchParams({ description: origPrompt });
       const res = await client.post(`/ai/generate-tasks?${params}`, {}, { timeout: 120000 });
       const data = res.data.data;
       const categoryMap = new Map<string, string[]>();

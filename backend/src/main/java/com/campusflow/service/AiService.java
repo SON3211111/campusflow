@@ -31,12 +31,12 @@ public class AiService {
         this.restTemplate = new RestTemplate(factory);
     }
 
-    public TaskListDto generateTasks(String title, String description) {
+    public TaskListDto generateTasks(String description) {
         try {
             HttpHeaders headers = new HttpHeaders();
             headers.setContentType(MediaType.APPLICATION_JSON);
             HttpEntity<Map<String, String>> request = new HttpEntity<>(
-                    Map.of("title", title, "description", description),
+                    Map.of("description", description),
                     headers
             );
 
