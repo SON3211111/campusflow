@@ -91,21 +91,25 @@ Respond with ONLY the following JSON and nothing else:
 def _build_generate_prompt(description: str) -> str:
     # AI에게 보낼 업무 분해 프롬프트 생성
     # 영어로 작성한 이유: 오픈소스 모델은 영어 지시를 더 정확하게 따름
-    return f"""You are a project task breakdown AI. Analyze the project below and break it down into concrete tasks.
+    return f"""You are a project task breakdown AI. Analyze the project below and break it down into specific, implementation-level tasks.
 
 [Project]
 Description: {description}
 
 Rules:
-- Break the project into 4 to 8 concrete, actionable tasks.                                                                                                              # 태스크 4~8개
-- Each task should be independent enough for one person to pick up and work on.                                                                                           # 1인 단독 수행 가능하게
-- Set priority to HIGH, MEDIUM, or LOW based on importance and urgency.                                                                                                   # 중요도/긴급도 기준 우선순위
-- Estimate hours as a positive integer between 1 and 16 (realistic working hours for one person).                                                                         # 시간 추정 1~16시간
-- Do NOT assign tasks to anyone. Tasks will be claimed by team members themselves.                                                                                        # 담당자 지정 금지
-- Infer 3 to 5 category names from the project domain (e.g. 기획, 리서치, 설계, 제작, 검토). Do NOT use fixed categories. Choose words that naturally fit the project type. # 카테고리 자동 추론
-- Write all task titles and descriptions in Korean. Technical terms (API, UI/UX, DB, etc.) may stay in English.                                                           # 한국어 출력
-- Keep each task title concise (under 20 characters).                                                                                                                     # title 20자 이하
-- Keep each task description concise (under 60 characters).                                                                                                               # description 60자 이하
+- Generate between 8 and 15 tasks. NEVER generate fewer than 8.                                                                                                                           # 태스크 최소 8개, 최대 15개
+- Each task must name a SPECIFIC feature, screen, or component — never a broad area.                                                                                                      # 구체적 기능 단위 필수
+- BAD (too broad): "API 개발", "DB 설계", "프론트엔드 구현", "백엔드 작업"                                                                                                                 # 이런 넓은 표현 금지
+- GOOD (specific): "로그인/회원가입 API 구현", "칸반 카드 드래그앤드롭 구현", "JWT 인증 미들웨어 작성", "사용자 테이블 ERD 설계"                                                              # 이 정도 구체성 필요
+- Cover different technical layers of the project (UI, API, DB, auth, testing, etc.). Spread tasks evenly — do NOT cluster everything in one layer.                                       # UI/API/DB 등 레이어 고루 배분
+- Each task should be independent enough for one person to pick up and complete.                                                                                                           # 1인 단독 수행 가능
+- Set priority to HIGH, MEDIUM, or LOW based on importance and urgency.                                                                                                                    # 중요도/긴급도 기준 우선순위
+- Estimate hours as a positive integer between 1 and 16 (realistic working hours for one person).                                                                                          # 시간 추정 1~16시간
+- Do NOT assign tasks to anyone.                                                                                                                                                            # 담당자 지정 금지
+- Infer 4 to 6 category names from the project domain (e.g. 기획, 프론트엔드, 백엔드, DB, 테스트, 배포). Do NOT use vague names like "제작" or "작업".                                      # 카테고리 4~6개, 구체적 이름
+- Write all task titles and descriptions in Korean. Technical terms (API, UI/UX, DB, JWT, REST, etc.) may stay in English.                                                                 # 한국어 출력
+- Keep each task title concise (under 20 characters).                                                                                                                                      # title 20자 이하
+- Keep each task description concise (under 60 characters).                                                                                                                                # description 60자 이하
 
 Respond with ONLY the following JSON and nothing else:
 {{
@@ -182,7 +186,7 @@ async def subdivide_task(req: SubdivideRequest):
 
 
 # 프로젝트 정보 → 업무 카드 목록 반환 (장바구니 핵심 기능)
-# 팀장이 제목+설명 입력 → AI가 4~8개 업무로 분해 → 팀원이 드래그해서 가져감
+# 팀장이 제목+설명 입력 → AI가 8~15개 업무로 분해 → 팀원이 드래그해서 가져감
 @app.post("/generate-tasks", response_model=TaskGenerateResponse)
 async def generate_tasks(req: TaskGenerateRequest):
     model = req.model or OLLAMA_MODEL
@@ -202,8 +206,8 @@ async def generate_tasks(req: TaskGenerateRequest):
                     "model": model,
                     "prompt": prompt,
                     "stream": False,
-                    "options": {"num_predict": 2500, "temperature": 0.3},
-                    # num_predict: 카드 여러 개 생성에 충분한 토큰 수
+                    "options": {"num_predict": 4000, "temperature": 0.3},
+                    # num_predict: 8~15개 태스크 생성에 충분한 토큰 수 (2500→4000)
                     # temperature: 낮을수록 일관된 JSON 출력
                 },
             )
