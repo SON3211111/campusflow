@@ -42,14 +42,14 @@ public class Task {
     private User assignee;
 
     @Builder.Default
-    @Column(name = "is_ai_generated")
+    @Column(name = "is_ai_generated", nullable = false)
     private boolean isAiGenerated = false;
 
     @Column(name = "due_date")
     private LocalDate dueDate;
 
     @Builder.Default
-    @Column(name = "is_deleted")
+    @Column(name = "is_deleted", nullable = false)
     private boolean deleted = false;
 
     @Column(name = "deleted_at")
