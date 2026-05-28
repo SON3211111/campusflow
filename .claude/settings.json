@@ -1,0 +1,15 @@
+{
+  "hooks": {
+    "Stop": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "echo '{\"systemMessage\": \"[CLAUDE.md 업데이트 체크] 이번 작업에서 변경된 내용이 있다면 해당 CLAUDE.md를 업데이트했는지 확인하세요: 완료된 기능은 미완성 목록에서 상태 변경, 새 컴포넌트/API는 목록에 추가\"}'",
+            "statusMessage": "CLAUDE.md 업데이트 확인 중..."
+          }
+        ]
+      }
+    ]
+  }
+}
