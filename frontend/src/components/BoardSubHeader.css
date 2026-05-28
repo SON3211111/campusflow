@@ -10,6 +10,8 @@
   border-radius: 12px 12px 0 0;
   color: #fff;
   margin-bottom: 0;
+  position: relative;
+  z-index: 100;
 }
 
 .bsh-left {

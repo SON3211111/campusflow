@@ -13,6 +13,7 @@ import AiTaskPage from './WorkspacePages/AiTaskPage';
 import WorkSpacePage from './WorkspacePages/WorkSpacePage';
 import DashboardPage from './WorkspacePages/DashboardPage';
 import CalendarPage from './WorkspacePages/CalendarPage';
+import NotificationPage from './WorkspacePages/NotificationPage';
 import BoardPage from './ListPages/BoardPage';
 import MemberPage from './ListPages/MemberPage';
 import SettingPage from './ListPages/SettingPage';
@@ -43,6 +44,7 @@ function App() {
         <Route path="/workspace-board" element={<PrivateRoute><WorkSpacePage /></PrivateRoute>} />
         <Route path="/dashboard" element={<PrivateRoute><DashboardPage /></PrivateRoute>} />
         <Route path="/calendar" element={<PrivateRoute><CalendarPage /></PrivateRoute>} />
+        <Route path="/notification" element={<PrivateRoute><NotificationPage /></PrivateRoute>} />
         <Route path="/join" element={<PrivateRoute><JoinPage /></PrivateRoute>} />
       </Routes>
     </Router>

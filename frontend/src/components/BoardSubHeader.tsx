@@ -18,7 +18,7 @@ interface Props {
   onAiTaskClick?: () => void;
 }
 
-const MENU_ITEMS = ["Board", "AI Task", "Dash Board", "Calender", "Notification", "Task Board", "Setting"];
+const MENU_ITEMS = ["Board", "AI Task", "Dash Board", "Calender", "Notification", "Setting"];
 
 const AVATAR_COLORS = ["#a89cf8", "#6ab4f8", "#7de89a", "#f8b4b4", "#f8d08a"];
 
@@ -63,6 +63,7 @@ export default function BoardSubHeader({ wsName = "워크스페이스", memberCo
                     if (item === "Board") navigate("/workspace-board", { state: { workspace, workspaces } });
                     if (item === "AI Task") { if (onAiTaskClick) onAiTaskClick(); else navigate("/ai-task", { state: { workspace, workspaces } }); }
                     if (item === "Calender") navigate("/calendar", { state: { workspace, workspaces } });
+                    if (item === "Notification") navigate("/notification", { state: { workspace, workspaces } });
                   }}
                 >
                   {item}
