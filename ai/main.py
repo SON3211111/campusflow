@@ -89,27 +89,33 @@ Respond with ONLY the following JSON and nothing else:
 
 
 def _build_generate_prompt(description: str) -> str:
-    # AI에게 보낼 업무 분해 프롬프트 생성
     # 영어로 작성한 이유: 오픈소스 모델은 영어 지시를 더 정확하게 따름
-    return f"""You are a project task breakdown AI. Analyze the project below and break it down into specific, implementation-level tasks.
+    return f"""You are a project task breakdown AI. Analyze the project below and break it down into specific, actionable tasks.
 
 [Project]
 Description: {description}
 
 Rules:
-- Generate between 8 and 15 tasks. NEVER generate fewer than 8.                                                                                                                           # 태스크 최소 8개, 최대 15개
-- Each task must name a SPECIFIC feature, screen, or component — never a broad area.                                                                                                      # 구체적 기능 단위 필수
-- BAD (too broad): "API 개발", "DB 설계", "프론트엔드 구현", "백엔드 작업"                                                                                                                 # 이런 넓은 표현 금지
-- GOOD (specific): "로그인/회원가입 API 구현", "칸반 카드 드래그앤드롭 구현", "JWT 인증 미들웨어 작성", "사용자 테이블 ERD 설계"                                                              # 이 정도 구체성 필요
-- Cover different technical layers of the project (UI, API, DB, auth, testing, etc.). Spread tasks evenly — do NOT cluster everything in one layer.                                       # UI/API/DB 등 레이어 고루 배분
-- Each task should be independent enough for one person to pick up and complete.                                                                                                           # 1인 단독 수행 가능
-- Set priority to HIGH, MEDIUM, or LOW based on importance and urgency.                                                                                                                    # 중요도/긴급도 기준 우선순위
-- Estimate hours as a positive integer between 1 and 16 (realistic working hours for one person).                                                                                          # 시간 추정 1~16시간
-- Do NOT assign tasks to anyone.                                                                                                                                                            # 담당자 지정 금지
-- Infer 4 to 6 category names from the project domain (e.g. 기획, 프론트엔드, 백엔드, DB, 테스트, 배포). Do NOT use vague names like "제작" or "작업".                                      # 카테고리 4~6개, 구체적 이름
-- Write all task titles and descriptions in Korean. Technical terms (API, UI/UX, DB, JWT, REST, etc.) may stay in English.                                                                 # 한국어 출력
-- Keep each task title concise (under 20 characters).                                                                                                                                      # title 20자 이하
-- Keep each task description concise (under 60 characters).                                                                                                                                # description 60자 이하
+- First, identify the domain of the project from the description (e.g. software development, marketing, event planning, academic research, design, business, etc.).
+- Generate between 8 and 15 tasks. NEVER generate fewer than 8.                                                          # 태스크 최소 8개, 최대 15개
+- Each task must name a SPECIFIC deliverable or action — never a broad area.                                              # 구체적 산출물/행동 단위 필수
+- BAD: tasks that describe a vague category without specifying what exactly needs to be done.                              # 막연한 표현 금지
+- GOOD: tasks that name a single, clear output that one person can pick up and complete independently.                    # 1인이 독립 수행 가능한 명확한 결과물
+- Domain examples (adapt to the actual project domain — do NOT force software terms onto non-software projects):
+    - Software  → BAD "API 개발"        GOOD "로그인/회원가입 REST API 구현"
+    - Marketing → BAD "홍보 작업"       GOOD "인스타그램 홍보 카드뉴스 제작"
+    - Event     → BAD "행사 준비"       GOOD "행사장 대관 및 장비 대여 협의"
+    - Research  → BAD "자료 수집"       GOOD "선행 연구 문헌 리뷰 및 요약 정리"
+- Cover different aspects of the project appropriate to its domain. Spread tasks evenly across areas.                     # 도메인에 맞는 영역 고루 배분
+- Do NOT generate duplicate or near-duplicate tasks. Each task must have a clearly distinct purpose — if two tasks sound similar, merge them into one or drop the weaker one.  # 중복/유사 태스크 금지
+- Order tasks in logical execution sequence: planning and research first, then design/setup, then implementation, then verification/testing, then wrap-up or deployment last.        # 논리적 실행 순서로 정렬
+- Set priority to HIGH, MEDIUM, or LOW. Assign HIGH to at most 30% of tasks.                                             # HIGH는 전체의 30% 이하
+- Estimate hours as a positive integer between 1 and 24 (realistic working hours for one person).                         # 시간 추정 1~24시간
+- Do NOT assign tasks to anyone.                                                                                          # 담당자 지정 금지
+- Infer 4 to 6 category names that fit the project domain. Do NOT use vague names like "작업" or "기타".                  # 카테고리 4~6개, 도메인에 맞는 구체적 이름
+- Write all task titles and descriptions in Korean. Technical terms may stay in English.                                   # 한국어 출력
+- Keep each task title concise (under 25 characters).                                                                     # title 25자 이하
+- Keep each task description concise (under 60 characters).                                                               # description 60자 이하
 
 Respond with ONLY the following JSON and nothing else:
 {{

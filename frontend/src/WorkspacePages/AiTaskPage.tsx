@@ -196,7 +196,7 @@ export default function AiTaskPage() {
         categoryMap.get(task.category)!.push(task.title);
       });
       const json = {
-        title: origPrompt.slice(0, 15),
+        title: origPrompt.slice(0, 30),
         categories: Array.from(categoryMap.entries()).map(([name, tasks], i) => ({ id: `c${i + 1}`, name, tasks })),
       };
       setTitle(json.title);

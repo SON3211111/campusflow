@@ -54,7 +54,7 @@ function convertToBreakdownResult(data: any, prompt: string): BreakdownResult {
     categoryMap.get(task.category)!.push(task.title);
   });
   return {
-    title: prompt.slice(0, 15),
+    title: prompt.slice(0, 30),
     categories: Array.from(categoryMap.entries()).map(([name, tasks], i) => ({
       id: `c${i + 1}`,
       name,
