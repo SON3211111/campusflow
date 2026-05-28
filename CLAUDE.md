@@ -82,6 +82,34 @@ setMessages(prev => [...prev, newMsg])
 ```
 localStorage는 캐시/폴백 용도로만 사용할 것. 유일한 저장소로 쓰지 말 것.
 
+### Git 브랜치 규칙
+
+**브랜치 네이밍: `feat/son-stage번호-기능명`**
+```
+feat/son-stage1-task-pool       ← 1단계 기능
+feat/son-stage1-my-task
+feat/son-stage2-comments        ← 2단계 기능
+feat/son-stage2-activity-log
+feat/son-stage3-websocket       ← 3단계 기능
+```
+- 이니셜 `son` 으로 팀원 브랜치와 즉시 구분
+
+**머지 규칙 (반드시 준수):**
+- `feat/son-*` → `develop` 에만 머지
+- `dev` 에는 절대 직접 머지 금지
+- 브랜치 생성 시 항상 `develop` 기준으로 생성
+
+```bash
+# 브랜치 생성 방법
+git checkout develop
+git checkout -b feat/son-stage1-task-pool
+
+# 작업 완료 후 머지
+git checkout develop
+git merge feat/son-stage1-task-pool
+git push origin develop
+```
+
 ### Git 커밋 규칙
 ```
 feat(범위): 새 기능 추가
@@ -89,7 +117,7 @@ fix(범위): 버그 수정
 refactor(범위): 기능 변경 없는 코드 개선
 style(범위): UI/CSS 변경
 ```
-예시: `feat(dashboard): 팀원별 기여도 실제 데이터 연결`
+예시: `feat(task-pool): Task Pool 화면 + Picking UI 구현`
 
 ### 발표 시연 데이터 보호
 - 발표용 계정/워크스페이스는 개발 테스트와 분리하여 유지
