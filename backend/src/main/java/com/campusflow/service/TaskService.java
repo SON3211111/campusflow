@@ -112,6 +112,14 @@ public class TaskService {
         return TaskResponse.from(task);
     }
 
+    /** 시작일 업데이트 (yyyy-MM-dd 형식 문자열) */
+    @Transactional
+    public void updateStartDate(String taskId, String startDate) {
+        Task task = taskRepository.findById(taskId)
+                .orElseThrow(() -> new IllegalArgumentException("태스크를 찾을 수 없습니다. ID: " + taskId));
+        task.setStartDate(LocalDate.parse(startDate));
+    }
+
     /** 마감일 업데이트 (yyyy-MM-dd 형식 문자열) */
     @Transactional
     public void updateDueDate(String taskId, String dueDate) {

@@ -64,6 +64,14 @@ public class WorkspaceTaskController {
         return ResponseEntity.ok(ApiResponse.success(200, "복원 완료", restored));
     }
 
+    @PatchMapping("/{taskId}/start-date")
+    public ResponseEntity<ApiResponse<Void>> updateStartDate(
+            @PathVariable String taskId,
+            @RequestParam String startDate) {
+        taskService.updateStartDate(taskId, startDate);
+        return ResponseEntity.ok(ApiResponse.success(200, "시작일 수정 완료"));
+    }
+
     @PatchMapping("/{taskId}/due-date")
     public ResponseEntity<ApiResponse<Void>> updateDueDate(
             @PathVariable String taskId,

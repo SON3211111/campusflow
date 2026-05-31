@@ -7,13 +7,92 @@
 
 .dbp-body {
   flex: 1;
+  display: flex;
+  flex-direction: row;
+  gap: 12px;
+  padding: 12px;
+  overflow: hidden;
+}
+
+.dbp-main {
+  flex: 1;
   overflow-y: auto;
-  padding: 20px 24px 100px;
+  padding: 8px 12px 100px;
   display: flex;
   flex-direction: column;
   gap: 20px;
-  background: #f0f2f8;
 }
+
+/* ===== 패널 슬라이드 ===== */
+.panel-visible {
+  opacity: 1;
+  max-width: 300px;
+  min-width: unset;
+  overflow: hidden;
+  transition: max-width 0.3s ease, opacity 0.3s ease;
+}
+.panel-hidden {
+  opacity: 0;
+  max-width: 0 !important;
+  min-width: 0 !important;
+  padding: 0 !important;
+  margin: 0 !important;
+  overflow: hidden;
+  transition: max-width 0.3s ease, opacity 0.3s ease;
+}
+.wsp-community {
+  width: 220px; min-width: 220px;
+  background: rgba(255,255,255,0.92);
+  border-radius: 14px; padding: 16px 14px;
+  display: flex; flex-direction: column; gap: 6px; overflow-y: auto;
+}
+.wsp-planner {
+  width: 260px; min-width: 260px;
+  background: rgba(255,255,255,0.92);
+  border-radius: 14px; padding: 16px 14px;
+  display: flex; flex-direction: column; gap: 6px; overflow-y: auto;
+}
+.wsp-panel-title { font-size: 16px; font-weight: 700; color: #222; margin-bottom: 8px; display: flex; align-items: center; gap: 6px; }
+.wsp-panel-icon  { font-size: 18px; }
+.wsp-search { width: 100%; height: 30px; border: 1px solid #e0e0e0; border-radius: 8px; padding: 0 10px; font-size: 12px; outline: none; box-sizing: border-box; margin-bottom: 4px; }
+.wsp-channel-label { font-size: 11px; color: #888; font-weight: 600; margin-top: 8px; }
+.wsp-channel-item { font-size: 13px; color: #333; padding: 5px 6px; border-radius: 6px; cursor: pointer; display: flex; align-items: center; justify-content: space-between; }
+.wsp-channel-item:hover { background: #f0f0f0; }
+.wsp-channel-dot { width: 7px; height: 7px; border-radius: 50%; background: #e53e3e; }
+.wsp-msg-list { display: flex; flex-direction: column; gap: 8px; flex: 1; overflow-y: auto; }
+.wsp-msg-empty { font-size: 12px; color: #aaa; text-align: center; padding: 8px 0; }
+.wsp-msg-item { padding: 6px 0; border-bottom: 1px solid #f0f0f0; }
+.wsp-msg-header { display: flex; justify-content: space-between; margin-bottom: 2px; }
+.wsp-msg-name { font-size: 12px; font-weight: 600; color: #4f7cff; }
+.wsp-msg-time  { font-size: 10px; color: #aaa; }
+.wsp-msg-text  { font-size: 12px; color: #666; }
+.wsp-msg-form  { display: flex; flex-direction: column; gap: 6px; margin-top: auto; }
+.wsp-msg-input { width: 100%; height: 70px; border: 1px solid #ddd; border-radius: 8px; padding: 8px; font-size: 12px; resize: none; outline: none; box-sizing: border-box; font-family: inherit; }
+.wsp-msg-input:focus { border-color: #4f7cff; }
+.wsp-msg-actions { display: flex; gap: 6px; }
+.wsp-msg-send   { background: #4f7cff; color: #fff; border: none; border-radius: 6px; padding: 5px 14px; font-size: 12px; cursor: pointer; }
+.wsp-msg-cancel { background: none; border: none; font-size: 12px; color: #888; cursor: pointer; }
+.wsp-new-msg-btn { margin-top: auto; background: none; border: 1px solid #ddd; border-radius: 8px; padding: 7px; font-size: 12px; color: #555; cursor: pointer; text-align: center; }
+.wsp-new-msg-btn:hover { background: #f4f4f4; }
+.wsp-cal-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px; }
+.wsp-cal-nav    { background: none; border: none; font-size: 18px; color: #666; cursor: pointer; padding: 0 6px; }
+.wsp-cal-title  { font-size: 13px; font-weight: 600; color: #333; }
+.wsp-cal-grid   { display: grid; grid-template-columns: repeat(7, 1fr); gap: 2px; }
+.wsp-cal-day-label { text-align: center; font-size: 10px; color: #999; font-weight: 600; padding: 2px 0; }
+.wsp-cal-day-label.sun { color: #f56565; }
+.wsp-cal-day-label.sat { color: #4f7cff; }
+.wsp-cal-day { text-align: center; font-size: 11px; color: #444; padding: 2px 1px; border-radius: 6px; cursor: pointer; display: flex; flex-direction: column; align-items: center; gap: 2px; }
+.wsp-cal-day.empty { visibility: hidden; }
+.wsp-cal-day.today { background: #4f7cff; color: #fff; font-weight: 700; }
+.planner-dots { display: flex; justify-content: center; gap: 2px; }
+.planner-dot { width: 5px; height: 3px; border-radius: 1.5px; flex-shrink: 0; }
+.wsp-upcoming-label { font-size: 12px; font-weight: 600; color: #555; margin-top: 10px; margin-bottom: 8px; display: flex; align-items: center; gap: 5px; }
+.wsp-upcoming-count { font-size: 11px; color: #888; font-weight: 500; }
+.wsp-upcoming-empty { font-size: 12px; color: #aaa; }
+.wsp-upcoming-item  { background: #fff; border-radius: 8px; border-left: 4px solid #aaa; padding: 9px 10px; box-shadow: 0 1px 4px rgba(0,0,0,0.07); margin-bottom: 6px; }
+.wsp-upcoming-info  { display: flex; flex-direction: column; gap: 4px; }
+.wsp-upcoming-name  { font-size: 12px; font-weight: 600; color: #222; }
+.wsp-upcoming-date  { font-size: 11px; color: #888; }
 
 /* ===== 카드 공통 ===== */
 .dbp-card {

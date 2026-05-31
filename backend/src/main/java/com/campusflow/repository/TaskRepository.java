@@ -36,4 +36,9 @@ public interface TaskRepository extends JpaRepository<Task, String> {
     @Modifying
     @Query("UPDATE Task t SET t.parentTask = null WHERE t.workspace.workspaceId = :workspaceId")
     void updateParentTaskNullByWorkspace(@Param("workspaceId") String workspaceId);
+
+    // createdAt이 null인 기존 태스크에 현재 시각 세팅
+    @Modifying
+    @Query("UPDATE Task t SET t.createdAt = :now WHERE t.createdAt IS NULL")
+    int backfillCreatedAt(@Param("now") java.time.LocalDateTime now);
 }

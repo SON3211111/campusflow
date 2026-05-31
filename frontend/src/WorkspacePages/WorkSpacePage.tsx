@@ -5,7 +5,7 @@
  * - 우측: 칸반 보드(드래그앤드롭, 태스크 CRUD, 소프트 삭제/복원)
  * 마우스 클릭+드래그로 보드 좌우 패닝 지원
  */
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useMemo } from "react";
 import type { MouseEvent } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import Header from "../components/Header";
@@ -27,12 +27,19 @@ interface CardItem {
   id: string;
   title: string;
   desc: string;
+  startDate?: string;
   dueDate?: string;
   comments: { user: string; text: string; time: string }[];
 }
 
 const DAYS = ["일", "월", "화", "수", "목", "금", "토"];
+const MONTHS_KO = ["1월","2월","3월","4월","5월","6월","7월","8월","9월","10월","11월","12월"];
 const TODAY = new Date();
+
+const STATUS_COLOR_MAP: Record<string, string> = {
+  "상태 없음": "#aaa", "시작하지 않음": "#888",
+  "진행 중": "#4f7cff", "보류 중": "#f59e0b", "완료": "#22c55e",
+};
 
 const COL_TO_STATUS: Record<string, string> = {
   "상태 없음": "TODO",
@@ -169,7 +176,7 @@ export default function WorkSpacePage() {
         for (const t of (res.data.data ?? [])) {
           const col = STATUS_TO_COL[t.status] ?? "상태 없음";
           if (newCards[col]) {
-            newCards[col].push({ id: t.taskId, title: t.title, desc: t.description ?? "", dueDate: t.dueDate ?? "", comments: [] });
+            newCards[col].push({ id: t.taskId, title: t.title, desc: t.description ?? "", startDate: t.startDate ?? "", dueDate: t.dueDate ?? "", comments: [] });
           }
         }
         setCards(newCards);
@@ -256,6 +263,7 @@ export default function WorkSpacePage() {
           id: res.data.data.taskId,
           title: res.data.data.title,
           desc: res.data.data.description ?? "",
+          startDate: res.data.data.startDate ?? "",
           dueDate: res.data.data.dueDate ?? "",
           comments: [],
         };
@@ -264,7 +272,7 @@ export default function WorkSpacePage() {
         alert(`태스크 저장에 실패했습니다: ${err?.response?.data?.message ?? err?.message ?? "알 수 없는 오류"}`);
       }
     } else {
-      const newCard: CardItem = { id: Date.now().toString(), title, desc: "", dueDate: "", comments: [] };
+      const newCard: CardItem = { id: Date.now().toString(), title, desc: "", startDate: "", dueDate: "", comments: [] };
       setCards((prev) => ({ ...prev, [col]: [...(prev[col] ?? []), newCard] }));
     }
     setInputVal("");
@@ -290,6 +298,7 @@ export default function WorkSpacePage() {
         id: res.data.data.taskId,
         title: res.data.data.title,
         desc: res.data.data.description ?? "",
+        startDate: res.data.data.startDate ?? "",
         dueDate: res.data.data.dueDate ?? "",
         comments: [],
       };
@@ -337,9 +346,20 @@ export default function WorkSpacePage() {
     }
   };
 
+  const handleSaveStartDate = async (col: string, id: string, startDate: string) => {
+    setCards((prev) => ({ ...prev, [col]: prev[col].map((c) => c.id === id ? { ...c, startDate } : c) }));
+    setSelectedCard((prev) => prev && prev.card.id === id ? { ...prev, card: { ...prev.card, startDate } } : prev);
+    if (workspace?.id && startDate) {
+      try {
+        await client.patch(`/workspaces/${workspace.id}/tasks/${id}/start-date?startDate=${startDate}`);
+      } catch {}
+    }
+  };
+
   const handleSaveDueDate = async (col: string, id: string, dueDate: string) => {
     setCards((prev) => ({ ...prev, [col]: prev[col].map((c) => c.id === id ? { ...c, dueDate } : c) }));
-    if (workspace?.id) {
+    setSelectedCard((prev) => prev && prev.card.id === id ? { ...prev, card: { ...prev.card, dueDate } } : prev);
+    if (workspace?.id && dueDate) {
       try {
         await client.patch(`/workspaces/${workspace.id}/tasks/${id}/due-date?dueDate=${dueDate}`);
       } catch {}
@@ -360,6 +380,20 @@ export default function WorkSpacePage() {
   };
 
   const calDays = getCalendarDays(calYear, calMonth);
+
+  const plannerDotMap = useMemo(() => {
+    const map: Record<string, string[]> = {};
+    for (const [col, items] of Object.entries(cards)) {
+      const color = STATUS_COLOR_MAP[col] ?? "#aaa";
+      for (const c of items) {
+        if (!c.dueDate) continue;
+        const ds = c.dueDate.slice(0, 10);
+        if (!map[ds]) map[ds] = [];
+        if (map[ds].length < 3) map[ds].push(color);
+      }
+    }
+    return map;
+  }, [cards]);
 
   const prevMonth = () => {
     if (calMonth === 0) { setCalYear(y => y - 1); setCalMonth(11); }
@@ -388,7 +422,7 @@ export default function WorkSpacePage() {
         {/* 왼쪽: Community */}
         <aside className={`wsp-community ${showCommunity ? "panel-visible" : "panel-hidden"}`}>
           <div className="wsp-panel-title">
-            <span className="wsp-panel-icon"></span> community
+            <span className="wsp-panel-icon">💬</span> community
           </div>
           <input className="wsp-search" placeholder="채널 및 메시지 검색..." />
           <div className="wsp-channel-label">채널 및 스레드</div>
@@ -437,7 +471,7 @@ export default function WorkSpacePage() {
         {/* 가운데: Planner */}
         <aside className={`wsp-planner ${showPlanner ? "panel-visible" : "panel-hidden"}`}>
           <div className="wsp-panel-title">
-            <span className="wsp-panel-icon"></span> Planner
+            <span className="wsp-panel-icon">📅</span> Planner
           </div>
           <div className="wsp-cal-header">
             <button className="wsp-cal-nav" onClick={prevMonth}>‹</button>
@@ -450,15 +484,50 @@ export default function WorkSpacePage() {
             ))}
             {calDays.map((d, i) => {
               const isToday = d === TODAY.getDate() && calMonth === TODAY.getMonth() && calYear === TODAY.getFullYear();
+              const ds = d ? `${calYear}-${String(calMonth+1).padStart(2,"0")}-${String(d).padStart(2,"0")}` : "";
+              const dots = ds ? (plannerDotMap[ds] ?? []) : [];
               return (
                 <div key={i} className={`wsp-cal-day ${!d ? "empty" : ""} ${isToday ? "today" : ""}`}>
                   {d}
+                  {dots.length > 0 && (
+                    <div className="planner-dots">
+                      {dots.map((c, j) => <span key={j} className="planner-dot" style={{ background: c }} />)}
+                    </div>
+                  )}
                 </div>
               );
             })}
           </div>
-          <div className="wsp-upcoming-label">다가오는 마감일</div>
-          <div className="wsp-upcoming-empty">마감일이 없습니다.</div>
+          {(() => {
+            const now = new Date(); now.setHours(0,0,0,0);
+            const upcoming = Object.entries(cards).flatMap(([col, items]) =>
+              items.filter(c => {
+                if (!c.dueDate) return false;
+                const d = new Date(c.dueDate); d.setHours(0,0,0,0);
+                const diff = Math.ceil((d.getTime() - now.getTime()) / 86400000);
+                return diff >= 0 && diff <= 5;
+              }).map(c => ({ ...c, col, daysLeft: Math.ceil((new Date(c.dueDate!).setHours(0,0,0,0) - now.getTime()) / 86400000) }))
+            ).sort((a,b) => a.daysLeft - b.daysLeft);
+            return (
+              <>
+                <div className="wsp-upcoming-label">
+                  다가오는 마감일
+                  {upcoming.length > 0 && <span className="wsp-upcoming-count">({upcoming.length})</span>}
+                </div>
+                {upcoming.length === 0
+                  ? <div className="wsp-upcoming-empty">마감일이 없습니다.</div>
+                  : upcoming.map(t => (
+                    <div key={t.id} className="wsp-upcoming-item" style={{ borderLeftColor: STATUS_COLOR_MAP[t.col] ?? "#aaa" }}>
+                      <div className="wsp-upcoming-info">
+                        <span className="wsp-upcoming-name">{t.title}</span>
+                        <span className="wsp-upcoming-date">⊙ {MONTHS_KO[new Date(t.dueDate!).getMonth()]} {new Date(t.dueDate!).getDate()}일 · {t.daysLeft === 0 ? "오늘" : `${t.daysLeft}일 남음`}</span>
+                      </div>
+                    </div>
+                  ))
+                }
+              </>
+            );
+          })()}
         </aside>
 
         {/* 오른쪽: Board */}
@@ -611,6 +680,7 @@ export default function WorkSpacePage() {
           title={slideCard.title}
           colName="상태 없음"
           initialDesc={slideCard.desc}
+          initialStartDate={slideCard.startDate}
           initialDueDate={slideCard.dueDate}
           initialComments={slideCard.comments}
           onClose={() => setSlideCard(null)}
@@ -618,12 +688,15 @@ export default function WorkSpacePage() {
       )}
       {selectedCard && (
         <CardDetailModal
+          key={selectedCard.card.id}
           title={selectedCard.card.title}
           colName={selectedCard.col}
           initialDesc={selectedCard.card.desc}
+          initialStartDate={selectedCard.card.startDate}
           initialDueDate={selectedCard.card.dueDate}
           initialComments={selectedCard.card.comments}
           onSaveDesc={(desc) => handleSaveDesc(selectedCard.col, selectedCard.card.id, desc)}
+          onSaveStartDate={(startDate) => handleSaveStartDate(selectedCard.col, selectedCard.card.id, startDate)}
           onSaveDueDate={(dueDate) => handleSaveDueDate(selectedCard.col, selectedCard.card.id, dueDate)}
           onSaveComments={(comments) => handleSaveComments(selectedCard.col, selectedCard.card.id, comments)}
           onClose={() => setSelectedCard(null)}

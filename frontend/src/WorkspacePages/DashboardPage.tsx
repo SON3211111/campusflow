@@ -23,6 +23,16 @@ interface Task {
 
 const R = 35;
 const CIRC = 2 * Math.PI * R;
+const DAYS_KO = ["일", "월", "화", "수", "목", "금", "토"];
+const MONTHS_KO = ["1월","2월","3월","4월","5월","6월","7월","8월","9월","10월","11월","12월"];
+
+function getCalendarDays(year: number, month: number): (number | null)[] {
+  const firstDay = new Date(year, month, 1).getDay();
+  const lastDate = new Date(year, month + 1, 0).getDate();
+  const days: (number | null)[] = Array(firstDay).fill(null);
+  for (let i = 1; i <= lastDate; i++) days.push(i);
+  return days;
+}
 
 function arc(value: number, offset: number, total: number) {
   const dash = (value / total) * CIRC;
@@ -44,6 +54,26 @@ export default function DashboardPage() {
   const [donut, setDonut] = useState({ progress: 0, done: 0, hold: 0, notStarted: 0, todo: 0 });
   const [wsMembers, setWsMembers] = useState<{ userId: string; name: string }[]>([]);
   const [memberStats, setMemberStats] = useState<Record<string, { done: number; progress: number; hold: number; total: number }>>({});
+
+  const [showPlanner,   setShowPlanner]   = useState(false);
+  const [showCommunity, setShowCommunity] = useState(false);
+  const [plannerDotMap, setPlannerDotMap] = useState<Record<string, string[]>>({});
+  const [plannerYear,   setPlannerYear]   = useState(() => new Date().getFullYear());
+  const [plannerMonth,  setPlannerMonth]  = useState(() => new Date().getMonth());
+  const [messages,  setMessages]  = useState<{ user: string; text: string; time: string }[]>([]);
+  const [msgInput,  setMsgInput]  = useState("");
+  const [writingMsg, setWritingMsg] = useState(false);
+
+  const today = new Date();
+  const prevPlan = () => { if (plannerMonth === 0) { setPlannerYear(y => y-1); setPlannerMonth(11); } else setPlannerMonth(m => m-1); };
+  const nextPlan = () => { if (plannerMonth === 11) { setPlannerYear(y => y+1); setPlannerMonth(0); } else setPlannerMonth(m => m+1); };
+  const plannerDays = getCalendarDays(plannerYear, plannerMonth);
+
+  const handleSendMsg = () => {
+    if (!msgInput.trim()) return;
+    setMessages(p => [...p, { user: userName, text: msgInput.trim(), time: "방금" }]);
+    setMsgInput(""); setWritingMsg(false);
+  };
 
   useEffect(() => {
     if (workspace?.id) {
@@ -109,6 +139,16 @@ export default function DashboardPage() {
         // 마감일이 가까운 순으로 정렬
         upcoming.sort((a, b) => a.daysLeft - b.daysLeft);
         setUpcomingTasks(upcoming);
+
+        const STATUS_COLOR_D: Record<string,string> = { TODO:"#aaa", REVIEW:"#888", DOING:"#4f7cff", ISSUE:"#f59e0b", DONE:"#22c55e" };
+        const dotMap: Record<string, string[]> = {};
+        for (const t of tasks) {
+          if (!t.dueDate) continue;
+          const ds = t.dueDate.slice(0, 10);
+          if (!dotMap[ds]) dotMap[ds] = [];
+          if (dotMap[ds].length < 3) dotMap[ds].push(STATUS_COLOR_D[t.status] ?? "#aaa");
+        }
+        setPlannerDotMap(dotMap);
         
         localStorage.setItem("board_stats", JSON.stringify({
           inProgress: counts.progress,
@@ -178,6 +218,90 @@ export default function DashboardPage() {
       <BoardSubHeader wsName={wsName} members={wsMembers} workspace={workspace} workspaces={workspaces} initialSelected="Dash Board" />
 
       <div className="dbp-body" style={{ background: workspace?.gradient ?? "#f0f2f8" }}>
+
+        {/* 커뮤니티 패널 */}
+        <aside className={`wsp-community ${showCommunity ? "panel-visible" : "panel-hidden"}`}>
+          <div className="wsp-panel-title"><span className="wsp-panel-icon">💬</span> community</div>
+          <input className="wsp-search" placeholder="채널 및 메시지 검색..." />
+          <div className="wsp-channel-label">채널 및 스레드</div>
+          <div className="wsp-channel-item"># 일반</div>
+          <div className="wsp-channel-item"># UI/UX 디자인</div>
+          <div className="wsp-channel-item"># 개발 및 연동<span className="wsp-channel-dot" /></div>
+          <div className="wsp-channel-label" style={{ marginTop: 16 }}>최근 메시지</div>
+          <div className="wsp-msg-list">
+            {messages.length === 0
+              ? <div className="wsp-msg-empty">메시지가 없습니다.</div>
+              : messages.map((m, i) => (
+                <div key={i} className="wsp-msg-item">
+                  <div className="wsp-msg-header"><span className="wsp-msg-name">{m.user}</span><span className="wsp-msg-time">{m.time}</span></div>
+                  <div className="wsp-msg-text">{m.text}</div>
+                </div>
+              ))
+            }
+          </div>
+          {writingMsg ? (
+            <div className="wsp-msg-form">
+              <textarea className="wsp-msg-input" placeholder="메시지 입력..." value={msgInput}
+                onChange={e => setMsgInput(e.target.value)}
+                onKeyDown={e => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); handleSendMsg(); } }}
+                autoFocus />
+              <div className="wsp-msg-actions">
+                <button className="wsp-msg-send" onClick={handleSendMsg}>전송</button>
+                <button className="wsp-msg-cancel" onClick={() => { setWritingMsg(false); setMsgInput(""); }}>취소</button>
+              </div>
+            </div>
+          ) : (
+            <button className="wsp-new-msg-btn" onClick={() => setWritingMsg(true)}>새 메시지 작성</button>
+          )}
+        </aside>
+
+        {/* 플래너 패널 */}
+        <aside className={`wsp-planner ${showPlanner ? "panel-visible" : "panel-hidden"}`}>
+          <div className="wsp-panel-title"><span className="wsp-panel-icon">📅</span> Planner</div>
+          <div className="wsp-cal-header">
+            <button className="wsp-cal-nav" onClick={prevPlan}>‹</button>
+            <span className="wsp-cal-title">{plannerYear}년 {plannerMonth + 1}월</span>
+            <button className="wsp-cal-nav" onClick={nextPlan}>›</button>
+          </div>
+          <div className="wsp-cal-grid">
+            {DAYS_KO.map(d => (
+              <div key={d} className={`wsp-cal-day-label ${d==="일"?"sun":d==="토"?"sat":""}`}>{d}</div>
+            ))}
+            {plannerDays.map((d, i) => {
+              const isToday = d === today.getDate() && plannerMonth === today.getMonth() && plannerYear === today.getFullYear();
+              const ds = d ? `${plannerYear}-${String(plannerMonth+1).padStart(2,"0")}-${String(d).padStart(2,"0")}` : "";
+              const dots = ds ? (plannerDotMap[ds] ?? []) : [];
+              return (
+                <div key={i} className={`wsp-cal-day ${!d?"empty":""} ${isToday?"today":""}`}>
+                  {d}
+                  {dots.length > 0 && (
+                    <div className="planner-dots">
+                      {dots.map((c, j) => <span key={j} className="planner-dot" style={{ background: c }} />)}
+                    </div>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+          <div className="wsp-upcoming-label">
+            다가오는 마감일
+            {upcomingTasks.length > 0 && <span className="wsp-upcoming-count">({upcomingTasks.length})</span>}
+          </div>
+          {upcomingTasks.length === 0
+            ? <div className="wsp-upcoming-empty">마감일이 없습니다.</div>
+            : upcomingTasks.map(t => (
+              <div key={t.taskId} className="wsp-upcoming-item" style={{ borderLeftColor: t.daysLeft === 0 ? "#f59e0b" : t.daysLeft <= 3 ? "#ef4444" : "#4f7cff" }}>
+                <div className="wsp-upcoming-info">
+                  <span className="wsp-upcoming-name">{t.title}</span>
+                  <span className="wsp-upcoming-date">⊙ {MONTHS_KO[new Date(t.dueDate).getMonth()]} {new Date(t.dueDate).getDate()}일 · {t.daysLeft === 0 ? "오늘" : `${t.daysLeft}일 남음`}</span>
+                </div>
+              </div>
+            ))
+          }
+        </aside>
+
+        {/* 메인 대시보드 */}
+        <div className="dbp-main">
 
         {/* 상단: Task 진행상황 + 활동로그 */}
         <div className="dbp-top-row">
@@ -336,13 +460,14 @@ export default function DashboardPage() {
 
         </div>
 
+        </div> {/* dbp-main */}
       </div>
 
       <WorkspaceTabBar
         onTabChange={(t) => {
-          if (t === "board") navigate("/workspace-board", { state: { workspace, workspaces } });
-          if (t === "planner") navigate("/workspace-board", { state: { workspace, workspaces } });
-          if (t === "community") navigate("/workspace-board", { state: { workspace, workspaces } });
+          if (t === "board")     navigate("/workspace-board", { state: { workspace, workspaces } });
+          if (t === "planner")   setShowPlanner(v => !v);
+          if (t === "community") setShowCommunity(v => !v);
         }}
       />
     </div>
