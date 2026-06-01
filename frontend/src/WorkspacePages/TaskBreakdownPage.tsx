@@ -74,6 +74,7 @@ export default function TaskBreakdownPage() {
       prompt: string;
       workspaces: { id: string; name: string; gradient: string }[];
       workspace?: { id: string; name: string; gradient: string };
+      append?: boolean;
     };
   };
   const navigate = useNavigate();
@@ -81,6 +82,7 @@ export default function TaskBreakdownPage() {
   const prompt     = state?.prompt     ?? "";
   const workspaces = state?.workspaces ?? [];
   const workspace  = state?.workspace;
+  const append     = state?.append ?? false;
 
   const userName = localStorage.getItem("userName") ?? "나";
 
@@ -98,7 +100,7 @@ export default function TaskBreakdownPage() {
 
   useEffect(() => {
     if (result) {
-      navigate("/ai-task", { state: { workspaces, workspace, result, prompt } });
+      navigate("/ai-task", { state: { workspaces, workspace, result, prompt, append } });
     }
   }, [result]);
 

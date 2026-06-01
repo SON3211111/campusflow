@@ -69,6 +69,7 @@ export default function AiTaskPage() {
       workspace?: WorkspaceItem;
       result?: AiResult;
       prompt?: string;
+      append?: boolean;
     };
   };
   const navigate = useNavigate();
@@ -82,6 +83,7 @@ export default function AiTaskPage() {
   })();
 
   const shouldRestoreSession = !state?.result && !!storedSession;
+  const isAppend = !!(state?.append && state?.result && storedSession);
   const aiResult   = state?.result ?? storedSession?.result ?? null;
   const origPrompt = state?.prompt ?? storedSession?.prompt ?? "";
 
@@ -103,9 +105,35 @@ export default function AiTaskPage() {
       cat.tasks.map((t, ti) => ({ id: `c${ci}-t${ti}`, name: t.name, categoryIdx: ci, priority: t.priority }))
     );
 
-  const [title, setTitle]           = useState(shouldRestoreSession ? storedSession?.title ?? "" : aiResult.title ?? "");
-  const [categories, setCategories] = useState<Category[]>(shouldRestoreSession ? storedSession?.categories ?? [] : buildCategories(aiResult));
-  const [tasks, setTasks]           = useState<Task[]>(shouldRestoreSession ? storedSession?.tasks ?? [] : buildTasks(aiResult));
+  const initCategories = (): Category[] => {
+    if (isAppend) {
+      const existingCats = storedSession?.categories ?? [];
+      const newCats = buildCategories(state.result!);
+      return [...existingCats, ...newCats];
+    }
+    if (shouldRestoreSession) return storedSession?.categories ?? [];
+    return buildCategories(aiResult);
+  };
+
+  const initTasks = (): Task[] => {
+    if (isAppend) {
+      const existingCats = storedSession?.categories ?? [];
+      const offset = existingCats.length;
+      const existingTasks = storedSession?.tasks ?? [];
+      const newTasks = buildTasks(state.result!).map((t) => ({
+        ...t,
+        id: `append-${Date.now()}-${t.id}`,
+        categoryIdx: t.categoryIdx + offset,
+      }));
+      return [...existingTasks, ...newTasks];
+    }
+    if (shouldRestoreSession) return storedSession?.tasks ?? [];
+    return buildTasks(aiResult);
+  };
+
+  const [title, setTitle]           = useState(isAppend || shouldRestoreSession ? storedSession?.title ?? "" : aiResult.title ?? "");
+  const [categories, setCategories] = useState<Category[]>(initCategories);
+  const [tasks, setTasks]           = useState<Task[]>(initTasks);
 
   // 멤버별 장바구니: { [userId]: Task[] }
   const [members, setMembers]             = useState<Member[]>([]);
@@ -270,8 +298,7 @@ export default function AiTaskPage() {
 
   const handleStartNewBreakdown = () => {
     if (!newPrompt.trim()) return;
-    localStorage.removeItem(sessionKey);
-    navigate("/task-breakdown", { state: { prompt: newPrompt.trim(), workspaces, workspace } });
+    navigate("/task-breakdown", { state: { prompt: newPrompt.trim(), workspaces, workspace, append: true } });
   };
 
   const tasksByCategory = categories.map((_, ci) => tasks.filter((t) => t.categoryIdx === ci));
