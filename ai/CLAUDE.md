@@ -62,7 +62,7 @@
 
 ## 주의 사항
 
-- `priority`와 `estimated_hours`는 AI가 생성하지만 현재 백엔드 Task 엔티티에 해당 필드가 없어 저장되지 않음
+- `priority`와 `estimated_hours`는 AI가 생성하지만 현재 백엔드 Task 엔티티에 해당 필드가 없어 저장되지 않음 — 1단계 DB 작업에서 `priority` varchar 필드 추가 예정
 - `/generate-tasks` 타임아웃: 300초 (모델 응답이 느릴 수 있음)
 - `/subdivide-task` 타임아웃: 120초
 - 모델 변경 시 `.env`의 `OLLAMA_MODEL` 수정

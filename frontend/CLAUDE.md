@@ -61,7 +61,7 @@ const workspace = state?.workspace ?? savedWs;
 | `token` | string | JWT 토큰 |
 | `clickedWorkspace` | JSON | 마지막으로 클릭한 워크스페이스 |
 | `board_stats` | JSON | 대시보드 통계 캐시 |
-| `ai_task_session_{wsId}` | JSON | AI 태스크 세션 저장 |
+| `ai_task_session_{wsId}` | JSON | AI 태스크 세션 저장 (Picking 구현 후 DB로 대체 예정 — deprecated) |
 | `ws_gradient_{wsId}` | string | 워크스페이스 그라데이션 색상 |
 | `workspace_activity_{wsId}` | JSON | 활동 로그 (로컬 전용) |
 | `saved_ai_tasks` | JSON | 저장된 AI 태스크 목록 |
@@ -112,7 +112,8 @@ const COL_TO_STATUS = {
 
 ## 주의 사항
 
-- 댓글(`CardDetailModal`)은 UI만 있고 API 연결 없음 — 저장 안 됨
-- Community 채팅은 로컬 state만 — 새로고침 시 사라짐
-- Planner 캘린더의 "다가오는 마감일" 섹션은 하드코딩된 빈 상태
-- 활동 로그는 localStorage 기반으로 팀원 간 공유 안 됨
+- 댓글(`CardDetailModal`)은 UI만 있고 API 연결 없음 — 저장 안 됨 (2단계 구현 예정)
+- Community 채팅은 보드 왼쪽 사이드패널 구조 → **탭 전환 방식으로 변경 예정** (WorkspaceTabBar Community 탭 클릭 시 화면 전환), team_communication 연결 필요
+- AiTaskPage는 현재 localStorage(`ai_task_session_{wsId}`) 기반 → **DB에서 `assignee_id IS NULL` 태스크 로드 방식으로 전환 예정** (Picking 구현 시)
+- Planner 캘린더의 "다가오는 마감일" 섹션은 하드코딩된 빈 상태 — tasks dueDate 연결 필요
+- 활동 로그는 localStorage 기반으로 팀원 간 공유 안 됨 (2단계 구현 예정)

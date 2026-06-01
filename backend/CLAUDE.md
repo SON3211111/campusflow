@@ -27,10 +27,13 @@ User ──< WorkspaceMember >── Workspace
                               Task (workspace_id FK)
                                  │
                           Task (parent_id FK, 서브태스크)
+                                 │
+                      TaskStatusHistory (task_id FK)  ← 1단계 추가 예정
 
 User ──< ContributionMetrics >── Project
 Workspace ──< Invitation
 User ──< Notification
+Workspace ──< TeamCommunication (task_id nullable — null이면 채팅, 있으면 댓글)  ← 2단계 추가 예정
 ```
 
 ## 주요 ID 타입
@@ -72,6 +75,16 @@ ApiResponse.error(400, "메시지")
 | GET | /api/projects/{id}/analytics/progress | 진행률 (현재 더미) |
 | GET | /api/projects/{id}/analytics/contributions | 기여도 |
 
+**구현 예정 엔드포인트 (1~2단계):**
+
+| 메서드 | 경로 | 설명 |
+|---|---|---|
+| GET | /api/workspaces/{id}/tasks?assigneeId=null | Pool 태스크 조회 (Picking용) |
+| PATCH | /api/workspaces/{id}/tasks/{taskId}/pick | Picking — is_locked + assigneeId 처리 |
+| GET | /api/workspaces/{id}/tasks/history | task_status_history 조회 (활동 로그) |
+| POST | /api/workspaces/{id}/messages | 댓글/채팅 저장 (team_communication) |
+| GET | /api/workspaces/{id}/messages | 댓글/채팅 조회 (taskId 파라미터로 구분) |
+
 ## Task 상태 흐름
 
 ```
@@ -98,3 +111,5 @@ TODO → REVIEW → DOING → DONE
 - `ProjectAnalyticsService.getOverallProgress()` — 항상 0 반환하는 더미, 실제 구현 필요
 - `ContributionMetrics` — taskCompletionCount 업데이트 로직 없음, 태스크 DONE 처리 시 함께 업데이트해야 함
 - AI 서비스 호출은 `AiService`를 통해 백엔드 → AI(포트 8000) 프록시 방식
+- `api/auth.ts`의 `/users/me`, `/auth/logout` 엔드포인트 백엔드 미구현 — 프론트에서 호출 시 404
+- `TaskBreakdownPage.tsx` AI 응답 null 체크 없음 — AI 응답 실패 시 런타임 에러 가능

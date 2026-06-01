@@ -2,6 +2,9 @@
 
 캠퍼스 팀 프로젝트 관리 툴. AI 기반 태스크 분해 + 칸반 보드 + 대시보드.
 
+**플로우 A (메인)**: AI 분해 → 즉시 DB 저장(assignee_id=NULL) → AiTaskPage Picking → 보드 관리
+**플로우 B (보조)**: 팀원이 카드 직접 추가 → 본인 배정 → 보드 관리
+
 ## 서비스 구성
 
 ```
@@ -34,7 +37,7 @@ campusflow/
 - [ ] 추가/수정한 기능이 실제로 동작하는가
 - [ ] 기존 핵심 플로우가 깨지지 않았는가
   - 로그인 → 워크스페이스 진입 → 태스크 생성 → 상태 변경
-  - AI 태스크 분해 → 보드 전송
+  - AI 태스크 분해 → AiTaskPage Picking → 보드 전송
 - [ ] API 연동 시 콘솔 에러 없는가
 - [ ] 새로 추가한 엔티티/필드가 DB에 정상 반영되는가 (nullable 주의)
 
@@ -86,8 +89,9 @@ localStorage는 캐시/폴백 용도로만 사용할 것. 유일한 저장소로
 
 **브랜치 네이밍: `feat/son-stage번호-기능명`**
 ```
-feat/son-stage1-task-pool       ← 1단계 기능
-feat/son-stage1-my-task
+feat/son-stage1-picking         ← 1단계 기능
+feat/son-stage1-card-ui
+feat/son-stage1-done-reaction
 feat/son-stage2-comments        ← 2단계 기능
 feat/son-stage2-activity-log
 feat/son-stage3-websocket       ← 3단계 기능
@@ -102,11 +106,11 @@ feat/son-stage3-websocket       ← 3단계 기능
 ```bash
 # 브랜치 생성 방법
 git checkout develop
-git checkout -b feat/son-stage1-task-pool
+git checkout -b feat/son-stage1-picking
 
 # 작업 완료 후 머지
 git checkout develop
-git merge feat/son-stage1-task-pool
+git merge feat/son-stage1-picking
 git push origin develop
 ```
 
@@ -117,28 +121,53 @@ fix(범위): 버그 수정
 refactor(범위): 기능 변경 없는 코드 개선
 style(범위): UI/CSS 변경
 ```
-예시: `feat(task-pool): Task Pool 화면 + Picking UI 구현`
+예시: `feat(picking): AiTaskPage 팀원 Picking 구조 전환`
 
 ### 발표 시연 데이터 보호
 - 발표용 계정/워크스페이스는 개발 테스트와 분리하여 유지
 - 발표 전날 체크리스트:
   - [ ] 시연용 워크스페이스에 깔끔한 테스트 데이터 준비
   - [ ] 백엔드/프론트/AI 서버 모두 정상 기동 확인
-  - [ ] 핵심 플로우 (AI 분해 → 배정 → 보드 → 대시보드) 한 번 직접 실행
+  - [ ] 핵심 플로우 (AI 분해 → AiTaskPage Picking → 보드 전송 → 내 태스크 필터 → 대시보드) 한 번 직접 실행
   - [ ] 오류 데이터 정리 (status NULL, 빈 제목 태스크 등)
 
 ## 알려진 미완성 기능 (작업 시 참고)
 
+> **교수님 피드백 핵심**: "툴이 수동적(passive)이다 — 태스크를 만들고 드래그하면 끝, 그 이후 툴이 아무것도 안 한다"
+> → 툴이 팀을 능동적으로 관찰하고 개입하는 구조가 필요함
+
+### 카드 UI (협업이 눈에 보여야 함)
 | 기능 | 상태 |
 |---|---|
-| 댓글 | UI만 있음, Comment 엔티티/API 없음 |
-| ContributionMetrics | 업데이트 로직 없어 항상 0 |
-| ProjectAnalyticsService | 더미 데이터 반환 중 |
-| 활동 로그 | localStorage 기반, 팀원 간 미공유 |
+| 칸반 카드 담당자 표시 | assigneeId DB에 있지만 카드 UI에 미표시 — 누가 뭘 하는지 모름 |
+| 칸반 카드 마감일 + 우선순위 표시 | 모달 열어야만 보임, 카드에 바로 표시 필요 |
+| 마감 임박 카드 강조 | 마감일 지나도 카드에 아무 변화 없음 — D-3 이내 빨간 테두리 필요 |
 | Task priority/estimated_hours | AI가 생성하지만 Task 엔티티에 필드 없음 |
+
+### 툴의 능동적 개입 (지속적 관리 느낌)
+| 기능 | 상태 |
+|---|---|
+| DONE 처리 시 활동 피드 즉시 기록 | DONE 해도 아무 일 없음 — 기여도 반영 + 팀원 피드에 기록 필요 |
+| ContributionMetrics 업데이트 | 로직 없어 항상 0 — DONE 시 카운트 증가 필요 |
+| 병목 태스크 감지 | ISSUE/DOING 상태에 오래 머문 태스크 아무도 모름 — 대시보드 강조 필요 |
+| 알림 UI | 백엔드 API 완성, 프론트엔드 없음 — 상태변경/댓글/마감임박 시 알림 필요 |
+
+### 소통 (팀 간 실시간 공유)
+| 기능 | 상태 |
+|---|---|
+| 댓글 | UI만 있음, 새로고침하면 사라짐 — team_communication 테이블 연결 필요 |
+| Community 채팅 | 탭 전환 방식으로 구조 변경 필요 (보드 사이드패널 → 탭 클릭 시 화면 전환), team_communication 연결 필요 |
+| 활동 로그 | localStorage 기반, 팀원 간 미공유 — task_status_history 기반 피드 표시 필요 |
+| 실시간 동기화 | WebSocket/폴링 없음 — 상태변경이 팀원 화면에 즉시 반영 안 됨 |
+
+> **댓글 vs 채팅 구분**: 둘 다 `team_communication` 테이블 사용. `task_id IS NOT NULL` = 태스크 댓글, `task_id IS NULL` = 워크스페이스 채팅(Community 패널)
+
+### 기타
+| 기능 | 상태 |
+|---|---|
+| ProjectAnalyticsService | 더미 데이터 반환 중 |
 | 커스텀 컬럼 | 로컬 state만, 리로드 시 사라짐 |
-| 알림 UI | 백엔드 API 완성, 프론트엔드 없음 |
-| 실시간 동기화 | WebSocket/폴링 없음 |
+| Planner 마감일 연결 | "마감일이 없습니다" 하드코딩 — tasks의 dueDate 연결 필요 |
 
 ## 환경 변수
 
