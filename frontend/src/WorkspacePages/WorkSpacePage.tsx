@@ -323,10 +323,9 @@ export default function WorkSpacePage() {
     setTrashOpen(true);
   };
 
-  // 보드 마우스 패닝: 버튼/입력/드래그 요소 위에서는 패닝 비활성화
+  // 보드 마우스 패닝: 버튼/입력 요소 위에서는 패닝 비활성화
   const handleBoardMouseDown = (e: MouseEvent<HTMLDivElement>) => {
-    const target = e.target as HTMLElement;
-    if (!columnsRef.current || target.closest("button, input, textarea, [draggable='true']")) return;
+    if (!columnsRef.current || (e.target as HTMLElement).closest("button, input, textarea")) return;
     panState.current = {
       active: true,
       x: e.pageX,
@@ -527,7 +526,7 @@ export default function WorkSpacePage() {
                 className={`wsp-column ${dragOverCol === col ? "drag-over" : ""}`}
                 onDragOver={(e) => { e.preventDefault(); setDragOverCol(col); }}
                 onDragLeave={() => setDragOverCol(null)}
-                onDrop={() => handleCardDrop(col)}
+                onDrop={() => { handleCardDrop(col); panState.current.active = false; }}
               >
                 <div className="wsp-col-header">
                   <span className="wsp-col-dot" data-col={col} />
@@ -545,7 +544,7 @@ export default function WorkSpacePage() {
                       className={`wsp-card-item ${draggingCard?.card.id === card.id ? "dragging" : ""} ${isNear ? "deadline-near" : ""}`}
                       draggable
                       onDragStart={() => setDraggingCard({ card, col })}
-                      onDragEnd={() => { setDraggingCard(null); setDragOverCol(null); }}
+                      onDragEnd={() => { setDraggingCard(null); setDragOverCol(null); panState.current.active = false; }}
                       onClick={() => {
                         if (panState.current.moved) {
                           panState.current.moved = false;
