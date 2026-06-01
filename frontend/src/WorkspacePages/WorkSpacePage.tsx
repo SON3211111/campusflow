@@ -323,9 +323,10 @@ export default function WorkSpacePage() {
     setTrashOpen(true);
   };
 
-  // 보드 마우스 패닝: 버튼/입력 요소 위에서는 패닝 비활성화
+  // 보드 마우스 패닝: 버튼/입력/드래그 요소 위에서는 패닝 비활성화
   const handleBoardMouseDown = (e: MouseEvent<HTMLDivElement>) => {
-    if (!columnsRef.current || (e.target as HTMLElement).closest("button, input, textarea")) return;
+    const target = e.target as HTMLElement;
+    if (!columnsRef.current || target.closest("button, input, textarea, [draggable='true']")) return;
     panState.current = {
       active: true,
       x: e.pageX,
