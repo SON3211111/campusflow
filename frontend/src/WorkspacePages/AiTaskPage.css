@@ -420,6 +420,50 @@
   cursor: not-allowed;
 }
 
+/* 세션 섹션 */
+.atp-session {
+  margin-bottom: 24px;
+}
+
+.atp-session-header {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 16px;
+  background: rgba(255, 255, 255, 0.12);
+  border-radius: 10px;
+  cursor: pointer;
+  margin-bottom: 16px;
+  transition: background 0.15s;
+  user-select: none;
+}
+
+.atp-session-header:hover {
+  background: rgba(255, 255, 255, 0.2);
+}
+
+.atp-session-toggle {
+  font-size: 12px;
+  color: rgba(255, 255, 255, 0.7);
+  flex-shrink: 0;
+}
+
+.atp-session-prompt {
+  font-size: 15px;
+  font-weight: 700;
+  color: #fff;
+  flex: 1;
+}
+
+.atp-session-count {
+  font-size: 12px;
+  background: rgba(255, 255, 255, 0.2);
+  color: #fff;
+  padding: 2px 8px;
+  border-radius: 12px;
+  flex-shrink: 0;
+}
+
 .atp-task-actions {
   display: flex;
   gap: 4px;

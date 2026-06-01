@@ -1,8 +1,8 @@
 /**
- * AI 태스크 관리 페이지 (팀 다중 슬롯 장바구니)
- * - 워크스페이스 멤버를 서버에서 조회하여 멤버별 장바구니 슬롯 렌더링
- * - 드래그앤드롭으로 원하는 팀원 슬롯에 업무 배정
- * - 보드로 보내기 시 각 업무에 assigneeId 포함하여 저장
+ * AI 태스크 관리 페이지
+ * - 큰 작업(프롬프트)별로 트리 섹션이 분리되어 표시
+ * - 각 섹션은 접고 펼칠 수 있음
+ * - 팀원별 슬롯에 드래그로 Picking
  */
 import { useState, useRef, useEffect } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
@@ -22,6 +22,13 @@ interface Category {
   name: string;
   color: string;
   taskColor: string;
+  sessionId: string;
+}
+
+interface Session {
+  id: string;
+  prompt: string;
+  collapsed: boolean;
 }
 
 interface Member {
@@ -53,6 +60,7 @@ interface AiTaskSession {
   prompt: string;
   result: AiResult;
   memberBaskets?: Record<string, Task[]>;
+  sessions?: Session[];
 }
 
 const CAT_COLORS = [
@@ -94,53 +102,77 @@ export default function AiTaskPage() {
 
   if (!aiResult) return null;
 
-  const buildCategories = (res: typeof aiResult) =>
+  // append 모드용 버퍼 (소비 전 캡처)
+  const buffer = isAppend ? getAppendBuffer() : null;
+  if (isAppend) clearAppendBuffer();
+
+  // 새 세션 ID (마운트 시 한 번만 생성)
+  const newSessionId = `session-${Date.now()}`;
+  const newSessionPrompt = buffer?.newSessionPrompt ?? origPrompt;
+
+  const buildCategories = (res: typeof aiResult, sid: string): Category[] =>
     (res?.categories ?? []).map((cat, ci) => ({
       name: cat.name,
       color: CAT_COLORS[ci % CAT_COLORS.length].color,
       taskColor: CAT_COLORS[ci % CAT_COLORS.length].taskColor,
+      sessionId: sid,
     }));
 
-  const buildTasks = (res: typeof aiResult): Task[] =>
+  const buildTasks = (res: typeof aiResult, offset = 0): Task[] =>
     (res?.categories ?? []).flatMap((cat, ci) =>
-      cat.tasks.map((t, ti) => ({ id: `c${ci}-t${ti}`, name: t.name, categoryIdx: ci, priority: t.priority }))
+      cat.tasks.map((t, ti) => ({
+        id: `${offset > 0 ? `append-${Date.now()}-` : ""}c${ci}-t${ti}`,
+        name: t.name,
+        categoryIdx: ci + offset,
+        priority: t.priority,
+      }))
     );
 
-  // append 모드: 공유 store에서 기존 Pool 꺼내서 새 결과와 합치기
-  const buffer = isAppend ? getAppendBuffer() : null;
-  if (isAppend) clearAppendBuffer();
+  const initSessions = (): Session[] => {
+    if (buffer) {
+      const existing = (buffer.sessions as Session[] | undefined) ?? [];
+      return [...existing, { id: newSessionId, prompt: newSessionPrompt, collapsed: false }];
+    }
+    if (shouldRestoreSession && storedSession?.sessions?.length) {
+      return storedSession.sessions;
+    }
+    return [{ id: newSessionId, prompt: origPrompt, collapsed: false }];
+  };
 
   const initCategories = (): Category[] => {
     if (buffer) {
-      return [...buffer.categories, ...buildCategories(state.result!)];
+      const existingCats = (buffer.categories as Category[]).map((c) => ({
+        ...c,
+        sessionId: c.sessionId ?? `session-legacy`,
+      }));
+      return [...existingCats, ...buildCategories(state.result!, newSessionId)];
     }
-    if (shouldRestoreSession) return storedSession?.categories ?? [];
-    return buildCategories(aiResult);
+    if (shouldRestoreSession) {
+      return (storedSession?.categories ?? []).map((c) => ({
+        ...c,
+        sessionId: c.sessionId ?? newSessionId,
+      }));
+    }
+    return buildCategories(aiResult, newSessionId);
   };
 
   const initTasks = (): Task[] => {
     if (buffer) {
-      const offset = buffer.categories.length;
-      const newTasks = buildTasks(state.result!).map((t) => ({
-        ...t,
-        id: `append-${Date.now()}-${t.id}`,
-        categoryIdx: t.categoryIdx + offset,
-      }));
-      return [...buffer.tasks, ...newTasks];
+      const offset = (buffer.categories as Category[]).length;
+      return [...(buffer.tasks as Task[]), ...buildTasks(state.result!, offset)];
     }
     if (shouldRestoreSession) return storedSession?.tasks ?? [];
     return buildTasks(aiResult);
   };
 
-  const [title, setTitle]           = useState(isAppend || shouldRestoreSession ? storedSession?.title ?? "" : aiResult.title ?? "");
+  const [sessions, setSessions]     = useState<Session[]>(initSessions);
   const [categories, setCategories] = useState<Category[]>(initCategories);
   const [tasks, setTasks]           = useState<Task[]>(initTasks);
+  const [title]                     = useState(shouldRestoreSession ? storedSession?.title ?? "" : aiResult.title ?? "");
 
-  // 멤버별 장바구니: { [userId]: Task[] }
-  const [members, setMembers]             = useState<Member[]>([]);
-  const [memberBaskets, setMemberBaskets] = useState<Record<string, Task[]>>({});
-
-  const [draggingId, setDraggingId]               = useState<string | null>(null);
+  const [members, setMembers]                       = useState<Member[]>([]);
+  const [memberBaskets, setMemberBaskets]           = useState<Record<string, Task[]>>({});
+  const [draggingId, setDraggingId]                 = useState<string | null>(null);
   const [draggingFromUserId, setDraggingFromUserId] = useState<string | null>(null);
   const [dragOverUserId, setDragOverUserId]         = useState<string | null>(null);
   const [loadingId, setLoadingId]                   = useState<string | null>(null);
@@ -152,28 +184,22 @@ export default function AiTaskPage() {
   const [addingToCat, setAddingToCat]               = useState<number | null>(null);
   const [newTaskName, setNewTaskName]               = useState("");
 
-  // 워크스페이스 멤버 목록 조회
   useEffect(() => {
     if (!workspace?.id) return;
     client.get(`/workspaces/${workspace.id}/members`)
       .then((res) => {
         const list: Member[] = (res.data.data ?? []).map((m: any) => ({
-          userId: m.userId,
-          name: m.name,
-          role: m.role,
+          userId: m.userId, name: m.name, role: m.role,
         }));
         setMembers(list);
-        // 세션에 저장된 basket 복원, 없으면 빈 슬롯 초기화
         const savedBaskets = storedSession?.memberBaskets;
         if (savedBaskets) {
-          const restored: Record<string, Task[]> = Object.fromEntries(list.map((m) => [m.userId, savedBaskets[m.userId] ?? []]));
-          setMemberBaskets(restored);
+          setMemberBaskets(Object.fromEntries(list.map((m) => [m.userId, savedBaskets[m.userId] ?? []])));
         } else {
           setMemberBaskets(Object.fromEntries(list.map((m) => [m.userId, []])));
         }
       })
       .catch(() => {
-        // 멤버 조회 실패 시 현재 로그인 유저로 폴백
         const userId = localStorage.getItem("userId") ?? "me";
         const userName = localStorage.getItem("userName") ?? "나";
         setMembers([{ userId, name: userName, role: "MEMBER" }]);
@@ -181,28 +207,39 @@ export default function AiTaskPage() {
       });
   }, [workspace?.id]);
 
-  // 세션 자동 저장 (basket 포함 — 돌아왔을 때 picks 복원)
   useEffect(() => {
-    localStorage.setItem(sessionKey, JSON.stringify({ title, categories, tasks, prompt: origPrompt, result: aiResult, memberBaskets }));
-  }, [title, categories, tasks, origPrompt, sessionKey, memberBaskets]);
+    localStorage.setItem(sessionKey, JSON.stringify({
+      title, categories, tasks, prompt: origPrompt, result: aiResult, memberBaskets, sessions,
+    }));
+  }, [categories, tasks, origPrompt, sessionKey, memberBaskets, sessions]);
 
-  const showMsg = (msg: string) => {
-    setSaveMsg(msg);
-    setTimeout(() => setSaveMsg(""), 5000);
-  };
+  const showMsg = (msg: string) => { setSaveMsg(msg); setTimeout(() => setSaveMsg(""), 5000); };
 
   const startCooldown = () => {
     setCooldown(3);
     if (cooldownRef.current) clearInterval(cooldownRef.current);
     cooldownRef.current = setInterval(() => {
-      setCooldown((prev) => {
-        if (prev <= 1) { clearInterval(cooldownRef.current!); return 0; }
-        return prev - 1;
-      });
+      setCooldown((prev) => { if (prev <= 1) { clearInterval(cooldownRef.current!); return 0; } return prev - 1; });
     }, 1000);
   };
 
+  const toggleSession = (id: string) =>
+    setSessions((prev) => prev.map((s) => s.id === id ? { ...s, collapsed: !s.collapsed } : s));
 
+  const handleDeleteTask = (taskId: string) => setTasks((prev) => prev.filter((t) => t.id !== taskId));
+
+  const handleSaveEditTask = (taskId: string) => {
+    if (!editingTaskName.trim()) { setEditingTaskId(null); return; }
+    setTasks((prev) => prev.map((t) => t.id === taskId ? { ...t, name: editingTaskName.trim() } : t));
+    setEditingTaskId(null);
+  };
+
+  const handleAddTaskToCategory = (categoryIdx: number) => {
+    if (!newTaskName.trim()) return;
+    setTasks((prev) => [...prev, { id: `manual-${Date.now()}`, name: newTaskName.trim(), categoryIdx }]);
+    setNewTaskName("");
+    setAddingToCat(null);
+  };
 
   const handleSubDivide = async (task: Task) => {
     setLoadingId(task.id);
@@ -211,11 +248,7 @@ export default function AiTaskPage() {
       const res = await client.post("/ai/subdivide-task", { task: task.name, category }, { timeout: 60000 });
       const subtasks: string[] = res.data.data?.tasks ?? [];
       if (subtasks.length === 0) { alert("더 이상 분할 할 수 없습니다."); return; }
-      const newTasks: Task[] = subtasks.map((t, i) => ({
-        id: `${task.id}-sub${i}`,
-        name: t,
-        categoryIdx: task.categoryIdx,
-      }));
+      const newTasks: Task[] = subtasks.map((t, i) => ({ id: `${task.id}-sub${i}`, name: t, categoryIdx: task.categoryIdx }));
       setTasks((prev) => {
         const idx = prev.findIndex((t) => t.id === task.id);
         const next = [...prev];
@@ -229,34 +262,8 @@ export default function AiTaskPage() {
     }
   };
 
-  // 태스크 삭제
-  const handleDeleteTask = (taskId: string) => {
-    setTasks((prev) => prev.filter((t) => t.id !== taskId));
-  };
+  const handleDragStart = (id: string) => { setDraggingId(id); setDraggingFromUserId(null); };
 
-  // 태스크 이름 수정 저장
-  const handleSaveEditTask = (taskId: string) => {
-    if (!editingTaskName.trim()) { setEditingTaskId(null); return; }
-    setTasks((prev) => prev.map((t) => t.id === taskId ? { ...t, name: editingTaskName.trim() } : t));
-    setEditingTaskId(null);
-  };
-
-  // 카테고리에 직접 태스크 추가
-  const handleAddTaskToCategory = (categoryIdx: number) => {
-    if (!newTaskName.trim()) return;
-    const newTask: Task = { id: `manual-${Date.now()}`, name: newTaskName.trim(), categoryIdx };
-    setTasks((prev) => [...prev, newTask]);
-    setNewTaskName("");
-    setAddingToCat(null);
-  };
-
-  // 트리에서 드래그 시작
-  const handleDragStart = (id: string) => {
-    setDraggingId(id);
-    setDraggingFromUserId(null);
-  };
-
-  // 특정 멤버 슬롯에 드롭
   const handleDrop = (userId: string) => {
     if (!draggingId || cooldown > 0) return;
     const task = tasks.find((t) => t.id === draggingId);
@@ -272,13 +279,8 @@ export default function AiTaskPage() {
     startCooldown();
   };
 
-  // 장바구니에서 트리로 반환 드래그 시작
-  const handleReturnDragStart = (id: string, userId: string) => {
-    setDraggingId(id);
-    setDraggingFromUserId(userId);
-  };
+  const handleReturnDragStart = (id: string, userId: string) => { setDraggingId(id); setDraggingFromUserId(userId); };
 
-  // 트리 영역에 드롭 → 장바구니에서 트리로 복귀
   const handleReturnDrop = (e: React.DragEvent) => {
     e.preventDefault();
     if (!draggingId || !draggingFromUserId) return;
@@ -293,14 +295,10 @@ export default function AiTaskPage() {
     setDraggingFromUserId(null);
   };
 
-  // 모든 멤버 슬롯의 업무를 assigneeId와 함께 보드에 저장
   const sendBasketToWorkspace = async () => {
     if (!workspace?.id) { alert("워크스페이스 정보가 없습니다."); return; }
     const allEmpty = Object.values(memberBaskets).every((b) => b.length === 0);
-    if (allEmpty) {
-      navigate("/workspace-board", { state: { workspaces, workspace } });
-      return;
-    }
+    if (allEmpty) { navigate("/workspace-board", { state: { workspaces, workspace } }); return; }
     try {
       for (const [userId, basket] of Object.entries(memberBaskets)) {
         for (const task of basket) {
@@ -320,8 +318,45 @@ export default function AiTaskPage() {
     }
   };
 
-
   const tasksByCategory = categories.map((_, ci) => tasks.filter((t) => t.categoryIdx === ci));
+
+  const renderTaskCard = (task: Task, cat: Category) => (
+    <div
+      key={task.id}
+      className={`atp-task-card ${draggingId === task.id ? "dragging" : ""}`}
+      style={{ background: cat.taskColor }}
+      draggable={editingTaskId !== task.id}
+      onDragStart={() => editingTaskId !== task.id && handleDragStart(task.id)}
+      onDragEnd={() => setDraggingId(null)}
+    >
+      {editingTaskId === task.id ? (
+        <input
+          className="atp-task-edit-input"
+          value={editingTaskName}
+          onChange={(e) => setEditingTaskName(e.target.value)}
+          onKeyDown={(e) => {
+            if (e.key === "Enter") handleSaveEditTask(task.id);
+            if (e.key === "Escape") setEditingTaskId(null);
+          }}
+          onBlur={() => handleSaveEditTask(task.id)}
+          autoFocus
+          onClick={(e) => e.stopPropagation()}
+        />
+      ) : (
+        <span
+          className="atp-task-name"
+          onDoubleClick={(e) => { e.stopPropagation(); setEditingTaskId(task.id); setEditingTaskName(task.name); }}
+          title="더블클릭하여 수정"
+        >{task.name}</span>
+      )}
+      <div className="atp-task-actions">
+        <button className="atp-subdivide-btn" onClick={(e) => { e.stopPropagation(); handleSubDivide(task); }} disabled={loadingId === task.id}>
+          {loadingId === task.id ? "..." : "세부 분할"}
+        </button>
+        <button className="atp-task-delete-btn" onClick={(e) => { e.stopPropagation(); handleDeleteTask(task.id); }} title="삭제">✕</button>
+      </div>
+    </div>
+  );
 
   return (
     <div className="atp-page">
@@ -331,104 +366,63 @@ export default function AiTaskPage() {
         <button className="atp-back-btn" onClick={() => navigate("/workspace")}>뒤로가기</button>
         {title && <span className="atp-project-title">{title}</span>}
         {saveMsg && <span className="atp-save-msg">{saveMsg}</span>}
-        <button className="atp-workspace-btn" onClick={sendBasketToWorkspace}>보드로 보내기</button>
+        <button className="atp-workspace-btn" onClick={sendBasketToWorkspace}>시작하기</button>
       </div>
 
       <div className="atp-body">
-        {/* 트리 영역 */}
-        <div
-          className="atp-tree"
-          onDragOver={(e) => e.preventDefault()}
-          onDrop={handleReturnDrop}
-        >
-          <div className="atp-root-wrap">
-            <div className="atp-root-node">
-              <span className="atp-root-icon">⊛</span>
-              <span>{title || "프로젝트"}</span>
-            </div>
-            <div className="atp-root-line" />
-          </div>
+        <div className="atp-tree" onDragOver={(e) => e.preventDefault()} onDrop={handleReturnDrop}>
 
-          <div className="atp-categories">
-            {categories.map((cat, ci) => (
-              <div key={ci} className="atp-category-col">
-                <div className="atp-cat-node" style={{ borderColor: cat.taskColor }}>
-                  {cat.name}
+          {sessions.map((session) => {
+            const sessionCats = categories
+              .map((cat, globalIdx) => ({ cat, globalIdx }))
+              .filter(({ cat }) => cat.sessionId === session.id);
+            const totalTasks = sessionCats.reduce((sum, { globalIdx }) => sum + tasksByCategory[globalIdx].length, 0);
+
+            return (
+              <div key={session.id} className="atp-session">
+                <div className="atp-session-header" onClick={() => toggleSession(session.id)}>
+                  <span className="atp-session-toggle">{session.collapsed ? "▶" : "▼"}</span>
+                  <span className="atp-session-prompt">{session.prompt}</span>
+                  <span className="atp-session-count">{totalTasks}개</span>
                 </div>
-                <div className="atp-tasks">
-                  {tasksByCategory[ci].map((task) => (
-                    <div
-                      key={task.id}
-                      className={`atp-task-card ${draggingId === task.id ? "dragging" : ""}`}
-                      style={{ background: cat.taskColor }}
-                      draggable={editingTaskId !== task.id}
-                      onDragStart={() => editingTaskId !== task.id && handleDragStart(task.id)}
-                      onDragEnd={() => setDraggingId(null)}
-                    >
-                      {editingTaskId === task.id ? (
-                        <input
-                          className="atp-task-edit-input"
-                          value={editingTaskName}
-                          onChange={(e) => setEditingTaskName(e.target.value)}
-                          onKeyDown={(e) => {
-                            if (e.key === "Enter") handleSaveEditTask(task.id);
-                            if (e.key === "Escape") setEditingTaskId(null);
-                          }}
-                          onBlur={() => handleSaveEditTask(task.id)}
-                          autoFocus
-                          onClick={(e) => e.stopPropagation()}
-                        />
-                      ) : (
-                        <span
-                          className="atp-task-name"
-                          onDoubleClick={(e) => { e.stopPropagation(); setEditingTaskId(task.id); setEditingTaskName(task.name); }}
-                          title="더블클릭하여 수정"
-                        >{task.name}</span>
-                      )}
-                      <div className="atp-task-actions">
-                        <button
-                          className="atp-subdivide-btn"
-                          onClick={(e) => { e.stopPropagation(); handleSubDivide(task); }}
-                          disabled={loadingId === task.id}
-                        >
-                          {loadingId === task.id ? "..." : "세부 분할"}
-                        </button>
-                        <button
-                          className="atp-task-delete-btn"
-                          onClick={(e) => { e.stopPropagation(); handleDeleteTask(task.id); }}
-                          title="삭제"
-                        >✕</button>
+
+                {!session.collapsed && (
+                  <div className="atp-categories">
+                    {sessionCats.map(({ cat, globalIdx: ci }) => (
+                      <div key={ci} className="atp-category-col">
+                        <div className="atp-cat-node" style={{ borderColor: cat.taskColor }}>{cat.name}</div>
+                        <div className="atp-tasks">
+                          {tasksByCategory[ci].map((task) => renderTaskCard(task, cat))}
+                          {tasksByCategory[ci].length === 0 && <div className="atp-empty-col">모두 배정됨</div>}
+                          {addingToCat === ci ? (
+                            <div className="atp-add-task-form">
+                              <input
+                                className="atp-add-task-input"
+                                placeholder="업무 이름 입력..."
+                                value={newTaskName}
+                                onChange={(e) => setNewTaskName(e.target.value)}
+                                onKeyDown={(e) => {
+                                  if (e.key === "Enter") handleAddTaskToCategory(ci);
+                                  if (e.key === "Escape") { setAddingToCat(null); setNewTaskName(""); }
+                                }}
+                                autoFocus
+                              />
+                              <div className="atp-add-task-actions">
+                                <button className="atp-add-task-confirm" onClick={() => handleAddTaskToCategory(ci)}>추가</button>
+                                <button className="atp-add-task-cancel" onClick={() => { setAddingToCat(null); setNewTaskName(""); }}>취소</button>
+                              </div>
+                            </div>
+                          ) : (
+                            <button className="atp-add-task-btn" onClick={() => setAddingToCat(ci)}>+ 직접 추가</button>
+                          )}
+                        </div>
                       </div>
-                    </div>
-                  ))}
-                  {tasksByCategory[ci].length === 0 && (
-                    <div className="atp-empty-col">모두 배정됨</div>
-                  )}
-                  {addingToCat === ci ? (
-                    <div className="atp-add-task-form">
-                      <input
-                        className="atp-add-task-input"
-                        placeholder="업무 이름 입력..."
-                        value={newTaskName}
-                        onChange={(e) => setNewTaskName(e.target.value)}
-                        onKeyDown={(e) => {
-                          if (e.key === "Enter") handleAddTaskToCategory(ci);
-                          if (e.key === "Escape") { setAddingToCat(null); setNewTaskName(""); }
-                        }}
-                        autoFocus
-                      />
-                      <div className="atp-add-task-actions">
-                        <button className="atp-add-task-confirm" onClick={() => handleAddTaskToCategory(ci)}>추가</button>
-                        <button className="atp-add-task-cancel" onClick={() => { setAddingToCat(null); setNewTaskName(""); }}>취소</button>
-                      </div>
-                    </div>
-                  ) : (
-                    <button className="atp-add-task-btn" onClick={() => setAddingToCat(ci)}>+ 직접 추가</button>
-                  )}
-                </div>
+                    ))}
+                  </div>
+                )}
               </div>
-            ))}
-          </div>
+            );
+          })}
         </div>
 
         {/* 팀원별 장바구니 슬롯 */}
@@ -446,9 +440,7 @@ export default function AiTaskPage() {
                     onDragLeave={() => setDragOverUserId(null)}
                     onDrop={() => handleDrop(member.userId)}
                   >
-                    {basket.length === 0 && (
-                      <span className="atp-drop-hint">여기에 놓기</span>
-                    )}
+                    {basket.length === 0 && <span className="atp-drop-hint">여기에 놓기</span>}
                     {basket.map((task) => (
                       <div
                         key={task.id}

@@ -45,6 +45,7 @@ export default function AITaskModal({ onClose, workspaces = [], workspace }: Pro
           tasks: saved.tasks ?? [],
           memberBaskets: saved.memberBaskets ?? {},
           sessions: saved.sessions ?? [],
+          newSessionPrompt: prompt.trim(),
         });
       }
     } catch {}
@@ -78,7 +79,7 @@ export default function AITaskModal({ onClose, workspaces = [], workspace }: Pro
                 <div className="ai-option-card" onClick={() => setScreen("append-prompt")}>
                   <div className="ai-option-icon green">➕</div>
                   <div className="ai-option-info">
-                    <span className="ai-option-name">큰 작업 추가</span>
+                    <span className="ai-option-name">작업 추가하기</span>
                     <span className="ai-option-desc">새 업무를 분해해서 기존 Pool에 추가합니다</span>
                   </div>
                 </div>
@@ -126,7 +127,7 @@ export default function AITaskModal({ onClose, workspaces = [], workspace }: Pro
 
         {screen === "append-prompt" && (
           <>
-            <h3 className="ai-modal-title">큰 작업 추가</h3>
+            <h3 className="ai-modal-title">작업 추가하기</h3>
             <label className="ai-prompt-label">추가할 업무 내용을 입력하세요</label>
             <textarea
               className="ai-prompt-textarea"

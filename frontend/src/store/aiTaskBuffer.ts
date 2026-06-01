@@ -6,6 +6,7 @@ export interface AppendBuffer {
   tasks: any[];
   memberBaskets: Record<string, any[]>;
   sessions: any[];
+  newSessionPrompt?: string;
 }
 
 let _buffer: AppendBuffer | null = null;
