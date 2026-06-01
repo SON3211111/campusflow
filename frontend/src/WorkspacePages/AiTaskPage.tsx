@@ -312,7 +312,7 @@ export default function AiTaskPage() {
         assigneeId: userId,
         priority: task.priority ?? null,
       }).then((res) => {
-        const backendId = String(res.data.data?.id ?? "");
+        const backendId = String(res.data.data?.taskId ?? "");
         if (backendId) {
           setMemberBaskets((prev) => ({
             ...prev,
