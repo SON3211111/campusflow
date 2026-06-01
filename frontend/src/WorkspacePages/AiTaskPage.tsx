@@ -148,6 +148,10 @@ export default function AiTaskPage() {
   const cooldownRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const [newPromptOpen, setNewPromptOpen]           = useState(false);
   const [newPrompt, setNewPrompt]                   = useState("");
+  const [editingTaskId, setEditingTaskId]           = useState<string | null>(null);
+  const [editingTaskName, setEditingTaskName]       = useState("");
+  const [addingToCat, setAddingToCat]               = useState<number | null>(null);
+  const [newTaskName, setNewTaskName]               = useState("");
 
   // 워크스페이스 멤버 목록 조회
   useEffect(() => {
@@ -224,6 +228,27 @@ export default function AiTaskPage() {
     } finally {
       setLoadingId(null);
     }
+  };
+
+  // 태스크 삭제
+  const handleDeleteTask = (taskId: string) => {
+    setTasks((prev) => prev.filter((t) => t.id !== taskId));
+  };
+
+  // 태스크 이름 수정 저장
+  const handleSaveEditTask = (taskId: string) => {
+    if (!editingTaskName.trim()) { setEditingTaskId(null); return; }
+    setTasks((prev) => prev.map((t) => t.id === taskId ? { ...t, name: editingTaskName.trim() } : t));
+    setEditingTaskId(null);
+  };
+
+  // 카테고리에 직접 태스크 추가
+  const handleAddTaskToCategory = (categoryIdx: number) => {
+    if (!newTaskName.trim()) return;
+    const newTask: Task = { id: `manual-${Date.now()}`, name: newTaskName.trim(), categoryIdx };
+    setTasks((prev) => [...prev, newTask]);
+    setNewTaskName("");
+    setAddingToCat(null);
   };
 
   // 트리에서 드래그 시작
@@ -361,22 +386,69 @@ export default function AiTaskPage() {
                       key={task.id}
                       className={`atp-task-card ${draggingId === task.id ? "dragging" : ""}`}
                       style={{ background: cat.taskColor }}
-                      draggable
-                      onDragStart={() => handleDragStart(task.id)}
+                      draggable={editingTaskId !== task.id}
+                      onDragStart={() => editingTaskId !== task.id && handleDragStart(task.id)}
                       onDragEnd={() => setDraggingId(null)}
                     >
-                      <span className="atp-task-name">{task.name}</span>
-                      <button
-                        className="atp-subdivide-btn"
-                        onClick={(e) => { e.stopPropagation(); handleSubDivide(task); }}
-                        disabled={loadingId === task.id}
-                      >
-                        {loadingId === task.id ? "..." : "세부 분할"}
-                      </button>
+                      {editingTaskId === task.id ? (
+                        <input
+                          className="atp-task-edit-input"
+                          value={editingTaskName}
+                          onChange={(e) => setEditingTaskName(e.target.value)}
+                          onKeyDown={(e) => {
+                            if (e.key === "Enter") handleSaveEditTask(task.id);
+                            if (e.key === "Escape") setEditingTaskId(null);
+                          }}
+                          onBlur={() => handleSaveEditTask(task.id)}
+                          autoFocus
+                          onClick={(e) => e.stopPropagation()}
+                        />
+                      ) : (
+                        <span
+                          className="atp-task-name"
+                          onDoubleClick={(e) => { e.stopPropagation(); setEditingTaskId(task.id); setEditingTaskName(task.name); }}
+                          title="더블클릭하여 수정"
+                        >{task.name}</span>
+                      )}
+                      <div className="atp-task-actions">
+                        <button
+                          className="atp-subdivide-btn"
+                          onClick={(e) => { e.stopPropagation(); handleSubDivide(task); }}
+                          disabled={loadingId === task.id}
+                        >
+                          {loadingId === task.id ? "..." : "세부 분할"}
+                        </button>
+                        <button
+                          className="atp-task-delete-btn"
+                          onClick={(e) => { e.stopPropagation(); handleDeleteTask(task.id); }}
+                          title="삭제"
+                        >✕</button>
+                      </div>
                     </div>
                   ))}
                   {tasksByCategory[ci].length === 0 && (
                     <div className="atp-empty-col">모두 배정됨</div>
+                  )}
+                  {addingToCat === ci ? (
+                    <div className="atp-add-task-form">
+                      <input
+                        className="atp-add-task-input"
+                        placeholder="업무 이름 입력..."
+                        value={newTaskName}
+                        onChange={(e) => setNewTaskName(e.target.value)}
+                        onKeyDown={(e) => {
+                          if (e.key === "Enter") handleAddTaskToCategory(ci);
+                          if (e.key === "Escape") { setAddingToCat(null); setNewTaskName(""); }
+                        }}
+                        autoFocus
+                      />
+                      <div className="atp-add-task-actions">
+                        <button className="atp-add-task-confirm" onClick={() => handleAddTaskToCategory(ci)}>추가</button>
+                        <button className="atp-add-task-cancel" onClick={() => { setAddingToCat(null); setNewTaskName(""); }}>취소</button>
+                      </div>
+                    </div>
+                  ) : (
+                    <button className="atp-add-task-btn" onClick={() => setAddingToCat(ci)}>+ 직접 추가</button>
                   )}
                 </div>
               </div>

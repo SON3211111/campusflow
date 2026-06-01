@@ -420,6 +420,105 @@
   cursor: not-allowed;
 }
 
+.atp-task-actions {
+  display: flex;
+  gap: 4px;
+  align-self: flex-end;
+  margin-top: 8px;
+}
+
+.atp-task-delete-btn {
+  display: none;
+  background: rgba(220, 38, 38, 0.15);
+  border: none;
+  border-radius: 6px;
+  padding: 3px 6px;
+  font-size: 10px;
+  color: #dc2626;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+
+.atp-task-card:hover .atp-task-delete-btn {
+  display: block;
+}
+
+.atp-task-delete-btn:hover {
+  background: rgba(220, 38, 38, 0.3);
+}
+
+.atp-task-edit-input {
+  width: 100%;
+  border: none;
+  border-bottom: 2px solid #6366f1;
+  background: transparent;
+  font-size: 14px;
+  font-weight: 700;
+  color: #111;
+  outline: none;
+  padding: 2px 0;
+}
+
+.atp-add-task-btn {
+  width: 100%;
+  background: none;
+  border: 1px dashed rgba(0,0,0,0.2);
+  border-radius: 6px;
+  padding: 6px;
+  font-size: 12px;
+  color: rgba(0,0,0,0.4);
+  cursor: pointer;
+  margin-top: 6px;
+  transition: all 0.15s;
+}
+
+.atp-add-task-btn:hover {
+  background: rgba(0,0,0,0.05);
+  color: rgba(0,0,0,0.7);
+}
+
+.atp-add-task-form {
+  margin-top: 6px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.atp-add-task-input {
+  width: 100%;
+  border: 1px solid rgba(0,0,0,0.2);
+  border-radius: 6px;
+  padding: 6px 8px;
+  font-size: 13px;
+  outline: none;
+  background: rgba(255,255,255,0.8);
+  box-sizing: border-box;
+}
+
+.atp-add-task-actions {
+  display: flex;
+  gap: 4px;
+}
+
+.atp-add-task-confirm {
+  background: #6366f1;
+  color: #fff;
+  border: none;
+  border-radius: 6px;
+  padding: 4px 10px;
+  font-size: 12px;
+  cursor: pointer;
+}
+
+.atp-add-task-cancel {
+  background: rgba(0,0,0,0.1);
+  border: none;
+  border-radius: 6px;
+  padding: 4px 10px;
+  font-size: 12px;
+  cursor: pointer;
+}
+
 .atp-empty-col {
   font-size: 11px;
   color: #bbb;
