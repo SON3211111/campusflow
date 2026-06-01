@@ -469,18 +469,27 @@ export default function AiTaskPage() {
                     onDrop={() => handleDrop(member.userId)}
                   >
                     {basket.length === 0 && <span className="atp-drop-hint">여기에 놓기</span>}
-                    {basket.map((task) => (
-                      <div
-                        key={task.id}
-                        className="atp-basket-card"
-                        style={{ background: CAT_COLORS[task.categoryIdx % CAT_COLORS.length].taskColor }}
-                        draggable
-                        onDragStart={() => handleReturnDragStart(task.id, member.userId)}
-                      >
-                        <span className="atp-basket-card-name">{task.name}</span>
-                        <span className="atp-basket-card-tag">{categories[task.categoryIdx]?.name}</span>
-                      </div>
-                    ))}
+                    {basket.map((task) => {
+                      const cat = categories[task.categoryIdx];
+                      const sessionPrompt = sessions.find((s) => s.id === cat?.sessionId)?.prompt ?? "";
+                      return (
+                        <div
+                          key={task.id}
+                          className="atp-basket-card"
+                          style={{ background: CAT_COLORS[task.categoryIdx % CAT_COLORS.length].taskColor }}
+                          draggable
+                          onDragStart={() => handleReturnDragStart(task.id, member.userId)}
+                        >
+                          {sessionPrompt && (
+                            <span className="atp-basket-card-session">{sessionPrompt}</span>
+                          )}
+                          <div className="atp-basket-card-bottom">
+                            <span className="atp-basket-card-name">{task.name}</span>
+                            <span className="atp-basket-card-tag">{cat?.name}</span>
+                          </div>
+                        </div>
+                      );
+                    })}
                   </div>
                   <div className="atp-avatar">{member.name[0]}</div>
                   <span className="atp-user-name">{member.name}</span>
