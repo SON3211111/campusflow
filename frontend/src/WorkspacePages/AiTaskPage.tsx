@@ -115,7 +115,6 @@ export default function AiTaskPage() {
   const [draggingFromUserId, setDraggingFromUserId] = useState<string | null>(null);
   const [dragOverUserId, setDragOverUserId]         = useState<string | null>(null);
   const [loadingId, setLoadingId]                   = useState<string | null>(null);
-  const [resetLoading, setResetLoading]             = useState(false);
   const [saveMsg, setSaveMsg]                       = useState("");
   const [cooldown, setCooldown]                     = useState(0);
   const cooldownRef = useRef<ReturnType<typeof setInterval> | null>(null);
@@ -173,34 +172,6 @@ export default function AiTaskPage() {
   };
 
 
-  const handleReset = async () => {
-    if (!origPrompt) { alert("프롬프트 정보가 없습니다. 워크스페이스에서 다시 시작해주세요."); return; }
-    setResetLoading(true);
-    try {
-      const params = new URLSearchParams({ description: origPrompt });
-      const res = await client.post(`/ai/generate-tasks?${params}`, {}, { timeout: 120000 });
-      const data = res.data.data;
-      const categoryMap = new Map<string, string[]>();
-      (data.tasks ?? []).forEach((task: any) => {
-        if (!categoryMap.has(task.category)) categoryMap.set(task.category, []);
-        categoryMap.get(task.category)!.push(task.title);
-      });
-      const json = {
-        title: origPrompt.slice(0, 15),
-        categories: Array.from(categoryMap.entries()).map(([name, tasks], i) => ({ id: `c${i + 1}`, name, tasks })),
-      };
-      setTitle(json.title);
-      setCategories(buildCategories(json));
-      setTasks(buildTasks(json));
-      // 장바구니 초기화
-      setMemberBaskets(Object.fromEntries(members.map((m) => [m.userId, []])));
-      setSaved(false);
-    } catch (err: any) {
-      alert(`다시 설정에 실패했습니다: ${err?.response?.data?.detail ?? err?.message ?? err}`);
-    } finally {
-      setResetLoading(false);
-    }
-  };
 
   const handleSubDivide = async (task: Task) => {
     setLoadingId(task.id);
@@ -312,9 +283,6 @@ export default function AiTaskPage() {
       <div className="atp-topbar">
         <button className="atp-back-btn" onClick={() => navigate("/workspace")}>뒤로가기</button>
         {title && <span className="atp-project-title">{title}</span>}
-        <button className="atp-reset-btn" onClick={handleReset} disabled={resetLoading}>
-          {resetLoading ? "분석 중..." : "다시 설정"}
-        </button>
         {saveMsg && <span className="atp-save-msg">{saveMsg}</span>}
         <button className="atp-new-btn" onClick={() => setNewPromptOpen((v) => !v)}>+ 새 업무 분해</button>
         <button className="atp-workspace-btn" onClick={sendBasketToWorkspace}>보드로 보내기</button>
