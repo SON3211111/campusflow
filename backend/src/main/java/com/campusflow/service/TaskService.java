@@ -7,6 +7,7 @@ import com.campusflow.entity.Project;
 import com.campusflow.entity.Task;
 import com.campusflow.entity.User;
 import com.campusflow.entity.Workspace;
+import com.campusflow.entity.enums.TaskPriority;
 import com.campusflow.entity.enums.TaskStatus;
 import com.campusflow.repository.ProjectRepository;
 import com.campusflow.repository.TaskRepository;
@@ -72,12 +73,18 @@ public class TaskService {
             assignee = userRepository.findById(req.assigneeId()).orElse(null);
         }
 
+        TaskPriority priority = null;
+        if (req.priority() != null && !req.priority().isBlank()) {
+            try { priority = TaskPriority.valueOf(req.priority()); } catch (IllegalArgumentException ignored) {}
+        }
+
         Task task = Task.builder()
                 .workspace(workspace)
                 .title(req.title())
                 .description(req.description())
                 .status(status)
                 .assignee(assignee)
+                .priority(priority)
                 .deleted(false)
                 .build();
 

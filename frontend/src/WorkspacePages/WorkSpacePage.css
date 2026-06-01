@@ -530,9 +530,9 @@
   border-radius: 4px;
 }
 
-.wsp-priority-high   { background: #ffe4e4; color: #c53030; }
-.wsp-priority-medium { background: #fef3c7; color: #92400e; }
-.wsp-priority-low    { background: #dcfce7; color: #166534; }
+.wsp-priority-high   { background: #e53e3e; color: #fff; }
+.wsp-priority-medium { background: #d97706; color: #fff; }
+.wsp-priority-low    { background: #16a34a; color: #fff; }
 
 .wsp-card-text {
   flex: 1;

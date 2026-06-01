@@ -14,6 +14,7 @@ interface Task {
   id: string;
   name: string;
   categoryIdx: number;
+  priority?: string;
 }
 
 interface Category {
@@ -34,9 +35,14 @@ interface WorkspaceItem {
   gradient: string;
 }
 
+interface AiTask {
+  name: string;
+  priority?: string;
+}
+
 interface AiResult {
   title: string;
-  categories: { id: string; name: string; tasks: string[] }[];
+  categories: { id: string; name: string; tasks: AiTask[] }[];
 }
 
 interface AiTaskSession {
@@ -93,7 +99,7 @@ export default function AiTaskPage() {
 
   const buildTasks = (res: typeof aiResult): Task[] =>
     (res?.categories ?? []).flatMap((cat, ci) =>
-      cat.tasks.map((t, ti) => ({ id: `c${ci}-t${ti}`, name: t, categoryIdx: ci }))
+      cat.tasks.map((t, ti) => ({ id: `c${ci}-t${ti}`, name: t.name, categoryIdx: ci, priority: t.priority }))
     );
 
   const [title, setTitle]           = useState(shouldRestoreSession ? storedSession?.title ?? "" : aiResult.title ?? "");
@@ -296,6 +302,7 @@ export default function AiTaskPage() {
             description: categories[task.categoryIdx]?.name ?? "",
             status: "TODO",
             assigneeId: userId,
+            priority: task.priority ?? null,
           });
         }
       }
