@@ -1,5 +1,6 @@
 package com.campusflow.entity;
 
+import com.campusflow.entity.enums.TaskPriority;
 import com.campusflow.entity.enums.TaskStatus;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
@@ -44,6 +45,20 @@ public class Task {
     @Builder.Default
     @Column(name = "is_ai_generated", nullable = false)
     private boolean isAiGenerated = false;
+
+    @Enumerated(EnumType.STRING)
+    @Column(name = "priority", nullable = true)
+    private TaskPriority priority;
+
+    @Column(name = "estimated_hours", nullable = true)
+    private Integer estimatedHours;
+
+    @Builder.Default
+    @Column(name = "is_locked", nullable = false)
+    private boolean isLocked = false;
+
+    @Column(name = "locked_by", nullable = true)
+    private String lockedBy;
 
     @Column(name = "due_date")
     private LocalDate dueDate;
