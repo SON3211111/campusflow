@@ -16,6 +16,7 @@ interface Task {
   name: string;
   categoryIdx: number;
   priority?: string;
+  backendId?: string;
 }
 
 interface Category {
@@ -288,9 +289,11 @@ export default function AiTaskPage() {
   const handleDragStart = (id: string) => { setDraggingId(id); setDraggingFromUserId(null); };
 
   const handleDrop = (userId: string) => {
-    if (!draggingId || cooldown > 0) return;
+    if (!draggingId) return;
     const task = tasks.find((t) => t.id === draggingId);
     if (!task) return;
+
+    // 낙관적 UI 업데이트
     setMemberBaskets((prev) => {
       const basket = prev[userId] ?? [];
       if (basket.some((item) => item.id === task.id)) return prev;
@@ -299,7 +302,36 @@ export default function AiTaskPage() {
     setTasks((prev) => prev.filter((t) => t.id !== draggingId));
     setDraggingId(null);
     setDragOverUserId(null);
-    startCooldown();
+
+    // 즉시 보드에 생성
+    if (workspace?.id) {
+      client.post(`/workspaces/${workspace.id}/tasks`, {
+        title: task.name,
+        description: categories[task.categoryIdx]?.name ?? "",
+        status: "TODO",
+        assigneeId: userId,
+        priority: task.priority ?? null,
+      }).then((res) => {
+        const backendId = String(res.data.data?.id ?? "");
+        if (backendId) {
+          setMemberBaskets((prev) => ({
+            ...prev,
+            [userId]: (prev[userId] ?? []).map((t) =>
+              t.id === task.id ? { ...t, backendId } : t
+            ),
+          }));
+        }
+      }).catch((err) => {
+        console.error("태스크 생성 실패:", err);
+        // 롤백
+        setTasks((prev) => [...prev, task]);
+        setMemberBaskets((prev) => ({
+          ...prev,
+          [userId]: (prev[userId] ?? []).filter((t) => t.id !== task.id),
+        }));
+        alert("보드 저장에 실패했습니다.");
+      });
+    }
   };
 
   const handleReturnDragStart = (id: string, userId: string) => { setDraggingId(id); setDraggingFromUserId(userId); };
@@ -309,7 +341,14 @@ export default function AiTaskPage() {
     if (!draggingId || !draggingFromUserId) return;
     const task = memberBaskets[draggingFromUserId]?.find((t) => t.id === draggingId);
     if (!task) return;
-    setTasks((prev) => [...prev, task]);
+
+    // 즉시 보드에서 삭제
+    if (task.backendId && workspace?.id) {
+      client.delete(`/workspaces/${workspace.id}/tasks/${task.backendId}`)
+        .catch((err) => console.error("태스크 삭제 실패:", err));
+    }
+
+    setTasks((prev) => [...prev, { ...task, backendId: undefined }]);
     setMemberBaskets((prev) => ({
       ...prev,
       [draggingFromUserId]: (prev[draggingFromUserId] ?? []).filter((t) => t.id !== draggingId),
@@ -320,11 +359,17 @@ export default function AiTaskPage() {
 
   const sendBasketToWorkspace = async () => {
     if (!workspace?.id) { alert("워크스페이스 정보가 없습니다."); return; }
-    const allEmpty = Object.values(memberBaskets).every((b) => b.length === 0);
-    if (allEmpty) { navigate("/workspace-board", { state: { workspaces, workspace } }); return; }
-    try {
-      for (const [userId, basket] of Object.entries(memberBaskets)) {
-        for (const task of basket) {
+
+    // backendId 없는 태스크(드래그 중 API 실패 등) 혹시 있으면 저장
+    const unsaved: Array<[string, Task]> = [];
+    for (const [userId, basket] of Object.entries(memberBaskets)) {
+      for (const task of basket) {
+        if (!task.backendId) unsaved.push([userId, task]);
+      }
+    }
+    if (unsaved.length > 0) {
+      try {
+        for (const [userId, task] of unsaved) {
           await client.post(`/workspaces/${workspace.id}/tasks`, {
             title: task.name,
             description: categories[task.categoryIdx]?.name ?? "",
@@ -333,12 +378,13 @@ export default function AiTaskPage() {
             priority: task.priority ?? null,
           });
         }
+      } catch (err: any) {
+        alert(`업무 저장에 실패했습니다: ${err?.response?.data?.message ?? err?.message ?? err}`);
+        return;
       }
-      showMsg("보드에 업무를 저장했습니다");
-      navigate("/workspace-board", { state: { workspaces, workspace } });
-    } catch (err: any) {
-      alert(`업무 저장에 실패했습니다: ${err?.response?.data?.message ?? err?.message ?? err}`);
     }
+
+    navigate("/workspace-board", { state: { workspaces, workspace } });
   };
 
   const tasksByCategory = categories.map((_, ci) => tasks.filter((t) => t.categoryIdx === ci));
@@ -456,15 +502,14 @@ export default function AiTaskPage() {
         {/* 팀원별 장바구니 슬롯 */}
         <div className="atp-basket-bar">
           <div className="atp-basket-outer">
-            {cooldown > 0 && <span className="atp-cooldown-msg">{cooldown}초 대기</span>}
             {members.map((member) => {
               const basket = memberBaskets[member.userId] ?? [];
               const isOver = dragOverUserId === member.userId;
               return (
                 <div key={member.userId} className="atp-user-slot">
                   <div
-                    className={`atp-basket-box ${isOver && cooldown === 0 ? "drag-over" : ""} ${cooldown > 0 ? "basket-locked" : ""}`}
-                    onDragOver={(e) => { e.preventDefault(); if (cooldown === 0) setDragOverUserId(member.userId); }}
+                    className={`atp-basket-box ${isOver ? "drag-over" : ""}`}
+                    onDragOver={(e) => { e.preventDefault(); setDragOverUserId(member.userId); }}
                     onDragLeave={() => setDragOverUserId(null)}
                     onDrop={() => handleDrop(member.userId)}
                   >
