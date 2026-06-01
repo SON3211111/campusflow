@@ -51,6 +51,7 @@ interface AiTaskSession {
   tasks: Task[];
   prompt: string;
   result: AiResult;
+  memberBaskets?: Record<string, Task[]>;
 }
 
 const CAT_COLORS = [
@@ -133,8 +134,14 @@ export default function AiTaskPage() {
           role: m.role,
         }));
         setMembers(list);
-        // 각 멤버의 장바구니 슬롯 초기화
-        setMemberBaskets(Object.fromEntries(list.map((m) => [m.userId, []])));
+        // 세션에 저장된 basket 복원, 없으면 빈 슬롯 초기화
+        const savedBaskets = storedSession?.memberBaskets;
+        if (savedBaskets) {
+          const restored: Record<string, Task[]> = Object.fromEntries(list.map((m) => [m.userId, savedBaskets[m.userId] ?? []]));
+          setMemberBaskets(restored);
+        } else {
+          setMemberBaskets(Object.fromEntries(list.map((m) => [m.userId, []])));
+        }
       })
       .catch(() => {
         // 멤버 조회 실패 시 현재 로그인 유저로 폴백
@@ -145,10 +152,10 @@ export default function AiTaskPage() {
       });
   }, [workspace?.id]);
 
-  // 세션 자동 저장 (basket 제외 - 멤버 슬롯은 서버 기준이므로)
+  // 세션 자동 저장 (basket 포함 — 돌아왔을 때 picks 복원)
   useEffect(() => {
-    localStorage.setItem(sessionKey, JSON.stringify({ title, categories, tasks, prompt: origPrompt, result: aiResult }));
-  }, [title, categories, tasks, origPrompt, sessionKey]);
+    localStorage.setItem(sessionKey, JSON.stringify({ title, categories, tasks, prompt: origPrompt, result: aiResult, memberBaskets }));
+  }, [title, categories, tasks, origPrompt, sessionKey, memberBaskets]);
 
   const showMsg = (msg: string) => {
     setSaveMsg(msg);
@@ -306,7 +313,6 @@ export default function AiTaskPage() {
           });
         }
       }
-      setMemberBaskets(Object.fromEntries(members.map((m) => [m.userId, []])));
       showMsg("보드에 업무를 저장했습니다");
       navigate("/workspace-board", { state: { workspaces, workspace } });
     } catch (err: any) {
