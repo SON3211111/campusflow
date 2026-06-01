@@ -43,11 +43,7 @@ function getDaysLeft(dueDate?: string): number | null {
   return Math.ceil((due.getTime() - today.getTime()) / (1000 * 60 * 60 * 24));
 }
 
-const PRIORITY_LABEL: Record<string, string> = {
-  HIGH: "🔴 높음",
-  MEDIUM: "🟡 보통",
-  LOW: "🟢 낮음",
-};
+
 
 const DAYS = ["일", "월", "화", "수", "목", "금", "토"];
 const TODAY = new Date();
@@ -554,11 +550,6 @@ export default function WorkSpacePage() {
                       }}
                     >
                       <div className="wsp-card-top">
-                        {card.priority && PRIORITY_LABEL[card.priority] && (
-                          <span className={`wsp-card-priority wsp-priority-${card.priority.toLowerCase()}`}>
-                            {PRIORITY_LABEL[card.priority]}
-                          </span>
-                        )}
                         <button
                           className="wsp-card-delete"
                           onClick={(e) => { e.stopPropagation(); handleDeleteCard(col, card.id); }}
