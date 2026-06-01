@@ -28,8 +28,26 @@ interface CardItem {
   title: string;
   desc: string;
   dueDate?: string;
+  assigneeId?: string;
+  assigneeName?: string;
+  priority?: string;
   comments: { user: string; text: string; time: string }[];
 }
+
+function getDaysLeft(dueDate?: string): number | null {
+  if (!dueDate) return null;
+  const due = new Date(dueDate);
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  due.setHours(0, 0, 0, 0);
+  return Math.ceil((due.getTime() - today.getTime()) / (1000 * 60 * 60 * 24));
+}
+
+const PRIORITY_LABEL: Record<string, string> = {
+  HIGH: "🔴 높음",
+  MEDIUM: "🟡 보통",
+  LOW: "🟢 낮음",
+};
 
 const DAYS = ["일", "월", "화", "수", "목", "금", "토"];
 const TODAY = new Date();
@@ -169,7 +187,7 @@ export default function WorkSpacePage() {
         for (const t of (res.data.data ?? [])) {
           const col = STATUS_TO_COL[t.status] ?? "상태 없음";
           if (newCards[col]) {
-            newCards[col].push({ id: t.taskId, title: t.title, desc: t.description ?? "", dueDate: t.dueDate ?? "", comments: [] });
+            newCards[col].push({ id: t.taskId, title: t.title, desc: t.description ?? "", dueDate: t.dueDate ?? "", assigneeId: t.assigneeId ?? "", assigneeName: t.assigneeName ?? "", priority: t.priority ?? "", comments: [] });
           }
         }
         setCards(newCards);
@@ -517,10 +535,13 @@ export default function WorkSpacePage() {
                   <button className="wsp-col-menu">···</button>
                 </div>
                 <div className="wsp-col-body">
-                  {(cards[col] ?? []).map((card) => (
+                  {(cards[col] ?? []).map((card) => {
+                    const daysLeft = getDaysLeft(card.dueDate);
+                    const isNear = col !== "완료" && daysLeft !== null && daysLeft <= 3;
+                    return (
                     <div
                       key={card.id}
-                      className={`wsp-card-item ${draggingCard?.card.id === card.id ? "dragging" : ""}`}
+                      className={`wsp-card-item ${draggingCard?.card.id === card.id ? "dragging" : ""} ${isNear ? "deadline-near" : ""}`}
                       draggable
                       onDragStart={() => setDraggingCard({ card, col })}
                       onDragEnd={() => { setDraggingCard(null); setDragOverCol(null); }}
@@ -532,13 +553,33 @@ export default function WorkSpacePage() {
                         setSelectedCard({ card, col });
                       }}
                     >
+                      <div className="wsp-card-top">
+                        {card.priority && PRIORITY_LABEL[card.priority] && (
+                          <span className={`wsp-card-priority wsp-priority-${card.priority.toLowerCase()}`}>
+                            {PRIORITY_LABEL[card.priority]}
+                          </span>
+                        )}
+                        <button
+                          className="wsp-card-delete"
+                          onClick={(e) => { e.stopPropagation(); handleDeleteCard(col, card.id); }}
+                        >✕</button>
+                      </div>
                       <span className="wsp-card-text">{card.title}</span>
-                      <button
-                        className="wsp-card-delete"
-                        onClick={(e) => { e.stopPropagation(); handleDeleteCard(col, card.id); }}
-                      >✕</button>
+                      <div className="wsp-card-footer">
+                        {card.dueDate && (
+                          <span className={`wsp-card-due ${isNear ? "due-near" : ""}`}>
+                            📅 {card.dueDate}
+                          </span>
+                        )}
+                        {card.assigneeName && (
+                          <span className="wsp-card-avatar" title={card.assigneeName}>
+                            {card.assigneeName[0].toUpperCase()}
+                          </span>
+                        )}
+                      </div>
                     </div>
-                  ))}
+                    );
+                  })}
                   {addingCol === col ? (
                     <div className="wsp-add-form">
                       <input

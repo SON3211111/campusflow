@@ -496,10 +496,11 @@
   color: #222;
   box-shadow: 0 1px 4px rgba(0,0,0,0.08);
   display: flex;
-  justify-content: space-between;
-  align-items: flex-start;
+  flex-direction: column;
+  gap: 6px;
   cursor: grab;
   transition: opacity 0.15s;
+  border: 2px solid transparent;
 }
 
 .wsp-card-item:hover {
@@ -511,8 +512,62 @@
   cursor: grabbing;
 }
 
+.wsp-card-item.deadline-near {
+  border-color: #e53e3e;
+}
+
+.wsp-card-top {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  min-height: 18px;
+}
+
+.wsp-card-priority {
+  font-size: 11px;
+  font-weight: 600;
+  padding: 2px 6px;
+  border-radius: 4px;
+}
+
+.wsp-priority-high   { background: #ffe4e4; color: #c53030; }
+.wsp-priority-medium { background: #fef3c7; color: #92400e; }
+.wsp-priority-low    { background: #dcfce7; color: #166534; }
+
 .wsp-card-text {
   flex: 1;
+  line-height: 1.4;
+  word-break: break-word;
+}
+
+.wsp-card-footer {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-top: 2px;
+}
+
+.wsp-card-due {
+  font-size: 11px;
+  color: #888;
+}
+
+.wsp-card-due.due-near {
+  color: #e53e3e;
+  font-weight: 600;
+}
+
+.wsp-card-avatar {
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  background: #6366f1;
+  color: #fff;
+  font-size: 11px;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
 .wsp-card-delete {
@@ -522,8 +577,9 @@
   color: #bbb;
   cursor: pointer;
   font-size: 11px;
-  padding: 0 0 0 6px;
+  padding: 0;
   line-height: 1;
+  flex-shrink: 0;
 }
 
 .wsp-card-item:hover .wsp-card-delete {
