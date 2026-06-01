@@ -208,6 +208,71 @@
   background: #f4f4f4;
 }
 
+/* ===== 커뮤니티 글 목록 ===== */
+.cp-tabs-row { display: flex; align-items: center; justify-content: space-between; margin: 8px 0 6px; }
+.cp-tabs { display: flex; border: 1px solid #ddd; border-radius: 8px; overflow: hidden; }
+.cp-tab { background: none; border: none; padding: 5px 10px; font-size: 11px; font-weight: 500; cursor: pointer; color: #666; display: flex; align-items: center; gap: 3px; }
+.cp-tab.active { background: #4f7cff; color: #fff; font-weight: 700; }
+.cp-tab-count { background: #ef4444; color: #fff; border-radius: 10px; padding: 0 5px; font-size: 9px; font-weight: 700; }
+.cp-new-btn { width: 26px; height: 26px; border: 1.5px solid #4f7cff; border-radius: 8px; background: none; color: #4f7cff; font-size: 16px; font-weight: 700; cursor: pointer; display: flex; align-items: center; justify-content: center; }
+.cp-new-btn:hover { background: #f0f4ff; }
+
+.cp-form { background: #f4f6ff; border-radius: 10px; padding: 10px; margin-bottom: 8px; display: flex; flex-direction: column; gap: 6px; }
+.cp-input { height: 30px; border: 1px solid #dde2f0; border-radius: 7px; padding: 0 8px; font-size: 11px; outline: none; background: #fff; }
+.cp-input:focus { border-color: #4f7cff; }
+.cp-textarea { height: 60px; border: 1px solid #dde2f0; border-radius: 7px; padding: 6px 8px; font-size: 11px; outline: none; background: #fff; resize: none; font-family: inherit; }
+.cp-textarea:focus { border-color: #4f7cff; }
+.cp-form-actions { display: flex; gap: 6px; }
+.cp-submit-btn { background: #4f7cff; color: #fff; border: none; border-radius: 7px; padding: 5px 12px; font-size: 11px; font-weight: 600; cursor: pointer; }
+.cp-cancel-btn { background: none; border: none; font-size: 11px; color: #888; cursor: pointer; }
+
+.cp-list { display: flex; flex-direction: column; gap: 0; overflow-y: auto; max-height: 220px; }
+.cp-empty { font-size: 11px; color: #bbb; text-align: center; padding: 16px 0; }
+.cp-post-item { padding: 8px 4px; border-bottom: 1px solid #f2f2f2; cursor: pointer; }
+.cp-post-item:hover { background: #f8f9ff; border-radius: 6px; }
+.cp-post-header { display: flex; align-items: center; gap: 5px; margin-bottom: 3px; }
+.cp-status-dot { width: 7px; height: 7px; border-radius: 50%; flex-shrink: 0; }
+.cp-status-dot.unsolved { background: #ef4444; }
+.cp-status-dot.solved   { background: #22c55e; }
+.cp-post-title { font-size: 12px; font-weight: 600; color: #222; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; flex: 1; }
+.cp-post-preview { font-size: 10px; color: #888; margin-left: 12px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.cp-post-meta { font-size: 10px; color: #aaa; margin-left: 12px; margin-top: 2px; }
+
+/* 상세 뷰 */
+.cp-detail { display: flex; flex-direction: column; gap: 6px; overflow-y: auto; flex: 1; }
+.cp-back-btn { background: none; border: none; font-size: 11px; color: #4f7cff; cursor: pointer; padding: 0; text-align: left; }
+.cp-detail-title { font-size: 13px; font-weight: 700; color: #222; }
+.cp-detail-meta { display: flex; align-items: center; gap: 6px; font-size: 10px; color: #888; }
+.cp-badge { padding: 2px 6px; border-radius: 10px; font-size: 9px; font-weight: 700; }
+.cp-badge.unsolved { background: #fef2f2; color: #ef4444; }
+.cp-badge.solved   { background: #f0fdf4; color: #22c55e; }
+.cp-detail-content { font-size: 11px; color: #444; line-height: 1.6; margin: 0; padding: 8px; background: #f9f9f9; border-radius: 6px; }
+.cp-comments-title { font-size: 11px; font-weight: 600; color: #555; margin-top: 4px; }
+.cp-comments-list { display: flex; flex-direction: column; gap: 6px; overflow-y: auto; max-height: 160px; }
+.cp-comments-empty { font-size: 10px; color: #bbb; text-align: center; padding: 10px 0; }
+.cp-comment { background: #f8f9ff; border-radius: 6px; padding: 6px 8px; }
+.cp-comment-header { display: flex; align-items: center; gap: 5px; margin-bottom: 3px; }
+.cp-comment-name { font-size: 11px; font-weight: 600; color: #4f7cff; }
+.cp-adopted { background: #fef9c3; color: #b45309; font-size: 9px; font-weight: 700; padding: 1px 5px; border-radius: 8px; }
+.cp-comment-text { font-size: 11px; color: #444; }
+.cp-reply { margin-left: 10px; margin-top: 4px; }
+.cp-reply-name { font-size: 10px; font-weight: 600; color: #888; }
+.cp-comment-form { display: flex; gap: 4px; margin-top: 4px; }
+.cp-comment-input { flex: 1; height: 30px; border: 1px solid #dde2f0; border-radius: 7px; padding: 0 8px; font-size: 11px; outline: none; }
+.cp-comment-input:focus { border-color: #4f7cff; }
+.cp-comment-send { background: #4f7cff; color: #fff; border: none; border-radius: 7px; padding: 0 10px; font-size: 11px; font-weight: 600; cursor: pointer; }
+.cp-mention { color: #4f7cff; font-weight: 600; }
+
+.cp-del-btn   { background: none; border: none; font-size: 13px; color: #ccc; cursor: pointer; padding: 2px 4px; line-height: 1; flex-shrink: 0; border-radius: 4px; }
+.cp-del-btn:hover   { color: #ef4444; background: #fef2f2; }
+.cp-edit-btn  { background: none; border: none; font-size: 13px; color: #ccc; cursor: pointer; padding: 2px 4px; line-height: 1; flex-shrink: 0; border-radius: 4px; }
+.cp-edit-btn:hover  { color: #4f7cff; background: #f0f4ff; }
+.cp-solve-btn { background: none; border: none; font-size: 13px; color: #ccc; cursor: pointer; padding: 2px 4px; line-height: 1; flex-shrink: 0; border-radius: 4px; }
+.cp-solve-btn:hover { color: #22c55e; background: #f0fdf4; }
+.cp-detail-header-row { display: flex; align-items: flex-start; justify-content: space-between; gap: 6px; }
+.cp-del-post-btn { background: none; border: 1px solid #f59e0b; border-radius: 6px; font-size: 10px; color: #f59e0b; cursor: pointer; padding: 2px 7px; white-space: nowrap; flex-shrink: 0; }
+.cp-del-post-btn:hover { background: #fef9c3; }
+
 /* ===== Planner ===== */
 .wsp-planner {
   width: 260px;

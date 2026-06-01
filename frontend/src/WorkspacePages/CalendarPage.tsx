@@ -67,6 +67,14 @@ function timeToHeight(start: string, end: string): number {
   return ((eh * 60 + em) - (sh * 60 + sm)) / 60 * HOUR_H;
 }
 
+function renderMentions(text: string, members: { name: string }[]) {
+  return text.split(/(@[\w가-힣]+)/g).map((part, i) => {
+    if (part.startsWith("@") && members.some(m => m.name === part.slice(1)))
+      return <span key={i} className="cp-mention">{part}</span>;
+    return <span key={i}>{part}</span>;
+  });
+}
+
 function toDateStr(year: number, month: number, day: number) {
   return `${year}-${String(month + 1).padStart(2, "0")}-${String(day).padStart(2, "0")}`;
 }
@@ -212,9 +220,42 @@ export default function CalendarPage() {
 
   const [showCommunity, setShowCommunity] = useState(false);
   const [showPlanner,   setShowPlanner]   = useState(false);
-  const [messages,  setMessages]  = useState<{ user: string; text: string; time: string }[]>([]);
+  const [messages,  setMessages]  = useState<{ user: string; userId: string; text: string; time: string }[]>([]);
   const [msgInput,  setMsgInput]  = useState("");
   const [writingMsg, setWritingMsg] = useState(false);
+
+  // 커뮤니티 글 목록
+  const [cpPosts,       setCpPosts]       = useState<{postId:string;title:string;content:string;authorId:string;authorName:string;solved:boolean;createdAt:string}[]>([]);
+  const [cpTab,         setCpTab]         = useState<"unsolved"|"solved">("unsolved");
+  const [cpSearch,      setCpSearch]      = useState("");
+  const [cpDetail,      setCpDetail]      = useState<{postId:string;title:string;content:string;authorId:string;authorName:string;solved:boolean;createdAt:string;comments:{commentId:string;content:string;helperName:string;isAdopted:boolean;replies:{commentId:string;content:string;helperName:string}[]}[]} | null>(null);
+  const [showPostForm,  setShowPostForm]  = useState(false);
+  const [postForm,      setPostForm]      = useState({ title:"", content:"" });
+  const [cpComment,     setCpComment]     = useState("");
+
+  useEffect(() => { if (showCommunity) fetchCpPosts(); }, [showCommunity]);
+  const fetchCpPosts = () => client.get("/community").then(r => setCpPosts(r.data ?? [])).catch(()=>{});
+  const openCpDetail = async (id:string) => { try { const r = await client.get(`/community/${id}`); setCpDetail(r.data); setCpComment(""); } catch{} };
+  const handleCpSubmit = async () => {
+    if (!postForm.title.trim() || !postForm.content.trim() || !workspace?.id) return;
+    await client.post("/community", { title:postForm.title, content:postForm.content, userId:localStorage.getItem("userId"), workspaceId:workspace.id }).catch(()=>{});
+    fetchCpPosts(); setPostForm({title:"",content:""}); setShowPostForm(false);
+  };
+  const handleCpComment = async () => {
+    if (!cpComment.trim() || !cpDetail) return;
+    await client.post(`/community/${cpDetail.postId}/comments`, { content:cpComment, userId:localStorage.getItem("userId") }).catch(()=>{});
+    const r = await client.get(`/community/${cpDetail.postId}`).catch(()=>null);
+    if (r) { setCpDetail(r.data); setCpComment(""); }
+  };
+  const handleCpDeletePost = async(id:string)=>{ await client.delete(`/community/${id}`).catch(()=>{}); fetchCpPosts(); setCpDetail(null); };
+  const handleCpUpdate = async(id:string)=>{ await client.patch(`/community/${id}`,{title:cpEditForm.title,content:cpEditForm.content}).catch(()=>{}); fetchCpPosts(); setCpEditingId(null); };
+  const handleCpSolve  = async(id:string)=>{ await client.patch(`/community/${id}/solve`).catch(()=>{}); fetchCpPosts(); };
+  const [cpEditingId,  setCpEditingId]  = useState<string|null>(null);
+  const [cpEditForm,   setCpEditForm]   = useState({title:"",content:""});
+  const cpMyId = localStorage.getItem("userId");
+  const cpTimeAgo = (d:string) => { const m=Math.floor((Date.now()-new Date(d).getTime())/60000); return m<1?"방금":m<60?`${m}분 전`:m<1440?`${Math.floor(m/60)}시간 전`:`${Math.floor(m/1440)}일 전`; };
+  const cpFiltered = cpPosts.filter(p=>cpTab==="unsolved"?!p.solved:p.solved).filter(p=>p.title.includes(cpSearch)||p.content.includes(cpSearch));
+  const cpUnsolved = cpPosts.filter(p=>!p.solved).length;
   const [viewMode,  setViewMode]  = useState<"month" | "week">("month");
 
   const [freeBlocks,  setFreeBlocks]  = useState<FreeTimeBlock[]>([]);
@@ -319,7 +360,8 @@ export default function CalendarPage() {
   const handleSendMsg = () => {
     if (!msgInput.trim()) return;
     const uName = localStorage.getItem("userName") ?? "나";
-    setMessages(p => [...p, { user: uName, text: msgInput.trim(), time: "방금" }]);
+    const uId   = localStorage.getItem("userId") ?? "";
+    setMessages(p => [...p, { user: uName, userId: uId, text: msgInput.trim(), time: "방금" }]);
     setMsgInput(""); setWritingMsg(false);
   };
 
@@ -338,19 +380,112 @@ export default function CalendarPage() {
         {/* 커뮤니티 패널 */}
         <aside className={`wsp-community ${showCommunity ? "panel-visible" : "panel-hidden"}`}>
           <div className="wsp-panel-title"><span className="wsp-panel-icon">💬</span> community</div>
-          <input className="wsp-search" placeholder="채널 및 메시지 검색..." />
-          <div className="wsp-channel-label">채널 및 스레드</div>
-          <div className="wsp-channel-item"># 일반</div>
-          <div className="wsp-channel-item"># UI/UX 디자인</div>
-          <div className="wsp-channel-item"># 개발 및 연동<span className="wsp-channel-dot" /></div>
-          <div className="wsp-channel-label" style={{ marginTop: 16 }}>최근 메시지</div>
+          <input className="wsp-search" placeholder="도움 요청 검색..." value={cpSearch} onChange={e => setCpSearch(e.target.value)} />
+
+          {cpDetail ? (
+            /* 상세 뷰 */
+            <div className="cp-detail">
+              <button className="cp-back-btn" onClick={() => setCpDetail(null)}>← 목록</button>
+              <div className="cp-detail-header-row">
+                <div className="cp-detail-title">{cpDetail.title}</div>
+                {cpDetail.authorId===cpMyId&&<button className="cp-del-post-btn" onClick={()=>handleCpDeletePost(cpDetail.postId)}>삭제</button>}
+              </div>
+              <div className="cp-detail-meta">
+                <span>{cpDetail.authorName}</span>
+                <span className={`cp-badge ${cpDetail.solved?"solved":"unsolved"}`}>{cpDetail.solved?"✅ 해결됨":"🔴 미해결"}</span>
+              </div>
+              <p className="cp-detail-content">{renderMentions(cpDetail.content, wsMembers)}</p>
+              <div className="cp-comments-title">댓글 {cpDetail.comments?.length ?? 0}개</div>
+              <div className="cp-comments-list">
+                {(cpDetail.comments??[]).length===0
+                  ? <div className="cp-comments-empty">첫 댓글을 달아보세요!</div>
+                  : (cpDetail.comments??[]).map(c=>(
+                    <div key={c.commentId} className="cp-comment">
+                      <div className="cp-comment-header"><span className="cp-comment-name">{c.helperName}</span>{c.isAdopted&&<span className="cp-adopted">채택</span>}</div>
+                      <div className="cp-comment-text">{renderMentions(c.content, wsMembers)}</div>
+                      {(c.replies??[]).map(r=>(
+                        <div key={r.commentId} className="cp-reply">
+                          <span className="cp-reply-name">└ {r.helperName}</span>
+                          <div className="cp-comment-text">{r.content}</div>
+                        </div>
+                      ))}
+                    </div>
+                  ))
+                }
+              </div>
+              <div className="cp-comment-form">
+                <input className="cp-comment-input" placeholder="댓글 작성..." value={cpComment} onChange={e=>setCpComment(e.target.value)} onKeyDown={e=>{if(e.key==="Enter")handleCpComment();}} />
+                <button className="cp-comment-send" onClick={handleCpComment}>전송</button>
+              </div>
+            </div>
+          ) : (
+            /* 목록 뷰 */
+            <>
+              <div className="cp-tabs-row">
+                <div className="cp-tabs">
+                  <button className={`cp-tab ${cpTab==="unsolved"?"active":""}`} onClick={()=>setCpTab("unsolved")}>미해결{cpUnsolved>0&&<span className="cp-tab-count">{cpUnsolved}</span>}</button>
+                  <button className={`cp-tab ${cpTab==="solved"?"active":""}`} onClick={()=>setCpTab("solved")}>해결됨</button>
+                </div>
+                <button className="cp-new-btn" onClick={()=>setShowPostForm(v=>!v)}>{showPostForm?"✕":"+"}</button>
+              </div>
+              {showPostForm && (
+                <div className="cp-form">
+                  <input className="cp-input" placeholder="제목" value={postForm.title} onChange={e=>setPostForm(p=>({...p,title:e.target.value}))} />
+                  <textarea className="cp-textarea" placeholder="어떤 도움이 필요하신가요?" value={postForm.content} onChange={e=>setPostForm(p=>({...p,content:e.target.value}))} />
+                  <div className="cp-form-actions">
+                    <button className="cp-submit-btn" onClick={handleCpSubmit}>요청 등록</button>
+                    <button className="cp-cancel-btn" onClick={()=>setShowPostForm(false)}>취소</button>
+                  </div>
+                </div>
+              )}
+              <div className="cp-list">
+                {cpFiltered.length===0
+                  ? <div className="cp-empty">{cpTab==="unsolved"?"미해결 요청이 없습니다.":"해결된 요청이 없습니다."}</div>
+                  : cpFiltered.map(p=>(
+                    <div key={p.postId} className="cp-post-item">
+                      {cpEditingId===p.postId ? (
+                        <div className="cp-form" onClick={e=>e.stopPropagation()}>
+                          <input className="cp-input" value={cpEditForm.title} onChange={e=>setCpEditForm(f=>({...f,title:e.target.value}))} />
+                          <textarea className="cp-textarea" value={cpEditForm.content} onChange={e=>setCpEditForm(f=>({...f,content:e.target.value}))} />
+                          <div className="cp-form-actions">
+                            <button className="cp-submit-btn" onClick={()=>handleCpUpdate(p.postId)}>저장</button>
+                            <button className="cp-cancel-btn" onClick={()=>setCpEditingId(null)}>취소</button>
+                          </div>
+                        </div>
+                      ) : (
+                        <div onClick={()=>openCpDetail(p.postId)}>
+                          <div className="cp-post-header">
+                            <span className={`cp-status-dot ${p.solved?"solved":"unsolved"}`}/>
+                            <span className="cp-post-title">{p.title}</span>
+                            {p.authorId===cpMyId&&<>
+                              {!p.solved&&<button className="cp-solve-btn" onClick={e=>{e.stopPropagation();handleCpSolve(p.postId);}}>✓</button>}
+                              <button className="cp-edit-btn" onClick={e=>{e.stopPropagation();setCpEditingId(p.postId);setCpEditForm({title:p.title,content:p.content});}}>✏</button>
+                              <button className="cp-del-btn" onClick={e=>{e.stopPropagation();handleCpDeletePost(p.postId);}}>✕</button>
+                            </>}
+                          </div>
+                          <div className="cp-post-preview">{p.content.slice(0,45)}{p.content.length>45?"...":""}</div>
+                          <div className="cp-post-meta">{p.authorName} · {cpTimeAgo(p.createdAt)}</div>
+                        </div>
+                      )}
+                    </div>
+                  ))
+                }
+              </div>
+            </>
+          )}
+
+          <div className="wsp-channel-label" style={{ marginTop: 8 }}>최근 메시지</div>
           <div className="wsp-msg-list">
             {messages.length === 0
               ? <div className="wsp-msg-empty">메시지가 없습니다.</div>
               : messages.map((m, i) => (
                 <div key={i} className="wsp-msg-item">
-                  <div className="wsp-msg-header"><span className="wsp-msg-name">{m.user}</span><span className="wsp-msg-time">{m.time}</span></div>
-                  <div className="wsp-msg-text">{m.text}</div>
+                  <div className="wsp-msg-header">
+                    <span className="wsp-msg-name">{m.user}</span>
+                    <span className="wsp-msg-time">{m.time}</span>
+                    {m.userId===localStorage.getItem("userId")&&<button className="cp-del-btn" onClick={()=>setMessages(p=>p.filter((_,j)=>j!==i))}>✕</button>}
+                  </div>
+                  <div className="wsp-msg-text">{renderMentions(m.text, wsMembers)}</div>
                 </div>
               ))
             }

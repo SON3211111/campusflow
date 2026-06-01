@@ -256,7 +256,7 @@ export default function Header({ workspaces = [], showSearch = true, onLogout }:
                 </div>
                 <div
                   className="user-dropdown-item"
-                  onClick={() => setUserMenuOpen(false)}
+                  onClick={() => { setUserMenuOpen(false); navigate('/profile'); }}
                 >
                   개인정보 설정
                 </div>

@@ -11,6 +11,7 @@ public class CommunityPostResponse {
     private String postId;
     private String title;
     private String content;
+    private String authorId;
     private String authorName;
     private String workspaceName;
     private boolean isSolved;

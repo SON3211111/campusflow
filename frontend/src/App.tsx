@@ -19,6 +19,7 @@ import MemberPage from './ListPages/MemberPage';
 import SettingPage from './ListPages/SettingPage';
 import TemplatePage from './ListPages/TemplatePage';
 import JoinPage from './ListPages/JoinPage';
+import ProfilePage from './pages/ProfilePage';
 
 function PrivateRoute({ children }: { children: React.ReactNode }) {
   const token = localStorage.getItem('accessToken');
@@ -46,6 +47,7 @@ function App() {
         <Route path="/calendar" element={<PrivateRoute><CalendarPage /></PrivateRoute>} />
         <Route path="/notification" element={<PrivateRoute><NotificationPage /></PrivateRoute>} />
         <Route path="/join" element={<PrivateRoute><JoinPage /></PrivateRoute>} />
+        <Route path="/profile" element={<PrivateRoute><ProfilePage /></PrivateRoute>} />
       </Routes>
     </Router>
   );

@@ -38,7 +38,21 @@ public class CommunityController {
         return ResponseEntity.ok(communityService.getPostDetail(postId));
     }
 
-    // D. 도움 요청글 파기 철회 (글 삭제)
+    // D. 도움 요청글 수정 (제목, 내용)
+    @PatchMapping("/{postId}")
+    public ResponseEntity<?> updatePost(@PathVariable String postId, @RequestBody java.util.Map<String, String> req) {
+        communityService.updatePost(postId, req.get("title"), req.get("content"));
+        return ResponseEntity.ok().body("{\"message\": \"수정 완료\"}");
+    }
+
+    // D-1. 도움 요청글 해결 처리
+    @PatchMapping("/{postId}/solve")
+    public ResponseEntity<?> solvePost(@PathVariable String postId) {
+        communityService.solvePost(postId);
+        return ResponseEntity.ok().body("{\"message\": \"해결 처리 완료\"}");
+    }
+
+    // D-2. 도움 요청글 파기 철회 (글 삭제)
     @DeleteMapping("/{postId}")
     public ResponseEntity<?> deletePost(@PathVariable String postId) {
         communityService.deletePost(postId);
