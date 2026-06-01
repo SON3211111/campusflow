@@ -226,6 +226,29 @@ export default function AiTaskPage() {
   const toggleSession = (id: string) =>
     setSessions((prev) => prev.map((s) => s.id === id ? { ...s, collapsed: !s.collapsed } : s));
 
+  const handleDeleteSession = (sessionId: string) => {
+    if (!window.confirm("이 작업과 모든 태스크를 삭제할까요?")) return;
+    // 삭제할 카테고리 인덱스 집합
+    const deletedIndices = new Set(
+      categories.map((cat, idx) => ({ cat, idx }))
+        .filter(({ cat }) => cat.sessionId === sessionId)
+        .map(({ idx }) => idx)
+    );
+    const newCategories = categories.filter((cat) => cat.sessionId !== sessionId);
+    // 남은 카테고리의 새 인덱스 매핑
+    const indexMap = new Map<number, number>();
+    let newIdx = 0;
+    categories.forEach((_, oldIdx) => {
+      if (!deletedIndices.has(oldIdx)) { indexMap.set(oldIdx, newIdx++); }
+    });
+    const newTasks = tasks
+      .filter((t) => !deletedIndices.has(t.categoryIdx))
+      .map((t) => ({ ...t, categoryIdx: indexMap.get(t.categoryIdx) ?? t.categoryIdx }));
+    setSessions((prev) => prev.filter((s) => s.id !== sessionId));
+    setCategories(newCategories);
+    setTasks(newTasks);
+  };
+
   const handleDeleteTask = (taskId: string) => setTasks((prev) => prev.filter((t) => t.id !== taskId));
 
   const handleSaveEditTask = (taskId: string) => {
@@ -384,6 +407,11 @@ export default function AiTaskPage() {
                   <span className="atp-session-toggle">{session.collapsed ? "▶" : "▼"}</span>
                   <span className="atp-session-prompt">{session.prompt}</span>
                   <span className="atp-session-count">{totalTasks}개</span>
+                  <button
+                    className="atp-session-delete"
+                    onClick={(e) => { e.stopPropagation(); handleDeleteSession(session.id); }}
+                    title="이 작업 삭제"
+                  >✕</button>
                 </div>
 
                 {!session.collapsed && (

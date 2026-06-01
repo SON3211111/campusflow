@@ -464,6 +464,27 @@
   flex-shrink: 0;
 }
 
+.atp-session-delete {
+  display: none;
+  background: rgba(220, 38, 38, 0.3);
+  border: none;
+  border-radius: 6px;
+  color: #fff;
+  font-size: 12px;
+  padding: 2px 8px;
+  cursor: pointer;
+  flex-shrink: 0;
+  transition: background 0.15s;
+}
+
+.atp-session-header:hover .atp-session-delete {
+  display: block;
+}
+
+.atp-session-delete:hover {
+  background: rgba(220, 38, 38, 0.6);
+}
+
 .atp-task-actions {
   display: flex;
   gap: 4px;
