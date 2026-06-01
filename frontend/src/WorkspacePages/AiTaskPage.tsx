@@ -323,6 +323,8 @@ export default function AiTaskPage() {
 
   const handleStartNewBreakdown = () => {
     if (!newPrompt.trim()) return;
+    // navigate 전에 현재 상태를 세션에 강제 저장
+    localStorage.setItem(sessionKey, JSON.stringify({ title, categories, tasks, prompt: origPrompt, result: aiResult, memberBaskets }));
     navigate("/task-breakdown", { state: { prompt: newPrompt.trim(), workspaces, workspace, append: true } });
   };
 
