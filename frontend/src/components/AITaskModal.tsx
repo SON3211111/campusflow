@@ -25,6 +25,8 @@ export default function AITaskModal({ onClose, workspaces = [], workspace }: Pro
   const [prompt, setPrompt] = useState("");
 
   const activeWs = workspace ?? workspaces[0];
+  const sessionKey = `ai_task_session_${activeWs?.id ?? "default"}`;
+  const hasSession = !!localStorage.getItem(sessionKey);
 
   const handleNewBreakdown = () => {
     if (!prompt.trim()) return;
@@ -60,7 +62,8 @@ export default function AITaskModal({ onClose, workspaces = [], workspace }: Pro
           <>
             <h3 className="ai-modal-title">AI 업무 분해</h3>
             <div className="ai-modal-options">
-              <div className="ai-option-card" onClick={() => {
+              {hasSession && (
+                <div className="ai-option-card" onClick={() => {
                   onClose();
                   navigate("/ai-task", { state: { workspace: activeWs, workspaces } });
                 }}>
@@ -70,14 +73,17 @@ export default function AITaskModal({ onClose, workspaces = [], workspace }: Pro
                     <span className="ai-option-desc">기존 Pool에서 계속 작업합니다</span>
                   </div>
                 </div>
+              )}
 
-              <div className="ai-option-card" onClick={() => setScreen("append-prompt")}>
-                <div className="ai-option-icon green">➕</div>
-                <div className="ai-option-info">
-                  <span className="ai-option-name">작업 추가하기</span>
-                  <span className="ai-option-desc">새 업무를 분해해서 기존 Pool에 추가합니다</span>
+              {hasSession && (
+                <div className="ai-option-card" onClick={() => setScreen("append-prompt")}>
+                  <div className="ai-option-icon green">➕</div>
+                  <div className="ai-option-info">
+                    <span className="ai-option-name">작업 추가하기</span>
+                    <span className="ai-option-desc">새 업무를 분해해서 기존 Pool에 추가합니다</span>
+                  </div>
                 </div>
-              </div>
+              )}
 
               <div className="ai-option-card" onClick={() => setScreen("new-prompt")}>
                 <div className="ai-option-icon blue">📄</div>

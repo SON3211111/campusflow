@@ -179,7 +179,6 @@ export default function AiTaskPage() {
   const [saveMsg, setSaveMsg]                       = useState("");
   const [cooldown, setCooldown]                     = useState(0);
   const cooldownRef = useRef<ReturnType<typeof setInterval> | null>(null);
-  const sessionFlushedRef = useRef(false);
   const [editingTaskId, setEditingTaskId]           = useState<string | null>(null);
   const [editingTaskName, setEditingTaskName]       = useState("");
   const [addingToCat, setAddingToCat]               = useState<number | null>(null);
@@ -209,7 +208,6 @@ export default function AiTaskPage() {
   }, [workspace?.id]);
 
   useEffect(() => {
-    if (sessionFlushedRef.current) return;
     localStorage.setItem(sessionKey, JSON.stringify({
       title, categories, tasks, prompt: origPrompt, result: aiResult, memberBaskets, sessions,
     }));
@@ -320,23 +318,10 @@ export default function AiTaskPage() {
     setDraggingFromUserId(null);
   };
 
-  const clearSessionTasks = () => {
-    // 시작하기 후: tasks/baskets만 비워 반환된 태스크 제거, 세션 구조는 유지 (이어하기/추가하기 유지)
-    // sessionFlushedRef로 auto-save useEffect가 구 state로 덮어쓰는 것을 방지
-    sessionFlushedRef.current = true;
-    localStorage.setItem(sessionKey, JSON.stringify({
-      title, categories, tasks: [], prompt: origPrompt, result: aiResult, memberBaskets: {}, sessions,
-    }));
-  };
-
   const sendBasketToWorkspace = async () => {
     if (!workspace?.id) { alert("워크스페이스 정보가 없습니다."); return; }
     const allEmpty = Object.values(memberBaskets).every((b) => b.length === 0);
-    if (allEmpty) {
-      clearSessionTasks();
-      navigate("/workspace-board", { state: { workspaces, workspace } });
-      return;
-    }
+    if (allEmpty) { navigate("/workspace-board", { state: { workspaces, workspace } }); return; }
     try {
       for (const [userId, basket] of Object.entries(memberBaskets)) {
         for (const task of basket) {
@@ -349,7 +334,6 @@ export default function AiTaskPage() {
           });
         }
       }
-      clearSessionTasks();
       showMsg("보드에 업무를 저장했습니다");
       navigate("/workspace-board", { state: { workspaces, workspace } });
     } catch (err: any) {
