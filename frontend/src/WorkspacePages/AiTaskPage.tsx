@@ -116,7 +116,6 @@ export default function AiTaskPage() {
   const [dragOverUserId, setDragOverUserId]         = useState<string | null>(null);
   const [loadingId, setLoadingId]                   = useState<string | null>(null);
   const [resetLoading, setResetLoading]             = useState(false);
-  const [saved, setSaved]                           = useState(false);
   const [saveMsg, setSaveMsg]                       = useState("");
   const [cooldown, setCooldown]                     = useState(0);
   const cooldownRef = useRef<ReturnType<typeof setInterval> | null>(null);
@@ -173,28 +172,6 @@ export default function AiTaskPage() {
     }, 1000);
   };
 
-  const buildCurrentResult = (): AiResult => {
-    const allBasketTasks = Object.values(memberBaskets).flat();
-    return {
-      title,
-      categories: categories.map((cat, ci) => ({
-        id: `c${ci + 1}`,
-        name: cat.name,
-        tasks: [...tasks, ...allBasketTasks]
-          .filter((t) => t.categoryIdx === ci)
-          .map((t) => t.name),
-      })),
-    };
-  };
-
-  const handleSaveTask = () => {
-    if (saved) { showMsg("이미 저장되었습니다"); return; }
-    const list = JSON.parse(localStorage.getItem("saved_ai_tasks") ?? "[]");
-    const newEntry = { id: Date.now().toString(), title, prompt: origPrompt, result: buildCurrentResult() };
-    localStorage.setItem("saved_ai_tasks", JSON.stringify([...list, newEntry]));
-    setSaved(true);
-    showMsg("저장되었습니다");
-  };
 
   const handleReset = async () => {
     if (!origPrompt) { alert("프롬프트 정보가 없습니다. 워크스페이스에서 다시 시작해주세요."); return; }
@@ -338,10 +315,7 @@ export default function AiTaskPage() {
         <button className="atp-reset-btn" onClick={handleReset} disabled={resetLoading}>
           {resetLoading ? "분석 중..." : "다시 설정"}
         </button>
-        <div className="atp-save-wrap">
-          <button className="atp-save-btn" onClick={handleSaveTask}>task 저장</button>
-          {saveMsg && <span className="atp-save-msg">{saveMsg}</span>}
-        </div>
+        {saveMsg && <span className="atp-save-msg">{saveMsg}</span>}
         <button className="atp-new-btn" onClick={() => setNewPromptOpen((v) => !v)}>+ 새 업무 분해</button>
         <button className="atp-workspace-btn" onClick={sendBasketToWorkspace}>보드로 보내기</button>
       </div>
