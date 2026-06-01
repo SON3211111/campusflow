@@ -10,6 +10,9 @@ import Header from "../components/Header";
 import client from "../api/client";
 import "./AiTaskPage.css";
 
+// 새 업무 분해 시 기존 Pool 상태를 안전하게 보존하기 위한 모듈 변수
+let _appendBuffer: { categories: any[]; tasks: any[]; memberBaskets: Record<string, any[]> } | null = null;
+
 interface Task {
   id: string;
   name: string;
@@ -83,7 +86,7 @@ export default function AiTaskPage() {
   })();
 
   const shouldRestoreSession = !state?.result && !!storedSession;
-  const isAppend = !!(state?.append && state?.result && storedSession);
+  const isAppend = !!(state?.append && state?.result && _appendBuffer);
   const aiResult   = state?.result ?? storedSession?.result ?? null;
   const origPrompt = state?.prompt ?? storedSession?.prompt ?? "";
 
@@ -105,27 +108,27 @@ export default function AiTaskPage() {
       cat.tasks.map((t, ti) => ({ id: `c${ci}-t${ti}`, name: t.name, categoryIdx: ci, priority: t.priority }))
     );
 
+  // append 모드: 모듈 변수에서 기존 Pool 꺼내서 새 결과와 합치기
+  const buffer = isAppend ? _appendBuffer : null;
+  if (isAppend) _appendBuffer = null; // 소비 후 초기화
+
   const initCategories = (): Category[] => {
-    if (isAppend) {
-      const existingCats = storedSession?.categories ?? [];
-      const newCats = buildCategories(state.result!);
-      return [...existingCats, ...newCats];
+    if (buffer) {
+      return [...buffer.categories, ...buildCategories(state.result!)];
     }
     if (shouldRestoreSession) return storedSession?.categories ?? [];
     return buildCategories(aiResult);
   };
 
   const initTasks = (): Task[] => {
-    if (isAppend) {
-      const existingCats = storedSession?.categories ?? [];
-      const offset = existingCats.length;
-      const existingTasks = storedSession?.tasks ?? [];
+    if (buffer) {
+      const offset = buffer.categories.length;
       const newTasks = buildTasks(state.result!).map((t) => ({
         ...t,
         id: `append-${Date.now()}-${t.id}`,
         categoryIdx: t.categoryIdx + offset,
       }));
-      return [...existingTasks, ...newTasks];
+      return [...buffer.tasks, ...newTasks];
     }
     if (shouldRestoreSession) return storedSession?.tasks ?? [];
     return buildTasks(aiResult);
@@ -323,7 +326,8 @@ export default function AiTaskPage() {
 
   const handleStartNewBreakdown = () => {
     if (!newPrompt.trim()) return;
-    // navigate 전에 현재 상태를 세션에 강제 저장
+    // 현재 Pool 상태를 모듈 변수에 보존 (localStorage 타이밍 이슈 우회)
+    _appendBuffer = { categories, tasks, memberBaskets };
     localStorage.setItem(sessionKey, JSON.stringify({ title, categories, tasks, prompt: origPrompt, result: aiResult, memberBaskets }));
     navigate("/task-breakdown", { state: { prompt: newPrompt.trim(), workspaces, workspace, append: true } });
   };
