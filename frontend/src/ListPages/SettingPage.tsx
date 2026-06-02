@@ -19,9 +19,10 @@ export default function SettingPage() {
   };
   const navigate = useNavigate();
 
-  const workspace  = state?.workspace         ?? { id: 0, name: "워크스페이스", gradient: "#ccc" };
-  const teamWs     = state?.teamWorkspaces     ?? [];
-  const personalWs = state?.personalWorkspaces ?? [];
+  const savedWs = JSON.parse(localStorage.getItem("clickedWorkspace") ?? "null");
+  const workspace  = state?.workspace ?? savedWs ?? { id: "", name: "워크스페이스", gradient: "#ccc" };
+  const teamWs     = (state as any)?.teamWorkspaces ?? (state as any)?.workspaces ?? [];
+  const personalWs = (state as any)?.personalWorkspaces ?? [];
   const allWorkspaces = [...teamWs, ...personalWs];
 
   const savedVisibility = (localStorage.getItem(`visibility_${workspace.id}`) ?? "private") as "private" | "public";

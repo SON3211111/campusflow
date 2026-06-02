@@ -135,9 +135,9 @@ export default function NotificationPage() {
 
       <WorkspaceTabBar
         onTabChange={(t) => {
-          if (t === "board") navigate("/workspace-board", { state: { workspace, workspaces } });
-          if (t === "planner") navigate("/workspace-board", { state: { workspace, workspaces } });
-          if (t === "community") navigate("/workspace-board", { state: { workspace, workspaces } });
+          if (t === "board" || t === "planner" || t === "community")
+            navigate("/workspace-board", { state: { workspace, workspaces } });
+          if (t === "personal") navigate("/workspace");
         }}
       />
     </div>

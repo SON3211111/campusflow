@@ -699,6 +699,7 @@ export default function WorkSpacePage() {
           if (t === "planner") setShowPlanner((v) => !v);
           if (t === "community") setShowCommunity((v) => !v);
           if (t === "board") setShowBoardView((v) => !v);
+          if (t === "personal") navigate("/workspace");
         }}
         onTrashClick={openTrash}
         trashCount={deletedCards.length}
