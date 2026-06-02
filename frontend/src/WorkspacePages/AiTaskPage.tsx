@@ -170,6 +170,7 @@ export default function AiTaskPage() {
   const [categories, setCategories] = useState<Category[]>(initCategories);
   const [tasks, setTasks]           = useState<Task[]>(initTasks);
   const [title]                     = useState(shouldRestoreSession ? storedSession?.title ?? "" : aiResult.title ?? "");
+  const [confirmSessionId, setConfirmSessionId] = useState<string | null>(null);
 
   const [members, setMembers]                       = useState<Member[]>([]);
   const [memberBaskets, setMemberBaskets]           = useState<Record<string, Task[]>>({});
@@ -227,9 +228,7 @@ export default function AiTaskPage() {
   const toggleSession = (id: string) =>
     setSessions((prev) => prev.map((s) => s.id === id ? { ...s, collapsed: !s.collapsed } : s));
 
-  const handleDeleteSession = (sessionId: string) => {
-    if (!window.confirm("이 작업과 모든 태스크를 삭제할까요?")) return;
-    // 삭제할 카테고리 인덱스 집합
+  const doDeleteSession = (sessionId: string) => {
     const deletedIndices = new Set(
       categories.map((cat, idx) => ({ cat, idx }))
         .filter(({ cat }) => cat.sessionId === sessionId)
@@ -248,6 +247,11 @@ export default function AiTaskPage() {
     setSessions((prev) => prev.filter((s) => s.id !== sessionId));
     setCategories(newCategories);
     setTasks(newTasks);
+    setConfirmSessionId(null);
+  };
+
+  const handleDeleteSession = (sessionId: string) => {
+    setConfirmSessionId(sessionId);
   };
 
   const handleDeleteTask = (taskId: string) => setTasks((prev) => prev.filter((t) => t.id !== taskId));
@@ -428,6 +432,7 @@ export default function AiTaskPage() {
   );
 
   return (
+    <>
     <div className="atp-page">
       <Header workspaces={workspaces} />
 
@@ -545,5 +550,23 @@ export default function AiTaskPage() {
         </div>
       </div>
     </div>
+
+    {/* 섹션 삭제 확인 모달 */}
+    {confirmSessionId && (
+      <div className="atp-confirm-overlay" onClick={() => setConfirmSessionId(null)}>
+        <div className="atp-confirm-modal" onClick={(e) => e.stopPropagation()}>
+          <div className="atp-confirm-icon">🗑️</div>
+          <h3 className="atp-confirm-title">작업 섹션 삭제</h3>
+          <p className="atp-confirm-msg">
+            이 작업과 연결된 모든 태스크가 삭제됩니다.<br />정말 삭제할까요?
+          </p>
+          <div className="atp-confirm-btns">
+            <button className="atp-confirm-cancel" onClick={() => setConfirmSessionId(null)}>취소</button>
+            <button className="atp-confirm-delete" onClick={() => doDeleteSession(confirmSessionId)}>삭제</button>
+          </div>
+        </div>
+      </div>
+    )}
+    </>
   );
 }

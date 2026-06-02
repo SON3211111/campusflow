@@ -73,7 +73,7 @@
   gap: 20px;
 }
 
-/* ===== 우주 로딩 화면 ===== */
+/* ===== 로딩 화면 공통 ===== */
 .tbp-space-loading {
   flex: 1;
   display: flex;
@@ -83,24 +83,71 @@
   gap: 20px;
   position: relative;
   overflow: hidden;
+  transition: background 0.5s;
 }
 
-.tbp-stars {
+/* 테마별 배경 */
+.tbp-bg-space  { background: radial-gradient(ellipse at center, #0d1b3e 0%, #111 100%); }
+.tbp-bg-cat    { background: radial-gradient(ellipse at center, #2d1b4e 0%, #111 100%); }
+.tbp-bg-ramen  { background: radial-gradient(ellipse at center, #3d1a00 0%, #111 100%); }
+.tbp-bg-game   { background: radial-gradient(ellipse at center, #001a0d 0%, #111 100%); }
+
+.tbp-particles {
   position: absolute;
   inset: 0;
   pointer-events: none;
 }
 
+/* 별 (우주) */
 .tbp-star {
   position: absolute;
   background: #fff;
   border-radius: 50%;
   animation: twinkle 2s ease-in-out infinite alternate;
 }
-
 @keyframes twinkle {
   from { opacity: 0.2; transform: scale(1); }
   to   { opacity: 1;   transform: scale(1.5); }
+}
+
+/* 발자국 (고양이) */
+.tbp-paw {
+  position: absolute;
+  font-size: 18px;
+  animation: pawPrint 1.5s ease-in-out infinite alternate;
+}
+.tbp-paw::after { content: "🐾"; }
+@keyframes pawPrint {
+  from { opacity: 0.2; transform: scale(0.8) rotate(-10deg); }
+  to   { opacity: 0.7; transform: scale(1.1) rotate(10deg); }
+}
+
+/* 김 (라면) */
+.tbp-steam {
+  position: absolute;
+  bottom: 45%;
+  width: 6px;
+  height: 30px;
+  background: rgba(255,255,255,0.15);
+  border-radius: 3px;
+  animation: steam 1.5s ease-in-out infinite;
+}
+@keyframes steam {
+  0%   { transform: translateY(0) scaleX(1);  opacity: 0.6; }
+  100% { transform: translateY(-40px) scaleX(1.5); opacity: 0; }
+}
+
+/* 픽셀 (게임) */
+.tbp-pixel {
+  position: absolute;
+  width: 8px;
+  height: 8px;
+  background: #00ff88;
+  animation: pixelBlink 0.8s step-end infinite;
+}
+@keyframes pixelBlink {
+  0%, 100% { opacity: 1; }
+  50%       { opacity: 0; }
 }
 
 .tbp-rocket-wrap {

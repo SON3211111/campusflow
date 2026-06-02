@@ -9,56 +9,90 @@ import client from "../api/client";
 import Header from "../components/Header";
 import "./TaskBreakdownPage.css";
 
-const MESSAGES = [
-  "🚀 프롬프트를 분석하는 중...",
-  "🌌 업무를 분류하는 중...",
-  "⭐ 우선순위를 계산하는 중...",
-  "🛸 태스크를 조립하는 중...",
-  "✨ 거의 다 왔어요!",
+const THEMES = [
+  {
+    id: "space",
+    icon: "🚀",
+    trail: true,
+    bg: "tbp-bg-space",
+    messages: ["🚀 프롬프트를 분석하는 중...", "🌌 업무를 분류하는 중...", "⭐ 우선순위를 계산하는 중...", "🛸 태스크를 조립하는 중...", "✨ 거의 다 왔어요!"],
+    sub: "보통 30~90초 정도 소요됩니다",
+    particles: Array.from({ length: 30 }, (_, i) => ({
+      key: i, className: "tbp-star",
+      style: { left: `${Math.random()*100}%`, top: `${Math.random()*100}%`, animationDelay: `${Math.random()*3}s`, width: `${Math.random()*2+1}px`, height: `${Math.random()*2+1}px` }
+    })),
+  },
+  {
+    id: "cat",
+    icon: "🐱",
+    trail: false,
+    bg: "tbp-bg-cat",
+    messages: ["🐱 냥냥... 분석 중이에요", "📝 꼬리로 태스크 정리 중...", "😺 우선순위 고르는 중...", "🐾 거의 다 됐어요!", "😸 완성 직전!"],
+    sub: "고양이가 열심히 일하고 있어요 🐾",
+    particles: Array.from({ length: 8 }, (_, i) => ({
+      key: i, className: "tbp-paw",
+      style: { left: `${10 + i * 12}%`, top: `${30 + (i % 3) * 20}%`, animationDelay: `${i * 0.4}s` }
+    })),
+  },
+  {
+    id: "ramen",
+    icon: "🍜",
+    trail: false,
+    bg: "tbp-bg-ramen",
+    messages: ["🍜 라면 물 끓이는 중...", "🥚 재료 분류하는 중...", "🌶️ 우선순위 양념 중...", "♨️ 거의 다 익었어요!", "🍽️ 완성 직전!"],
+    sub: "배고프죠? 조금만 기다려요 😋",
+    particles: Array.from({ length: 8 }, (_, i) => ({
+      key: i, className: "tbp-steam",
+      style: { left: `${40 + (i % 3) * 8}%`, animationDelay: `${i * 0.3}s` }
+    })),
+  },
+  {
+    id: "game",
+    icon: "🎮",
+    trail: false,
+    bg: "tbp-bg-game",
+    messages: ["🎮 게임 로딩 중...", "⚔️ 태스크 던전 탐험 중...", "🏆 보상 계산 중...", "🌟 레벨업 준비 중...", "🎯 미션 거의 완료!"],
+    sub: "Loading... Please wait",
+    particles: Array.from({ length: 6 }, (_, i) => ({
+      key: i, className: "tbp-pixel",
+      style: { left: `${5 + i * 16}%`, top: `${Math.random()*60+20}%`, animationDelay: `${i * 0.5}s` }
+    })),
+  },
 ];
 
-function SpaceLoading() {
+function useProgress() {
   const [msgIdx, setMsgIdx] = useState(0);
   const [progress, setProgress] = useState(0);
-
   useEffect(() => {
-    const msgTimer = setInterval(() => setMsgIdx((i) => Math.min(i + 1, MESSAGES.length - 1)), 18000);
-    return () => clearInterval(msgTimer);
+    const t = setInterval(() => setMsgIdx((i) => Math.min(i + 1, 4)), 18000);
+    return () => clearInterval(t);
   }, []);
-
   useEffect(() => {
-    const progTimer = setInterval(() => {
-      setProgress((p) => {
-        if (p >= 92) return p;
-        return p + (92 - p) * 0.03;
-      });
-    }, 500);
-    return () => clearInterval(progTimer);
+    const t = setInterval(() => setProgress((p) => p >= 92 ? p : p + (92 - p) * 0.03), 500);
+    return () => clearInterval(t);
   }, []);
+  return { msgIdx, progress };
+}
+
+function SpaceLoading() {
+  const theme = useState(() => THEMES[Math.floor(Math.random() * THEMES.length)])[0];
+  const { msgIdx, progress } = useProgress();
 
   return (
-    <div className="tbp-space-loading">
-      <div className="tbp-stars">
-        {Array.from({ length: 30 }).map((_, i) => (
-          <div key={i} className="tbp-star" style={{
-            left: `${Math.random() * 100}%`,
-            top:  `${Math.random() * 100}%`,
-            animationDelay: `${Math.random() * 3}s`,
-            width:  `${Math.random() * 2 + 1}px`,
-            height: `${Math.random() * 2 + 1}px`,
-          }} />
-        ))}
+    <div className={`tbp-space-loading ${theme.bg}`}>
+      <div className="tbp-particles">
+        {theme.particles.map((p) => <div key={p.key} className={p.className} style={p.style} />)}
       </div>
       <div className="tbp-rocket-wrap">
-        <div className="tbp-rocket">🚀</div>
-        <div className="tbp-rocket-trail" />
+        <div className="tbp-rocket">{theme.icon}</div>
+        {theme.trail && <div className="tbp-rocket-trail" />}
       </div>
-      <p className="tbp-space-msg">{MESSAGES[msgIdx]}</p>
+      <p className="tbp-space-msg">{theme.messages[Math.min(msgIdx, theme.messages.length - 1)]}</p>
       <div className="tbp-progress-wrap">
         <div className="tbp-progress-bar" style={{ width: `${progress}%` }} />
       </div>
       <p className="tbp-progress-pct">{Math.round(progress)}%</p>
-      <p className="tbp-space-sub">보통 30~90초 정도 소요됩니다</p>
+      <p className="tbp-space-sub">{theme.sub}</p>
     </div>
   );
 }
