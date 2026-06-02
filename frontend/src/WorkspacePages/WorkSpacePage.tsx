@@ -16,6 +16,7 @@ import BoardSlideView from "../components/BoardSlideView";
 import client from "../api/client";
 import { useWorkspaceSocket } from "../hooks/useWorkspaceSocket";
 import AITaskModal from "../components/AITaskModal";
+import WorkspaceCommunityPanel from "../components/WorkspaceCommunityPanel";
 import "./WorkSpacePage.css";
 
 interface Workspace {
@@ -123,39 +124,6 @@ export default function WorkSpacePage() {
   const [trashOpen, setTrashOpen]         = useState(false);
   const [deletedCards, setDeletedCards]   = useState<CardItem[]>([]);
 
-  const [messages, setMessages] = useState<{ user: string; text: string; time: string }[]>([]);
-  const [msgInput, setMsgInput] = useState("");
-  const [writingMsg, setWritingMsg] = useState(false);
-
-  useEffect(() => {
-    if (!workspace?.id) return;
-    client.get(`/workspaces/${workspace.id}/messages`)
-      .then((res) => {
-        const data = res.data.data ?? [];
-        setMessages(data.map((m: any) => ({ user: m.senderName, text: m.content, time: m.createdAt?.substring(0,10) ?? "방금" })));
-      })
-      .catch(() => {});
-  }, [workspace?.id]);
-
-  const handleSendMsg = async () => {
-    if (!msgInput.trim()) return;
-    const text = msgInput.trim();
-    setMsgInput("");
-    setWritingMsg(false);
-    const userId = localStorage.getItem("userId") ?? "";
-    if (workspace?.id && userId) {
-      try {
-        const res = await client.post(`/workspaces/${workspace.id}/messages`, { senderId: userId, content: text });
-        const m = res.data.data;
-        setMessages((prev) => [...prev, { user: m.senderName, text: m.content, time: "방금 전" }]);
-      } catch (err) {
-        console.error("메시지 전송 실패:", err);
-        setMessages((prev) => [...prev, { user: userName, text, time: "방금 전" }]);
-      }
-    } else {
-      setMessages((prev) => [...prev, { user: userName, text, time: "방금 전" }]);
-    }
-  };
 
   const [calYear, setCalYear]   = useState(TODAY.getFullYear());
   const [calMonth, setCalMonth] = useState(TODAY.getMonth());
@@ -498,53 +466,7 @@ export default function WorkSpacePage() {
 
       <div className="wsp-body" style={{ background: gradient }}>
         {/* 왼쪽: Community */}
-        <aside className={`wsp-community ${showCommunity ? "panel-visible" : "panel-hidden"}`}>
-          <div className="wsp-panel-title">
-            <span className="wsp-panel-icon"></span> community
-          </div>
-          <input className="wsp-search" placeholder="채널 및 메시지 검색..." />
-          <div className="wsp-channel-label">채널 및 스레드</div>
-          <div className="wsp-channel-item"># 일반</div>
-          <div className="wsp-channel-item"># UI/UX 디자인</div>
-          <div className="wsp-channel-item">
-            # 개발 및 연동
-            <span className="wsp-channel-dot" />
-          </div>
-          <div className="wsp-channel-label" style={{ marginTop: 16 }}>최근 메시지</div>
-          <div className="wsp-msg-list">
-            {messages.length === 0 ? (
-              <div className="wsp-msg-empty">메시지가 없습니다.</div>
-            ) : (
-              messages.map((m, i) => (
-                <div key={i} className="wsp-msg-item">
-                  <div className="wsp-msg-header">
-                    <span className="wsp-msg-name">{m.user}</span>
-                    <span className="wsp-msg-time">{m.time}</span>
-                  </div>
-                  <div className="wsp-msg-text">{m.text}</div>
-                </div>
-              ))
-            )}
-          </div>
-          {writingMsg ? (
-            <div className="wsp-msg-form">
-              <textarea
-                className="wsp-msg-input"
-                placeholder="메시지 입력..."
-                value={msgInput}
-                onChange={(e) => setMsgInput(e.target.value)}
-                onKeyDown={(e) => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); handleSendMsg(); } }}
-                autoFocus
-              />
-              <div className="wsp-msg-actions">
-                <button className="wsp-msg-send" onClick={handleSendMsg}>전송</button>
-                <button className="wsp-msg-cancel" onClick={() => { setWritingMsg(false); setMsgInput(""); }}>취소</button>
-              </div>
-            </div>
-          ) : (
-            <button className="wsp-new-msg-btn" onClick={() => setWritingMsg(true)}>새 메시지 작성</button>
-          )}
-        </aside>
+        <WorkspaceCommunityPanel visible={showCommunity} workspaceId={workspace?.id} />
 
         {/* 가운데: Planner */}
         <aside className={`wsp-planner ${showPlanner ? "panel-visible" : "panel-hidden"}`}>
