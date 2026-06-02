@@ -115,6 +115,9 @@ Rules:
 - Infer 4 to 6 category names that fit the project domain. Do NOT use vague names like "작업" or "기타".                  # 카테고리 4~6개, 도메인에 맞는 구체적 이름
 - Write all task titles and descriptions in Korean. Technical terms may stay in English.                                   # 한국어 출력
 - Keep each task title concise (under 25 characters).                                                                     # title 25자 이하
+- description must NOT restate or paraphrase the title. It must add NEW information only — such as:                       # description은 title 반복 금지
+    approach/method (e.g. "JWT + Redis 세션 관리"), key condition (e.g. "실패 시 rollback 처리"),
+    tech/tool to use (e.g. "react-beautiful-dnd 사용"), or acceptance criteria (e.g. "응답시간 200ms 이하").
 - Keep each task description concise (under 60 characters).                                                               # description 60자 이하
 
 Respond with ONLY the following JSON and nothing else:
