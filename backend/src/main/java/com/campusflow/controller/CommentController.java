@@ -34,3 +34,24 @@ public class CommentController {
         return ResponseEntity.ok(ApiResponse.success(200, "댓글 저장 완료", saved));
     }
 }
+
+@org.springframework.web.bind.annotation.RestController
+@org.springframework.web.bind.annotation.RequestMapping("/api/workspaces/{workspaceId}/messages")
+@RequiredArgsConstructor
+class WorkspaceChatController {
+
+    private final CommentService commentService;
+
+    @org.springframework.web.bind.annotation.GetMapping
+    public ResponseEntity<ApiResponse<List<CommentResponse>>> getMessages(@PathVariable String workspaceId) {
+        return ResponseEntity.ok(ApiResponse.success(200, "조회 성공", commentService.getWorkspaceMessages(workspaceId)));
+    }
+
+    @org.springframework.web.bind.annotation.PostMapping
+    public ResponseEntity<ApiResponse<CommentResponse>> sendMessage(
+            @PathVariable String workspaceId,
+            @RequestBody Map<String, String> body) {
+        CommentResponse saved = commentService.sendWorkspaceMessage(workspaceId, body.get("senderId"), body.get("content"));
+        return ResponseEntity.ok(ApiResponse.success(200, "메시지 전송 완료", saved));
+    }
+}

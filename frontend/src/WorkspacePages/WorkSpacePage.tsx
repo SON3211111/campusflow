@@ -126,12 +126,34 @@ export default function WorkSpacePage() {
   const [msgInput, setMsgInput] = useState("");
   const [writingMsg, setWritingMsg] = useState(false);
 
-  const handleSendMsg = () => {
+  useEffect(() => {
+    if (!workspace?.id) return;
+    client.get(`/workspaces/${workspace.id}/messages`)
+      .then((res) => {
+        const data = res.data.data ?? [];
+        setMessages(data.map((m: any) => ({ user: m.senderName, text: m.content, time: m.createdAt?.substring(0,10) ?? "방금" })));
+      })
+      .catch(() => {});
+  }, [workspace?.id]);
+
+  const handleSendMsg = async () => {
     if (!msgInput.trim()) return;
-    const userName = localStorage.getItem("userName") ?? "나";
-    setMessages((prev) => [...prev, { user: userName, text: msgInput.trim(), time: "방금" }]);
+    const text = msgInput.trim();
     setMsgInput("");
     setWritingMsg(false);
+    const userId = localStorage.getItem("userId") ?? "";
+    if (workspace?.id && userId) {
+      try {
+        const res = await client.post(`/workspaces/${workspace.id}/messages`, { senderId: userId, content: text });
+        const m = res.data.data;
+        setMessages((prev) => [...prev, { user: m.senderName, text: m.content, time: "방금 전" }]);
+      } catch (err) {
+        console.error("메시지 전송 실패:", err);
+        setMessages((prev) => [...prev, { user: userName, text, time: "방금 전" }]);
+      }
+    } else {
+      setMessages((prev) => [...prev, { user: userName, text, time: "방금 전" }]);
+    }
   };
 
   const [calYear, setCalYear]   = useState(TODAY.getFullYear());

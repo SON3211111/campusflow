@@ -103,7 +103,7 @@ export default function NotificationPage() {
       <BoardSubHeader wsName={wsName} members={[]} workspace={workspace} workspaces={workspaces} initialSelected="Notification" />
 
       <div style={{ display:"flex", flex:1, overflow:"hidden" }}>
-      <WorkspaceCommunityPanel visible={showCommunity} />
+      <WorkspaceCommunityPanel visible={showCommunity} workspaceId={workspace?.id} />
       <div className="ntp-body">
         <div className="ntp-header-row">
           <h2 className="ntp-title">알림</h2>

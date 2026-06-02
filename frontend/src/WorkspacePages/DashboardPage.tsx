@@ -194,7 +194,7 @@ export default function DashboardPage() {
       <BoardSubHeader wsName={wsName} members={wsMembers} workspace={workspace} workspaces={workspaces} initialSelected="Dash Board" />
 
       <div style={{ display:"flex", flex:1, overflow:"hidden" }}>
-      <WorkspaceCommunityPanel visible={showCommunity} />
+      <WorkspaceCommunityPanel visible={showCommunity} workspaceId={workspace?.id} />
       <div className="dbp-body" style={{ background: workspace?.gradient ?? "#f0f2f8" }}>
 
         {/* 상단: Task 진행상황 + 활동로그 */}

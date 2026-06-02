@@ -35,6 +35,31 @@ public class CommentService {
                 .toList();
     }
 
+    @Transactional(readOnly = true)
+    public List<CommentResponse> getWorkspaceMessages(String workspaceId) {
+        return communicationRepository.findAllByWorkspace_WorkspaceIdAndTaskIsNullOrderByCreatedAtAsc(workspaceId)
+                .stream()
+                .map(CommentResponse::from)
+                .toList();
+    }
+
+    @Transactional
+    public CommentResponse sendWorkspaceMessage(String workspaceId, String senderId, String content) {
+        Workspace workspace = workspaceRepository.findByWorkspaceId(workspaceId)
+                .orElseThrow(() -> new IllegalArgumentException("워크스페이스를 찾을 수 없습니다."));
+        User sender = userRepository.findById(senderId)
+                .orElseThrow(() -> new IllegalArgumentException("유저를 찾을 수 없습니다."));
+
+        TeamCommunication msg = TeamCommunication.builder()
+                .workspace(workspace)
+                .task(null)
+                .sender(sender)
+                .content(content)
+                .build();
+
+        return CommentResponse.from(communicationRepository.save(msg));
+    }
+
     @Transactional
     public CommentResponse addComment(String workspaceId, String taskId, String senderId, String content) {
         Workspace workspace = workspaceRepository.findByWorkspaceId(workspaceId)
