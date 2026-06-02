@@ -9,6 +9,60 @@ import client from "../api/client";
 import Header from "../components/Header";
 import "./TaskBreakdownPage.css";
 
+const MESSAGES = [
+  "🚀 프롬프트를 분석하는 중...",
+  "🌌 업무를 분류하는 중...",
+  "⭐ 우선순위를 계산하는 중...",
+  "🛸 태스크를 조립하는 중...",
+  "✨ 거의 다 왔어요!",
+];
+
+function SpaceLoading() {
+  const [msgIdx, setMsgIdx] = useState(0);
+  const [progress, setProgress] = useState(0);
+
+  useEffect(() => {
+    const msgTimer = setInterval(() => setMsgIdx((i) => Math.min(i + 1, MESSAGES.length - 1)), 18000);
+    return () => clearInterval(msgTimer);
+  }, []);
+
+  useEffect(() => {
+    const progTimer = setInterval(() => {
+      setProgress((p) => {
+        if (p >= 92) return p;
+        return p + (92 - p) * 0.03;
+      });
+    }, 500);
+    return () => clearInterval(progTimer);
+  }, []);
+
+  return (
+    <div className="tbp-space-loading">
+      <div className="tbp-stars">
+        {Array.from({ length: 30 }).map((_, i) => (
+          <div key={i} className="tbp-star" style={{
+            left: `${Math.random() * 100}%`,
+            top:  `${Math.random() * 100}%`,
+            animationDelay: `${Math.random() * 3}s`,
+            width:  `${Math.random() * 2 + 1}px`,
+            height: `${Math.random() * 2 + 1}px`,
+          }} />
+        ))}
+      </div>
+      <div className="tbp-rocket-wrap">
+        <div className="tbp-rocket">🚀</div>
+        <div className="tbp-rocket-trail" />
+      </div>
+      <p className="tbp-space-msg">{MESSAGES[msgIdx]}</p>
+      <div className="tbp-progress-wrap">
+        <div className="tbp-progress-bar" style={{ width: `${progress}%` }} />
+      </div>
+      <p className="tbp-progress-pct">{Math.round(progress)}%</p>
+      <p className="tbp-space-sub">보통 30~90초 정도 소요됩니다</p>
+    </div>
+  );
+}
+
 interface AiTask {
   name: string;
   priority?: string;
@@ -144,12 +198,7 @@ export default function TaskBreakdownPage() {
       </div>
 
       <div className="tbp-body">
-        {loading && (
-          <div className="tbp-center">
-            <div className="tbp-spinner" />
-            <p className="tbp-loading-text">AI가 업무를 분석 중입니다...</p>
-          </div>
-        )}
+        {loading && <SpaceLoading />}
 
         {error && (
           <div className="tbp-center">
