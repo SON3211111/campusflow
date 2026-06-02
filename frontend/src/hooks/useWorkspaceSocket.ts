@@ -1,6 +1,5 @@
 import { useEffect, useRef, useCallback } from "react";
 import { Client } from "@stomp/stompjs";
-import SockJS from "sockjs-client";
 
 interface TaskStatusMessage {
   taskId: string;
@@ -20,7 +19,7 @@ export function useWorkspaceSocket(
     if (!workspaceId) return;
 
     const client = new Client({
-      webSocketFactory: () => new SockJS("http://localhost:8080/ws"),
+      brokerURL: "ws://localhost:8080/ws/websocket",
       reconnectDelay: 5000,
       onConnect: () => {
         client.subscribe(
@@ -38,6 +37,7 @@ export function useWorkspaceSocket(
           }
         );
       },
+      onStompError: (frame) => console.error("STOMP 오류:", frame),
     });
 
     client.activate();
