@@ -157,7 +157,7 @@ style(범위): UI/CSS 변경
 | 활동 피드 UI | ✅ 완료 — 대시보드 활동 피드 localStorage → task_status_history API 교체 |
 | 알림 자동 생성 | ✅ 완료 — 상태 변경 시 본인 제외 워크스페이스 멤버 전체 알림 자동 저장 |
 | 알림 UI | ✅ 완료 — 헤더 벨 아이콘 숫자 뱃지, STATUS_CHANGE 알림 드롭다운 표시 |
-| 마감 D-3 알림 | 미구현 — @Scheduled 스케줄러로 담당자에게 자동 알림 필요 |
+| 마감 D-3 알림 | ✅ 완료 — @Scheduled 매일 오전 9시, dueDate D-3 담당자에게 DUE_DATE 알림 자동 생성 |
 
 ### 소통 (팀 간 실시간 공유)
 | 기능 | 상태 |
@@ -174,7 +174,7 @@ style(범위): UI/CSS 변경
 |---|---|
 | ProjectAnalyticsService | 더미 데이터 반환 중 |
 | 커스텀 컬럼 | 로컬 state만, 리로드 시 사라짐 |
-| Planner 마감일 연결 | "마감일이 없습니다" 하드코딩 — tasks의 dueDate 연결 필요 |
+| Planner 마감일 연결 | ✅ 완료 — tasks dueDate 기반 "다가오는 마감일" 목록 표시, D-3 이내 빨간 강조 |
 
 ## 환경 변수
 

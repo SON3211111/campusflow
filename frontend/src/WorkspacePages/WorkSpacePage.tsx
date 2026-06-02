@@ -354,12 +354,25 @@ export default function WorkSpacePage() {
     }
   };
 
+  const handleSaveTitle = async (col: string, id: string, title: string) => {
+    setCards((prev) => ({ ...prev, [col]: prev[col].map((c) => c.id === id ? { ...c, title } : c) }));
+    if (workspace?.id) {
+      try {
+        await client.patch(`/workspaces/${workspace.id}/tasks/${id}/title`, { title });
+      } catch (err) {
+        console.error("제목 수정 실패:", err);
+      }
+    }
+  };
+
   const handleSaveDueDate = async (col: string, id: string, dueDate: string) => {
     setCards((prev) => ({ ...prev, [col]: prev[col].map((c) => c.id === id ? { ...c, dueDate } : c) }));
     if (workspace?.id) {
       try {
         await client.patch(`/workspaces/${workspace.id}/tasks/${id}/due-date?dueDate=${dueDate}`);
-      } catch {}
+      } catch (err) {
+        console.error("마감일 수정 실패:", err);
+      }
     }
   };
 
@@ -478,7 +491,33 @@ export default function WorkSpacePage() {
             })}
           </div>
           <div className="wsp-upcoming-label">다가오는 마감일</div>
-          <div className="wsp-upcoming-empty">마감일이 없습니다.</div>
+          {(() => {
+            const today = new Date(); today.setHours(0,0,0,0);
+            const upcoming = Object.values(cards).flat()
+              .filter((c) => c.dueDate)
+              .map((c) => {
+                const due = new Date(c.dueDate!); due.setHours(0,0,0,0);
+                const daysLeft = Math.ceil((due.getTime() - today.getTime()) / 86400000);
+                return { ...c, daysLeft };
+              })
+              .filter((c) => c.daysLeft >= 0)
+              .sort((a, b) => a.daysLeft - b.daysLeft)
+              .slice(0, 5);
+            if (upcoming.length === 0)
+              return <div className="wsp-upcoming-empty">마감일이 없습니다.</div>;
+            return (
+              <div className="wsp-upcoming-list">
+                {upcoming.map((c) => (
+                  <div key={c.id} className={`wsp-upcoming-item ${c.daysLeft <= 3 ? "urgent" : ""}`}>
+                    <span className="wsp-upcoming-title">{c.title}</span>
+                    <span className="wsp-upcoming-days">
+                      {c.daysLeft === 0 ? "오늘" : `D-${c.daysLeft}`}
+                    </span>
+                  </div>
+                ))}
+              </div>
+            );
+          })()}
         </aside>
 
         {/* 오른쪽: Board */}
@@ -661,6 +700,7 @@ export default function WorkSpacePage() {
           initialDesc={selectedCard.card.desc}
           initialDueDate={selectedCard.card.dueDate}
           initialComments={selectedCard.card.comments}
+          onSaveTitle={(t) => handleSaveTitle(selectedCard.col, selectedCard.card.id, t)}
           onSaveDesc={(desc) => handleSaveDesc(selectedCard.col, selectedCard.card.id, desc)}
           onSaveDueDate={(dueDate) => handleSaveDueDate(selectedCard.col, selectedCard.card.id, dueDate)}
           onSaveComments={(comments) => handleSaveComments(selectedCard.col, selectedCard.card.id, comments)}

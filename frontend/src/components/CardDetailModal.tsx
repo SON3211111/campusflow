@@ -14,14 +14,17 @@ interface Props {
   initialDesc?: string;
   initialDueDate?: string;
   initialComments?: Comment[];
+  onSaveTitle?: (title: string) => void;
   onSaveDesc?: (desc: string) => void;
   onSaveDueDate?: (dueDate: string) => void;
   onSaveComments?: (comments: Comment[]) => void;
   onClose: () => void;
 }
 
-export default function CardDetailModal({ title, colName, initialDesc = "", initialDueDate = "", initialComments = [], onSaveDesc, onSaveDueDate, onSaveComments, onClose }: Props) {
+export default function CardDetailModal({ title, colName, initialDesc = "", initialDueDate = "", initialComments = [], onSaveTitle, onSaveDesc, onSaveDueDate, onSaveComments, onClose }: Props) {
   const userName  = localStorage.getItem("userName") ?? "나";
+  const [cardTitle, setCardTitle] = useState(title);
+  const [editingTitle, setEditingTitle] = useState(false);
   const [desc, setDesc]         = useState(initialDesc);
   const [editingDesc, setEditingDesc] = useState(false);
   const [dueDate, setDueDate]   = useState(initialDueDate);
@@ -53,7 +56,26 @@ export default function CardDetailModal({ title, colName, initialDesc = "", init
           <div className="cdm-left">
             <div className="cdm-title-row">
               <span className="cdm-title-icon">○</span>
-              <h2 className="cdm-title">{title}</h2>
+              {editingTitle ? (
+                <div className="cdm-title-editor">
+                  <input
+                    className="cdm-title-input"
+                    value={cardTitle}
+                    onChange={(e) => setCardTitle(e.target.value)}
+                    autoFocus
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter") { onSaveTitle?.(cardTitle); setEditingTitle(false); }
+                      if (e.key === "Escape") setEditingTitle(false);
+                    }}
+                  />
+                  <div className="cdm-desc-actions">
+                    <button className="cdm-save-btn" onClick={() => { onSaveTitle?.(cardTitle); setEditingTitle(false); }}>저장</button>
+                    <button className="cdm-cancel-btn" onClick={() => { setCardTitle(title); setEditingTitle(false); }}>취소</button>
+                  </div>
+                </div>
+              ) : (
+                <h2 className="cdm-title" onClick={() => setEditingTitle(true)} title="클릭하여 제목 수정">{cardTitle}</h2>
+              )}
             </div>
             <div className="cdm-section">
               <div className="cdm-section-title">

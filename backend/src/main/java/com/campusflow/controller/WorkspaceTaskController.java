@@ -82,6 +82,14 @@ public class WorkspaceTaskController {
         return ResponseEntity.ok(ApiResponse.success(200, "설명 수정 완료"));
     }
 
+    @PatchMapping("/{taskId}/title")
+    public ResponseEntity<ApiResponse<Void>> updateTitle(
+            @PathVariable String taskId,
+            @RequestBody Map<String, String> body) {
+        taskService.updateTitle(taskId, body.getOrDefault("title", ""));
+        return ResponseEntity.ok(ApiResponse.success(200, "제목 수정 완료"));
+    }
+
     @GetMapping("/activity")
     public ResponseEntity<ApiResponse<List<ActivityFeedItemDto>>> getActivity(
             @PathVariable String workspaceId,

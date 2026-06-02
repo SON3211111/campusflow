@@ -224,6 +224,14 @@ public class TaskService {
         task.setDescription(description);
     }
 
+    /** 태스크 제목 업데이트 */
+    @Transactional
+    public void updateTitle(String taskId, String title) {
+        Task task = taskRepository.findById(taskId)
+                .orElseThrow(() -> new IllegalArgumentException("태스크를 찾을 수 없습니다. ID: " + taskId));
+        task.setTitle(title);
+    }
+
     // ── 기존: 칸반 맵 조회 (TaskController에서 사용) ─────────
 
     /** 상태별 그룹화된 태스크 맵 반환 */

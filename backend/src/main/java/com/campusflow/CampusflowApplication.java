@@ -3,8 +3,10 @@ package com.campusflow;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.data.jpa.repository.config.EnableJpaAuditing;
+import org.springframework.scheduling.annotation.EnableScheduling;
 
-@EnableJpaAuditing // [추가] 엔티티의 @CreationTimestamp, @CreatedDate 등을 활성화
+@EnableJpaAuditing
+@EnableScheduling
 @SpringBootApplication
 public class CampusflowApplication {
 
