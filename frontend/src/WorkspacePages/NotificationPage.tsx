@@ -49,11 +49,14 @@ export default function NotificationPage() {
   const [notis, setNotis] = useState<Noti[]>([]);
   const [loading, setLoading] = useState(true);
 
+  const VALID_TYPES = ["STATUS_CHANGE", "DUE_DATE", "BOTTLENECK"];
+
   const fetchNotis = async () => {
     if (!userId) return;
     try {
       const res = await client.get(`/notifications?userId=${userId}`);
-      setNotis(res.data.data ?? []);
+      const all: Noti[] = res.data.data ?? [];
+      setNotis(all.filter((n) => VALID_TYPES.includes(n.type)));
     } catch (err) {
       console.error("알림 조회 실패:", err);
     } finally {
