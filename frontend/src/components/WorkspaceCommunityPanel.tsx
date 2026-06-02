@@ -12,6 +12,7 @@ interface Message {
   senderName: string;
   content: string;
   time: string;
+  createdAt: string;
   parentMessageId?: string;
   parentSenderName?: string;
   parentContent?: string;
@@ -35,6 +36,7 @@ function parseMsg(m: any): Message {
     senderName: m.senderName,
     content: m.content,
     time: timeAgo(m.createdAt),
+    createdAt: m.createdAt,
     parentMessageId: m.parentMessageId,
     parentSenderName: m.parentSenderName,
     parentContent: m.parentContent,
@@ -49,6 +51,23 @@ export default function WorkspaceCommunityPanel({ visible, workspaceId }: Props)
   const [activeChannel, setActiveChannel]   = useState("일반");
   const [addingChannel, setAddingChannel]   = useState(false);
   const [newChannelName, setNewChannelName] = useState("");
+  const [unreadChannels, setUnreadChannels] = useState<Set<string>>(new Set());
+
+  const getLastSeenKey = (ch: string) => `community_last_seen_${workspaceId}_${ch}`;
+
+  const markAsRead = (channelName: string) => {
+    localStorage.setItem(getLastSeenKey(channelName), new Date().toISOString());
+    setUnreadChannels((prev) => { const next = new Set(prev); next.delete(channelName); return next; });
+  };
+
+  const checkUnread = (channelName: string, msgs: Message[]): boolean => {
+    if (msgs.length === 0) return false;
+    const lastSeen = localStorage.getItem(getLastSeenKey(channelName));
+    if (!lastSeen) return true;
+    const lastMsg = msgs[msgs.length - 1];
+    if (!lastMsg.createdAt) return false;
+    return new Date(lastMsg.createdAt) > new Date(lastSeen);
+  };
   const [messages, setMessages]             = useState<Message[]>([]);
   const [msgInput, setMsgInput]             = useState("");
   const [writing, setWriting]               = useState(false);
@@ -66,13 +85,31 @@ export default function WorkspaceCommunityPanel({ visible, workspaceId }: Props)
   useEffect(() => {
     if (!visible || !workspaceId) return;
     client.get(`/workspaces/${workspaceId}/members`).then((r) => setMembers(r.data.data ?? [])).catch(() => {});
-    client.get(`/workspaces/${workspaceId}/channels`).then((r) => setChannels(r.data.data ?? [])).catch(() => {});
+    client.get(`/workspaces/${workspaceId}/channels`).then((r) => {
+      const chs: Channel[] = r.data.data ?? [];
+      setChannels(chs);
+      // 모든 채널의 미읽 상태 체크
+      chs.forEach((ch) => {
+        if (ch.name === activeChannel) return;
+        client.get(`/workspaces/${workspaceId}/messages?channel=${encodeURIComponent(ch.name)}`)
+          .then((res) => {
+            const msgs = (res.data.data ?? []).map(parseMsg);
+            if (checkUnread(ch.name, msgs)) {
+              setUnreadChannels((prev) => new Set([...prev, ch.name]));
+            }
+          }).catch(() => {});
+      });
+    }).catch(() => {});
   }, [visible, workspaceId]);
 
   useEffect(() => {
     if (!visible || !workspaceId) return;
     client.get(`/workspaces/${workspaceId}/messages?channel=${encodeURIComponent(activeChannel)}`)
-      .then((r) => setMessages((r.data.data ?? []).map(parseMsg)))
+      .then((r) => {
+        const msgs = (r.data.data ?? []).map(parseMsg);
+        setMessages(msgs);
+        markAsRead(activeChannel);
+      })
       .catch(() => {});
     setReplyTarget(null);
   }, [visible, workspaceId, activeChannel]);
@@ -136,6 +173,7 @@ export default function WorkspaceCommunityPanel({ visible, workspaceId }: Props)
       });
       setMessages((prev) => [...prev, parseMsg(res.data.data)]);
     } catch (err) { console.error("메시지 전송 실패:", err); }
+    markAsRead(activeChannel);
     setMsgInput(""); setWriting(false); setReplyTarget(null); setMentioned([]);
   };
 
@@ -181,6 +219,9 @@ export default function WorkspaceCommunityPanel({ visible, workspaceId }: Props)
         <div key={ch.channelId} className={`wsp-channel-item ${activeChannel === ch.name ? "wsp-channel-active" : ""}`}
           onClick={() => { setActiveChannel(ch.name); setWriting(false); }}>
           # {ch.name}
+          {unreadChannels.has(ch.name) && activeChannel !== ch.name && (
+            <span className="wsp-channel-unread-dot" />
+          )}
           {!ch.isDefault && (
             <button className="wsp-channel-del-btn" onClick={(e) => { e.stopPropagation(); handleDeleteChannel(ch); }}>✕</button>
           )}
