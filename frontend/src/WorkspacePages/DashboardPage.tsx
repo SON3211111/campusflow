@@ -376,6 +376,7 @@ export default function DashboardPage() {
 
         </div>
 
+      </div>
       <WorkspacePlannerPanel visible={showPlanner} workspaceId={workspace?.id} />
       </div>
 
