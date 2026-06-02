@@ -11,6 +11,7 @@ import com.campusflow.repository.TaskRepository;
 import com.campusflow.repository.TeamCommunicationRepository;
 import com.campusflow.repository.UserRepository;
 import com.campusflow.repository.WorkspaceRepository;
+import com.campusflow.repository.WorkspaceMemberRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -26,6 +27,7 @@ public class CommentService {
     private final UserRepository userRepository;
     private final WorkspaceRepository workspaceRepository;
     private final NotificationRepository notificationRepository;
+    private final WorkspaceMemberRepository workspaceMemberRepository;
 
     @Transactional(readOnly = true)
     public List<CommentResponse> getComments(String taskId) {
@@ -36,28 +38,64 @@ public class CommentService {
     }
 
     @Transactional(readOnly = true)
-    public List<CommentResponse> getWorkspaceMessages(String workspaceId) {
-        return communicationRepository.findAllByWorkspace_WorkspaceIdAndTaskIsNullOrderByCreatedAtAsc(workspaceId)
+    public List<CommentResponse> getWorkspaceMessages(String workspaceId, String channel) {
+        String ch = (channel != null && !channel.isBlank()) ? channel : "일반";
+        return communicationRepository
+                .findAllByWorkspace_WorkspaceIdAndTaskIsNullAndChannelAndParentMessageIsNullOrderByCreatedAtAsc(workspaceId, ch)
+                .stream()
+                .map(CommentResponse::from)
+                .toList();
+    }
+
+    @Transactional(readOnly = true)
+    public List<CommentResponse> getReplies(String parentMessageId) {
+        return communicationRepository.findAllByParentMessage_MessageIdOrderByCreatedAtAsc(parentMessageId)
                 .stream()
                 .map(CommentResponse::from)
                 .toList();
     }
 
     @Transactional
-    public CommentResponse sendWorkspaceMessage(String workspaceId, String senderId, String content) {
+    public CommentResponse sendWorkspaceMessage(String workspaceId, String senderId, String content,
+                                                String channel, String mentionList, String parentMessageId) {
         Workspace workspace = workspaceRepository.findByWorkspaceId(workspaceId)
                 .orElseThrow(() -> new IllegalArgumentException("워크스페이스를 찾을 수 없습니다."));
         User sender = userRepository.findById(senderId)
                 .orElseThrow(() -> new IllegalArgumentException("유저를 찾을 수 없습니다."));
+
+        TeamCommunication parent = null;
+        if (parentMessageId != null && !parentMessageId.isBlank()) {
+            parent = communicationRepository.findById(parentMessageId).orElse(null);
+        }
 
         TeamCommunication msg = TeamCommunication.builder()
                 .workspace(workspace)
                 .task(null)
                 .sender(sender)
                 .content(content)
+                .channel(channel != null ? channel : "일반")
+                .mentionList(mentionList)
+                .parentMessage(parent)
                 .build();
 
-        return CommentResponse.from(communicationRepository.save(msg));
+        TeamCommunication saved = communicationRepository.save(msg);
+
+        // 멘션 알림
+        if (mentionList != null && !mentionList.isBlank() && !mentionList.equals("[]")) {
+            String cleanList = mentionList.replaceAll("[\\[\\]\"\\s]", "");
+            for (String uid : cleanList.split(",")) {
+                if (!uid.isBlank() && !uid.equals(senderId)) {
+                    notificationRepository.save(com.campusflow.entity.Notification.builder()
+                            .userId(uid)
+                            .message(sender.getName() + "이(가) 채팅에서 회원님을 멘션했습니다: " + content)
+                            .type("MENTION")
+                            .taskId(null)
+                            .build());
+                }
+            }
+        }
+
+        return CommentResponse.from(saved);
     }
 
     @Transactional

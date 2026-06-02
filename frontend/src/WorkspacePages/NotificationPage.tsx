@@ -34,6 +34,7 @@ const TYPE_LABEL: Record<string, string> = {
   BOTTLENECK: "병목 감지",
   QUICK_SIGNAL: "도움 요청",
   COMMENT: "댓글",
+  MENTION: "멘션",
 };
 
 const TYPE_ICON: Record<string, string> = {
@@ -42,6 +43,7 @@ const TYPE_ICON: Record<string, string> = {
   BOTTLENECK: "⚠️",
   QUICK_SIGNAL: "🆘",
   COMMENT: "💬",
+  MENTION: "@",
 };
 
 export default function NotificationPage() {
@@ -58,7 +60,7 @@ export default function NotificationPage() {
   const [showPlanner,   setShowPlanner]   = useState(false);
   const [showCommunity, setShowCommunity] = useState(false);
 
-  const VALID_TYPES = ["STATUS_CHANGE", "DUE_DATE", "BOTTLENECK", "QUICK_SIGNAL", "COMMENT"];
+  const VALID_TYPES = ["STATUS_CHANGE", "DUE_DATE", "BOTTLENECK", "QUICK_SIGNAL", "COMMENT", "MENTION"];
 
   const fetchNotis = async () => {
     if (!userId) return;

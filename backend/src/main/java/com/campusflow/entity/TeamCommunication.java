@@ -36,6 +36,13 @@ public class TeamCommunication {
     private String content;
 
     @Builder.Default
+    @Column(name = "channel", nullable = false)
+    private String channel = "일반";
+
+    @Column(name = "mention_list", columnDefinition = "TEXT", nullable = true)
+    private String mentionList; // JSON 배열 형태: ["userId1","userId2"]
+
+    @Builder.Default
     @Column(name = "created_at", nullable = false)
     private LocalDateTime createdAt = LocalDateTime.now();
 

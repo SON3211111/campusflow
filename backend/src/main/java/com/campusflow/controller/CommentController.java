@@ -43,15 +43,29 @@ class WorkspaceChatController {
     private final CommentService commentService;
 
     @org.springframework.web.bind.annotation.GetMapping
-    public ResponseEntity<ApiResponse<List<CommentResponse>>> getMessages(@PathVariable String workspaceId) {
-        return ResponseEntity.ok(ApiResponse.success(200, "조회 성공", commentService.getWorkspaceMessages(workspaceId)));
+    public ResponseEntity<ApiResponse<List<CommentResponse>>> getMessages(
+            @PathVariable String workspaceId,
+            @org.springframework.web.bind.annotation.RequestParam(required = false, defaultValue = "일반") String channel) {
+        return ResponseEntity.ok(ApiResponse.success(200, "조회 성공", commentService.getWorkspaceMessages(workspaceId, channel)));
+    }
+
+    @org.springframework.web.bind.annotation.GetMapping("/{messageId}/replies")
+    public ResponseEntity<ApiResponse<List<CommentResponse>>> getReplies(@PathVariable String messageId) {
+        return ResponseEntity.ok(ApiResponse.success(200, "조회 성공", commentService.getReplies(messageId)));
     }
 
     @org.springframework.web.bind.annotation.PostMapping
     public ResponseEntity<ApiResponse<CommentResponse>> sendMessage(
             @PathVariable String workspaceId,
             @RequestBody Map<String, String> body) {
-        CommentResponse saved = commentService.sendWorkspaceMessage(workspaceId, body.get("senderId"), body.get("content"));
+        CommentResponse saved = commentService.sendWorkspaceMessage(
+                workspaceId,
+                body.get("senderId"),
+                body.get("content"),
+                body.get("channel"),
+                body.get("mentionList"),
+                body.get("parentMessageId")
+        );
         return ResponseEntity.ok(ApiResponse.success(200, "메시지 전송 완료", saved));
     }
 }
