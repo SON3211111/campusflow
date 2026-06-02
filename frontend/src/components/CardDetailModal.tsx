@@ -3,7 +3,8 @@
  * 태스크 클릭 시 열리는 상세 편집 화면
  * 설명/마감일 인라인 편집, 댓글 작성 기능 포함
  */
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import client from "../api/client";
 import "./CardDetailModal.css";
 
 interface Comment { user: string; text: string; time: string; }
@@ -11,6 +12,8 @@ interface Comment { user: string; text: string; time: string; }
 interface Props {
   title: string;
   colName: string;
+  taskId?: string;
+  workspaceId?: string;
   initialDesc?: string;
   initialDueDate?: string;
   initialComments?: Comment[];
@@ -23,8 +26,17 @@ interface Props {
   onClose: () => void;
 }
 
-export default function CardDetailModal({ title, colName, initialDesc = "", initialDueDate = "", initialComments = [], initialQuickSignal, onSaveTitle, onSaveDesc, onSaveDueDate, onSaveComments, onSendSignal, onClose }: Props) {
+function timeAgo(iso: string) {
+  const diff = Math.floor((Date.now() - new Date(iso).getTime()) / 1000);
+  if (diff < 60) return "방금 전";
+  if (diff < 3600) return `${Math.floor(diff / 60)}분 전`;
+  if (diff < 86400) return `${Math.floor(diff / 3600)}시간 전`;
+  return `${Math.floor(diff / 86400)}일 전`;
+}
+
+export default function CardDetailModal({ title, colName, taskId, workspaceId, initialDesc = "", initialDueDate = "", initialComments = [], initialQuickSignal, onSaveTitle, onSaveDesc, onSaveDueDate, onSaveComments, onSendSignal, onClose }: Props) {
   const userName  = localStorage.getItem("userName") ?? "나";
+  const userId    = localStorage.getItem("userId") ?? "";
   const [cardTitle, setCardTitle] = useState(title);
   const [editingTitle, setEditingTitle] = useState(false);
   const [quickSignal, setQuickSignal] = useState(initialQuickSignal ?? null);
@@ -35,12 +47,32 @@ export default function CardDetailModal({ title, colName, initialDesc = "", init
   const [comment, setComment]   = useState("");
   const [comments, setComments] = useState<Comment[]>(initialComments);
 
-  const handleAddComment = () => {
+  useEffect(() => {
+    if (!taskId || !workspaceId) return;
+    client.get(`/workspaces/${workspaceId}/tasks/${taskId}/comments`)
+      .then((res) => {
+        const data = res.data.data ?? [];
+        setComments(data.map((c: any) => ({ user: c.senderName, text: c.content, time: timeAgo(c.createdAt) })));
+      })
+      .catch(() => {});
+  }, [taskId, workspaceId]);
+
+  const handleAddComment = async () => {
     if (!comment.trim()) return;
-    const updated = [...comments, { user: userName, text: comment.trim(), time: "방금" }];
-    setComments(updated);
-    onSaveComments?.(updated);
+    const text = comment.trim();
     setComment("");
+    if (taskId && workspaceId && userId) {
+      try {
+        const res = await client.post(`/workspaces/${workspaceId}/tasks/${taskId}/comments`, { senderId: userId, content: text });
+        const c = res.data.data;
+        setComments((prev) => [...prev, { user: c.senderName, text: c.content, time: "방금 전" }]);
+      } catch (err) {
+        console.error("댓글 저장 실패:", err);
+        setComments((prev) => [...prev, { user: userName, text, time: "방금 전" }]);
+      }
+    } else {
+      setComments((prev) => [...prev, { user: userName, text, time: "방금 전" }]);
+    }
   };
 
   return (

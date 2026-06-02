@@ -163,7 +163,7 @@ style(범위): UI/CSS 변경
 ### 소통 (팀 간 실시간 공유)
 | 기능 | 상태 |
 |---|---|
-| 댓글 | UI만 있음, 새로고침하면 사라짐 — team_communication 테이블 연결 필요 |
+| 댓글 | ✅ 완료 — team_communication 테이블 연결, 저장/조회 API 연동, 댓글 시 담당자 COMMENT 알림 |
 | Community 채팅 | 탭 전환 방식으로 구조 변경 필요 (보드 사이드패널 → 탭 클릭 시 화면 전환), team_communication 연결 필요 |
 | 활동 로그 | localStorage 기반, 팀원 간 미공유 — task_status_history 기반 피드 표시 필요 |
 | 실시간 동기화 | WebSocket/폴링 없음 — 상태변경이 팀원 화면에 즉시 반영 안 됨 |

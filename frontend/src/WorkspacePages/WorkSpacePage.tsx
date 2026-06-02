@@ -741,6 +741,8 @@ export default function WorkSpacePage() {
           initialDesc={selectedCard.card.desc}
           initialDueDate={selectedCard.card.dueDate}
           initialComments={selectedCard.card.comments}
+          taskId={selectedCard.card.id}
+          workspaceId={workspace?.id}
           initialQuickSignal={selectedCard.card.quickSignal}
           onSaveTitle={(t) => handleSaveTitle(selectedCard.col, selectedCard.card.id, t)}
           onSaveDesc={(desc) => handleSaveDesc(selectedCard.col, selectedCard.card.id, desc)}
