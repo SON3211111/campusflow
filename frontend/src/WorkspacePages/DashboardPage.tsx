@@ -4,6 +4,9 @@ import Header from "../components/Header";
 import BoardSubHeader from "../components/BoardSubHeader";
 import WorkspaceTabBar from "../components/WorkspaceTabBar";
 import client from "../api/client";
+import WorkspacePlannerPanel from "../components/WorkspacePlannerPanel";
+import WorkspaceCommunityPanel from "../components/WorkspaceCommunityPanel";
+import "../WorkspacePages/WorkSpacePage.css";
 import "./DashboardPage.css";
 
 interface Workspace {
@@ -41,6 +44,8 @@ export default function DashboardPage() {
   const wsName    = workspace?.name ?? "워크스페이스";
   const userName  = localStorage.getItem("userName") ?? "나";
 
+  const [showPlanner,   setShowPlanner]   = useState(false);
+  const [showCommunity, setShowCommunity] = useState(false);
   const [donut, setDonut] = useState({ progress: 0, done: 0, hold: 0, notStarted: 0, todo: 0 });
   const [wsMembers, setWsMembers] = useState<{ userId: string; name: string }[]>([]);
   const [memberStats, setMemberStats] = useState<Record<string, { done: number; progress: number; hold: number; total: number }>>({});
@@ -188,6 +193,8 @@ export default function DashboardPage() {
       <Header workspaces={workspaces} />
       <BoardSubHeader wsName={wsName} members={wsMembers} workspace={workspace} workspaces={workspaces} initialSelected="Dash Board" />
 
+      <div style={{ display:"flex", flex:1, overflow:"hidden" }}>
+      <WorkspaceCommunityPanel visible={showCommunity} />
       <div className="dbp-body" style={{ background: workspace?.gradient ?? "#f0f2f8" }}>
 
         {/* 상단: Task 진행상황 + 활동로그 */}
@@ -369,14 +376,15 @@ export default function DashboardPage() {
 
         </div>
 
+      <WorkspacePlannerPanel visible={showPlanner} workspaceId={workspace?.id} />
       </div>
 
       <WorkspaceTabBar
         onTabChange={(t) => {
-          if (t === "board") navigate("/workspace-board", { state: { workspace, workspaces } });
-          if (t === "planner") navigate("/workspace-board", { state: { workspace, workspaces, openPanel: "planner" } });
-          if (t === "community") navigate("/workspace-board", { state: { workspace, workspaces, openPanel: "community" } });
-          if (t === "personal") navigate("/workspace");
+          if (t === "board")     navigate("/workspace-board", { state: { workspace, workspaces } });
+          if (t === "planner")   setShowPlanner((v) => !v);
+          if (t === "community") setShowCommunity((v) => !v);
+          if (t === "personal")  navigate("/workspace");
         }}
       />
     </div>

@@ -4,6 +4,9 @@ import Header from "../components/Header";
 import BoardSubHeader from "../components/BoardSubHeader";
 import WorkspaceTabBar from "../components/WorkspaceTabBar";
 import client from "../api/client";
+import WorkspacePlannerPanel from "../components/WorkspacePlannerPanel";
+import WorkspaceCommunityPanel from "../components/WorkspaceCommunityPanel";
+import "../WorkspacePages/WorkSpacePage.css";
 import "./NotificationPage.css";
 
 interface Workspace { id: string; name: string; gradient: string; }
@@ -50,6 +53,8 @@ export default function NotificationPage() {
 
   const [notis, setNotis] = useState<Noti[]>([]);
   const [loading, setLoading] = useState(true);
+  const [showPlanner,   setShowPlanner]   = useState(false);
+  const [showCommunity, setShowCommunity] = useState(false);
 
   const VALID_TYPES = ["STATUS_CHANGE", "DUE_DATE", "BOTTLENECK", "QUICK_SIGNAL"];
 
@@ -95,6 +100,8 @@ export default function NotificationPage() {
       <Header workspaces={workspaces} />
       <BoardSubHeader wsName={wsName} members={[]} workspace={workspace} workspaces={workspaces} initialSelected="Notification" />
 
+      <div style={{ display:"flex", flex:1, overflow:"hidden" }}>
+      <WorkspaceCommunityPanel visible={showCommunity} />
       <div className="ntp-body">
         <div className="ntp-header-row">
           <h2 className="ntp-title">알림</h2>
@@ -132,13 +139,15 @@ export default function NotificationPage() {
           </div>
         )}
       </div>
+      <WorkspacePlannerPanel visible={showPlanner} workspaceId={workspace?.id} />
+      </div>
 
       <WorkspaceTabBar
         onTabChange={(t) => {
-          if (t === "board") navigate("/workspace-board", { state: { workspace, workspaces } });
-          if (t === "planner") navigate("/workspace-board", { state: { workspace, workspaces, openPanel: "planner" } });
-          if (t === "community") navigate("/workspace-board", { state: { workspace, workspaces, openPanel: "community" } });
-          if (t === "personal") navigate("/workspace");
+          if (t === "board")     navigate("/workspace-board", { state: { workspace, workspaces } });
+          if (t === "planner")   setShowPlanner((v) => !v);
+          if (t === "community") setShowCommunity((v) => !v);
+          if (t === "personal")  navigate("/workspace");
         }}
       />
     </div>
