@@ -7,7 +7,8 @@
  */
 import { useState, useEffect, useRef } from "react";
 import type { MouseEvent } from "react";
-import { useLocation, useNavigate } from "react-router-dom";
+import { Sparkles, Plus, CalendarDays, AlertCircle, MessageCircle, Calendar } from "lucide-react";
+import { useLocation } from "react-router-dom";
 import Header from "../components/Header";
 import BoardSubHeader from "../components/BoardSubHeader";
 import WorkspaceTabBar from "../components/WorkspaceTabBar";
@@ -17,6 +18,8 @@ import client from "../api/client";
 import { useWorkspaceSocket } from "../hooks/useWorkspaceSocket";
 import AITaskModal from "../components/AITaskModal";
 import WorkspaceCommunityPanel from "../components/WorkspaceCommunityPanel";
+import WorkspaceSwitcherPopover from "../components/WorkspaceSwitcherPopover";
+import { withStoredGradient, withStoredGradients } from "../utils/workspaceTheme";
 import "./WorkSpacePage.css";
 
 interface Workspace {
@@ -94,7 +97,6 @@ function getCalendarDays(year: number, month: number) {
 }
 
 export default function WorkSpacePage() {
-  const navigate = useNavigate();
   const { state } = useLocation() as {
     state: {
       workspace?: Workspace;
@@ -106,8 +108,9 @@ export default function WorkSpacePage() {
   };
 
   const savedWs    = JSON.parse(localStorage.getItem("clickedWorkspace") ?? "null");
-  const workspace  = state?.workspace ?? state?.workspaces?.[0] ?? savedWs;
-  const workspaces = state?.workspaces ?? [];
+  const rawWorkspace = state?.workspace ?? state?.workspaces?.[0] ?? savedWs;
+  const workspace  = rawWorkspace ? withStoredGradient(rawWorkspace) : undefined;
+  const workspaces = withStoredGradients(state?.workspaces ?? []);
   const gradient   = workspace?.gradient ?? "linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%)";
   const wsName     = workspace?.name ?? "워크스페이스";
 
@@ -118,12 +121,17 @@ export default function WorkSpacePage() {
   const [showPlanner, setShowPlanner]     = useState(true);
   const [showCommunity, setShowCommunity] = useState(true);
   const [showBoardView, setShowBoardView] = useState(basketTasks.length > 0);
+  const [showWorkspacePanel, setShowWorkspacePanel] = useState(false);
   const [loading, setLoading]             = useState(true);
   const [showLanding, setShowLanding]     = useState(false);
   const [aiTaskOpen, setAiTaskOpen]       = useState(false);
   const [trashOpen, setTrashOpen]         = useState(false);
   const [deletedCards, setDeletedCards]   = useState<CardItem[]>([]);
 
+  const closeWorkspacePanel = () => {
+    setShowWorkspacePanel(false);
+    setTab("board");
+  };
 
   const [calYear, setCalYear]   = useState(TODAY.getFullYear());
   const [calMonth, setCalMonth] = useState(TODAY.getMonth());
@@ -471,7 +479,7 @@ export default function WorkSpacePage() {
         {/* 가운데: Planner */}
         <aside className={`wsp-planner ${showPlanner ? "panel-visible" : "panel-hidden"}`}>
           <div className="wsp-panel-title">
-            <span className="wsp-panel-icon"></span> Planner
+            <CalendarDays size={15} /> Planner
           </div>
           <div className="wsp-cal-header">
             <button className="wsp-cal-nav" onClick={prevMonth}>‹</button>
@@ -539,13 +547,13 @@ export default function WorkSpacePage() {
               <div className="wsp-landing-actions">
                 <button className="wsp-landing-btn ai"
                   onClick={() => setAiTaskOpen(true)}>
-                  <span className="wsp-lbtn-icon"></span>
+                  <Sparkles size={26} />
                   <span className="wsp-lbtn-title">AI 업무 생성</span>
                   <span className="wsp-lbtn-desc">AI가 업무를 자동으로 분해합니다</span>
                 </button>
                 <button className="wsp-landing-btn start"
                   onClick={() => setShowLanding(false)}>
-                  <span className="wsp-lbtn-icon"></span>
+                  <Plus size={26} />
                   <span className="wsp-lbtn-title">바로 시작하기</span>
                   <span className="wsp-lbtn-desc">빈 보드에서 직접 업무를 추가합니다</span>
                 </button>
@@ -595,30 +603,34 @@ export default function WorkSpacePage() {
                         setSelectedCard({ card, col });
                       }}
                     >
-                      <div className="wsp-card-top">
-                        <button
-                          className="wsp-card-delete"
-                          onClick={(e) => { e.stopPropagation(); handleDeleteCard(col, card.id); }}
-                        >✕</button>
-                      </div>
-                      {card.quickSignal && (
+                      <button
+                        className="wsp-card-delete"
+                        onClick={(e) => { e.stopPropagation(); handleDeleteCard(col, card.id); }}
+                      >✕</button>
+                      {card.quickSignal ? (
                         <div className={`wsp-card-signal ${card.quickSignal === "HELP_NEEDED" ? "signal-help" : "signal-feedback"}`}>
-                          {card.quickSignal === "HELP_NEEDED" ? "🆘 도움 요청" : "💬 피드백 요청"}
+                          {card.quickSignal === "HELP_NEEDED"
+                            ? <><AlertCircle size={11} /> 도움 요청</>
+                            : <><MessageCircle size={11} /> 피드백 요청</>}
                         </div>
+                      ) : (
+                        <div className="wsp-card-signal-spacer" aria-hidden="true" />
                       )}
                       <span className="wsp-card-text">{card.title}</span>
-                      <div className="wsp-card-footer">
-                        {card.dueDate && (
-                          <span className={`wsp-card-due ${isNear ? "due-near" : ""}`}>
-                            📅 {card.dueDate}
-                          </span>
-                        )}
-                        {card.assigneeName && (
-                          <span className="wsp-card-avatar" title={card.assigneeName}>
-                            {card.assigneeName[0].toUpperCase()}
-                          </span>
-                        )}
-                      </div>
+                      {(card.dueDate || card.assigneeName) && (
+                        <div className="wsp-card-footer">
+                          {card.dueDate && (
+                            <span className={`wsp-card-due ${isNear ? "due-near" : ""}`}>
+                              <Calendar size={11} /> {card.dueDate}
+                            </span>
+                          )}
+                          {card.assigneeName && (
+                            <span className="wsp-card-avatar" title={card.assigneeName}>
+                              {card.assigneeName[0].toUpperCase()}
+                            </span>
+                          )}
+                        </div>
+                      )}
                     </div>
                     );
                   })}
@@ -674,10 +686,17 @@ export default function WorkSpacePage() {
           if (t === "planner") setShowPlanner((v) => !v);
           if (t === "community") setShowCommunity((v) => !v);
           if (t === "board") setShowBoardView((v) => !v);
-          if (t === "personal") navigate("/workspace");
+          if (t === "personal") setShowWorkspacePanel((v) => !v);
         }}
         onTrashClick={openTrash}
         trashCount={deletedCards.length}
+      />
+
+      <WorkspaceSwitcherPopover
+        visible={showWorkspacePanel}
+        workspace={workspace}
+        workspaces={workspaces}
+        onClose={closeWorkspacePanel}
       />
 
       <BoardSlideView

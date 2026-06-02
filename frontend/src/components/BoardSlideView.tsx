@@ -33,7 +33,7 @@ const STATUS_COLS = [
   { key: "done",       label: "완료",          dot: "●", color: "#22c55e" },
 ];
 
-export default function BoardSlideView({ visible, initialCards, syncedColMap, gradient: _gradient, workspaceId, onCardClick, onStatusChange }: Props) {
+export default function BoardSlideView({ visible, initialCards, syncedColMap, workspaceId, onCardClick, onStatusChange }: Props) {
   const storageKey = `board_slide_colmap_${workspaceId ?? "default"}`;
 
   const emptyColMap = (): ColMap => ({ none: [], notStarted: [], inProgress: [], hold: [], done: [] });
@@ -44,7 +44,7 @@ export default function BoardSlideView({ visible, initialCards, syncedColMap, gr
       const saved = localStorage.getItem(`board_slide_colmap_${workspaceId ?? "default"}`);
       if (saved) return JSON.parse(saved);
     } catch {}
-    return emptyColMap();
+    return { ...emptyColMap(), none: initialCards };
   });
   const [draggingId, setDraggingId]   = useState<string | null>(null);
   const [draggingCol, setDraggingCol] = useState<string | null>(null);

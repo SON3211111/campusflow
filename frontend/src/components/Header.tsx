@@ -3,8 +3,9 @@
  * 워크스페이스 이름 검색, My projects 이동, 알림, 사용자 드롭다운 메뉴 포함
  * JWT 토큰 유무로 로그인 여부 판단하여 UI 분기 처리
  */
-import { useState, useRef, useEffect } from "react";
+import { useState, useRef, useEffect, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
+import { Bell, ChevronDown, LayoutGrid, LogOut, Search, Settings, UserRound } from "lucide-react";
 import AITaskModal from "./AITaskModal";
 import client from "../api/client";
 import "./Header.css";
@@ -52,7 +53,7 @@ export default function Header({ workspaces = [], showSearch = true, onLogout }:
   const userMenuRef = useRef<HTMLDivElement>(null);
   const notiRef = useRef<HTMLDivElement>(null);
 
-  const fetchNotifications = async () => {
+  const fetchNotifications = useCallback(async () => {
     if (!userId) return;
     try {
       const [invRes, kickRes] = await Promise.all([
@@ -65,13 +66,16 @@ export default function Header({ workspaces = [], showSearch = true, onLogout }:
       setInvitations([]);
       setKickNotis([]);
     }
-  };
+  }, [userId]);
 
   useEffect(() => {
-    fetchNotifications();
+    const initialTimer = setTimeout(fetchNotifications, 0);
     const timer = setInterval(fetchNotifications, 15000);
-    return () => clearInterval(timer);
-  }, [userId]);
+    return () => {
+      clearTimeout(initialTimer);
+      clearInterval(timer);
+    };
+  }, [fetchNotifications]);
 
   const addWorkspaceActivity = (workspaceId: string, message: string) => {
     const key = `workspace_activity_${workspaceId}`;
@@ -129,14 +133,18 @@ export default function Header({ workspaces = [], showSearch = true, onLogout }:
   return (
     <>
     <header className="header">
-      <div className="header-logo" onClick={() => navigate("/")}>C'FLOW</div>
+      <div className="header-logo" onClick={() => navigate("/")}>
+        <span className="header-logo-mark">C</span>
+        <span>C'FLOW</span>
+      </div>
 
       {showSearch && (
         <div className="header-search" ref={searchRef}>
           <div className="search-input-wrap">
+            <Search className="search-input-icon" size={16} />
             <input
               type="text"
-              placeholder=""
+              placeholder="워크스페이스를 검색해 보세요"
               className="search-input"
               value={query}
               onChange={(e) => { setQuery(e.target.value); setSearchOpen(true); }}
@@ -162,12 +170,12 @@ export default function Header({ workspaces = [], showSearch = true, onLogout }:
         {showSearch && (
           <>
             <div className="header-myprojects" onClick={() => navigate('/workspace')} style={{ cursor: 'pointer' }}>
-              <span className="grid-icon">⊞</span>
+              <LayoutGrid size={15} />
               <span>My projects</span>
             </div>
             <div className="header-noti-wrap" ref={notiRef}>
               <button className="header-icon-btn noti-btn" onClick={() => setNotiOpen((v) => !v)}>
-                🔔
+                <Bell size={18} />
                 {(invitations.length + kickNotis.length) > 0 && (
                   <span className="noti-badge">{invitations.length + kickNotis.length}</span>
                 )}
@@ -184,7 +192,7 @@ export default function Header({ workspaces = [], showSearch = true, onLogout }:
                         if (n.type === "STATUS_CHANGE") {
                           return (
                             <div key={n.notificationId} className="noti-item">
-                              <p className="noti-msg">🔔 {n.message}</p>
+                              <p className="noti-msg">{n.message}</p>
                               <div className="noti-actions">
                                 <button className="noti-reject-btn" onClick={async () => {
                                   await client.post(`/notifications/${n.notificationId}/read`).catch(() => {});
@@ -197,13 +205,13 @@ export default function Header({ workspaces = [], showSearch = true, onLogout }:
 
                         // JOIN_REQUEST 알림
                         let joinReq: { type?: string; requesterId?: string; requesterName?: string; workspaceId?: string; workspaceName?: string } | null = null;
-                        try { joinReq = JSON.parse(n.message); } catch {}
+                        try { joinReq = JSON.parse(n.message); } catch { joinReq = null; }
                         const isJoinRequest = joinReq?.type === "JOIN_REQUEST";
                         if (isJoinRequest && joinReq) {
                           return (
                             <div key={n.notificationId} className="noti-item">
                               <p className="noti-msg">
-                                👋 <strong>{joinReq.requesterName}</strong>님이 <strong>{joinReq.workspaceName}</strong> 워크스페이스에 참가하고 싶어합니다.
+                                <strong>{joinReq.requesterName}</strong>님이 <strong>{joinReq.workspaceName}</strong> 워크스페이스에 참가하고 싶어합니다.
                               </p>
                               <div className="noti-actions">
                                 <button className="noti-reject-btn" onClick={async () => {
@@ -223,12 +231,10 @@ export default function Header({ workspaces = [], showSearch = true, onLogout }:
 
                         // 일반 알림 (수락/거절/강퇴 등)
                         const isAccepted = n.message.includes("수락");
-                        const isRejected = n.message.includes("거절");
-                        const icon = isAccepted ? "✅" : isRejected ? "❌" : "🚫";
                         const itemClass = isAccepted ? "noti-item noti-item-accept" : "noti-item noti-item-kick";
                         return (
                           <div key={n.notificationId} className={itemClass}>
-                            <p className="noti-msg">{icon} <strong>{n.message}</strong></p>
+                            <p className="noti-msg"><strong>{n.message}</strong></p>
                             <div className="noti-actions">
                               <button className="noti-reject-btn" onClick={async () => {
                                 await client.post(`/notifications/${n.notificationId}/read`);
@@ -265,29 +271,41 @@ export default function Header({ workspaces = [], showSearch = true, onLogout }:
             onClick={() => setUserMenuOpen((v) => !v)}
             style={{ position: 'relative' }}
           >
-            <div className="user-avatar" />
+            <div className="user-avatar">{userName[0]?.toUpperCase()}</div>
             <span className="user-name">{userName}님</span>
-            <span className="dropdown-arrow">▾</span>
+            <ChevronDown className={`dropdown-arrow ${userMenuOpen ? "open" : ""}`} size={15} />
 
             {userMenuOpen && (
-              <div className="user-dropdown">
+              <div className="user-dropdown" onClick={(e) => e.stopPropagation()}>
+                <div className="user-dropdown-profile">
+                  <div className="user-dropdown-avatar">{userName[0]?.toUpperCase()}</div>
+                  <div>
+                    <p className="user-dropdown-name">{userName}님</p>
+                    <p className="user-dropdown-caption">오늘도 좋은 하루 보내세요</p>
+                  </div>
+                </div>
+                <div className="user-dropdown-menu">
                 <div
                   className="user-dropdown-item"
                   onClick={() => { setUserMenuOpen(false); navigate('/workspace'); }}
                 >
+                  <UserRound size={16} />
                   내 워크스페이스
                 </div>
                 <div
                   className="user-dropdown-item"
                   onClick={() => setUserMenuOpen(false)}
                 >
+                  <Settings size={16} />
                   개인정보 설정
                 </div>
                 <div
                   className="user-dropdown-item logout"
                   onClick={handleLogout}
                 >
+                  <LogOut size={16} />
                   로그아웃
+                </div>
                 </div>
               </div>
             )}

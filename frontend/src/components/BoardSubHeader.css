@@ -1,4 +1,6 @@
 .bsh-wrap {
+  position: relative;
+  z-index: 400;
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -10,6 +12,8 @@
   border-radius: 12px 12px 0 0;
   color: #fff;
   margin-bottom: 0;
+  flex-shrink: 0;
+  overflow: visible;
 }
 
 .bsh-left {
@@ -28,6 +32,7 @@
 
 .bsh-drop-wrap {
   position: relative;
+  z-index: 401;
 }
 
 .bsh-view-btn {

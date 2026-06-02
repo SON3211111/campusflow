@@ -5,6 +5,7 @@
  */
 import { useState, useRef, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
+import { LayoutGrid, Users, Settings, Home, Monitor } from "lucide-react";
 import Header from "../components/Header";
 import WorkspaceCard from "../components/WorkspaceCard";
 import BoardCreator from "../components/BoardCreator";
@@ -172,9 +173,9 @@ export default function WorkspaceList() {
           <span className={`sidebar-arrow ${expandedId === ws.id ? 'open' : ''}`}>▾</span>
         </div>
         <div className={`sidebar-submenu ${expandedId === ws.id ? 'open' : ''}`}>
-          <div className="sidebar-subitem" onClick={() => navigate('/workspace-board', { state: { workspace: ws, workspaces: [...teamWorkspaces, ...personalWorkspaces] } })}><span className="subitem-icon">□</span> Board</div>
-          <div className="sidebar-subitem" onClick={() => navigate('/members', { state: { workspace: ws, teamWorkspaces, personalWorkspaces } })}><span className="subitem-icon">👥</span> Members</div>
-          <div className="sidebar-subitem" onClick={() => navigate('/settings', { state: { workspace: ws, teamWorkspaces, personalWorkspaces } })}><span className="subitem-icon">⚙</span> Setting</div>
+          <div className="sidebar-subitem" onClick={() => navigate('/workspace-board', { state: { workspace: ws, workspaces: [...teamWorkspaces, ...personalWorkspaces] } })}><LayoutGrid size={13} /> Board</div>
+          <div className="sidebar-subitem" onClick={() => navigate('/members', { state: { workspace: ws, teamWorkspaces, personalWorkspaces } })}><Users size={13} /> Members</div>
+          <div className="sidebar-subitem" onClick={() => navigate('/settings', { state: { workspace: ws, teamWorkspaces, personalWorkspaces } })}><Settings size={13} /> Setting</div>
         </div>
       </div>
     ));
@@ -202,11 +203,11 @@ export default function WorkspaceList() {
           <div className="sidebar-bottom">
             <hr className="sidebar-divider" />
             <div className="sidebar-nav-item">
-              <span className="nav-icon">🏠</span>
+              <Home size={15} />
               <span>Home</span>
             </div>
             <div className="sidebar-nav-item active">
-              <span className="nav-icon">🖥</span>
+              <Monitor size={15} />
               <span>Board</span>
             </div>
             <button className="join-btn" onClick={() => setJoinOpen(true)}>워크스페이스 참여 !</button>
@@ -301,7 +302,7 @@ export default function WorkspaceList() {
         </div>
       )}
 
-      <button className="settings-btn">⚙</button>
+      <button className="settings-btn"><Settings size={18} /></button>
       {joinOpen && <JoinModal onClose={() => setJoinOpen(false)} />}
       {aiTaskOpen && <AITaskModal onClose={() => setAiTaskOpen(false)} workspaces={allWorkspaces} />}
 

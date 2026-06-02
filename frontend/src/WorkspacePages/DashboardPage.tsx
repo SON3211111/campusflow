@@ -1,11 +1,14 @@
 import { useState, useEffect } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
+import { AlertTriangle } from "lucide-react";
 import Header from "../components/Header";
 import BoardSubHeader from "../components/BoardSubHeader";
 import WorkspaceTabBar from "../components/WorkspaceTabBar";
 import client from "../api/client";
 import WorkspacePlannerPanel from "../components/WorkspacePlannerPanel";
 import WorkspaceCommunityPanel from "../components/WorkspaceCommunityPanel";
+import WorkspaceSwitcherPopover from "../components/WorkspaceSwitcherPopover";
+import { withStoredGradient, withStoredGradients } from "../utils/workspaceTheme";
 import "../WorkspacePages/WorkSpacePage.css";
 import "./DashboardPage.css";
 
@@ -39,13 +42,15 @@ export default function DashboardPage() {
   const navigate = useNavigate();
 
   const savedWs   = JSON.parse(localStorage.getItem("clickedWorkspace") ?? "null");
-  const workspace = state?.workspace ?? state?.workspaces?.[0] ?? savedWs;
-  const workspaces = state?.workspaces ?? [];
+  const rawWorkspace = state?.workspace ?? state?.workspaces?.[0] ?? savedWs;
+  const workspace = rawWorkspace ? withStoredGradient(rawWorkspace) : undefined;
+  const workspaces = withStoredGradients(state?.workspaces ?? []);
   const wsName    = workspace?.name ?? "워크스페이스";
   const userName  = localStorage.getItem("userName") ?? "나";
 
   const [showPlanner,   setShowPlanner]   = useState(false);
   const [showCommunity, setShowCommunity] = useState(false);
+  const [showWorkspacePanel, setShowWorkspacePanel] = useState(false);
   const [donut, setDonut] = useState({ progress: 0, done: 0, hold: 0, notStarted: 0, todo: 0 });
   const [wsMembers, setWsMembers] = useState<{ userId: string; name: string }[]>([]);
   const [memberStats, setMemberStats] = useState<Record<string, { done: number; progress: number; hold: number; total: number }>>({});
@@ -166,7 +171,7 @@ export default function DashboardPage() {
         desc: `${a.changedByName}이(가) [${a.taskTitle}]을(를) ${STATUS_LABEL[a.currStatus] ?? a.currStatus} 처리`,
         time: timeAgo(a.occurredAt),
       }))
-    : [{ icon: "👥", type: "활동 없음", desc: "보드에서 태스크를 이동하면 여기에 기록됩니다.", time: "" }];
+    : [{ icon: "·", type: "활동 없음", desc: "보드에서 태스크를 이동하면 여기에 기록됩니다.", time: "" }];
 
   const TOTAL = total || 1;
   const GRAPH = wsMembers.length > 0
@@ -193,8 +198,9 @@ export default function DashboardPage() {
       <Header workspaces={workspaces} />
       <BoardSubHeader wsName={wsName} members={wsMembers} workspace={workspace} workspaces={workspaces} initialSelected="Dash Board" />
 
-      <div style={{ display:"flex", flex:1, overflow:"hidden" }}>
+      <div className="wsp-panel-layout" style={{ background: workspace?.gradient ?? "#f0f2f8" }}>
       <WorkspaceCommunityPanel visible={showCommunity} workspaceId={workspace?.id} />
+      <WorkspacePlannerPanel visible={showPlanner} workspaceId={workspace?.id} />
       <div className="dbp-body" style={{ background: workspace?.gradient ?? "#f0f2f8" }}>
 
         {/* 상단: Task 진행상황 + 활동로그 */}
@@ -270,22 +276,21 @@ export default function DashboardPage() {
                 </div>
               ))}
             </div>
-          </div>
-        </div>
-
-        {/* 하단: 그래프 목록 */}
-        <div className="dbp-card dbp-graph-card">
-          <h3 className="dbp-card-title">그래프 목록</h3>
-          <div className="dbp-graph-list">
-            {GRAPH.map((g) => (
-              <div key={g.name} className="dbp-graph-row">
-                <span className="dbp-graph-name">{g.name}</span>
-                <div className="dbp-graph-track">
-                  <div className="dbp-graph-fill" style={{ width: `${g.value}%` }} />
+            <div className="dbp-activity-divider" />
+            <div className="dbp-graph-header">
+              <h3 className="dbp-card-title">팀원별 진행률</h3>
+            </div>
+            <div className="dbp-graph-list">
+              {GRAPH.map((g) => (
+                <div key={g.name} className="dbp-graph-row">
+                  <span className="dbp-graph-name">{g.name}</span>
+                  <div className="dbp-graph-track">
+                    <div className="dbp-graph-fill" style={{ width: `${g.value}%` }} />
+                  </div>
+                  <span className="dbp-graph-pct">{g.value}%</span>
                 </div>
-                <span className="dbp-graph-pct">{g.value}%</span>
-              </div>
-            ))}
+              ))}
+            </div>
           </div>
         </div>
 
@@ -329,7 +334,7 @@ export default function DashboardPage() {
 
           {/* 병목 태스크 */}
           <div className="dbp-card">
-            <h3 className="dbp-card-title">⚠️ 주의 필요 태스크</h3>
+            <h3 className="dbp-card-title"><AlertTriangle size={14} style={{ verticalAlign: "middle", marginRight: 4 }} />주의 필요 태스크</h3>
             {bottleneckTasks.length === 0 ? (
               <div className="dbp-empty-msg">병목 태스크가 없습니다.</div>
             ) : (
@@ -356,7 +361,7 @@ export default function DashboardPage() {
               <div className="dbp-empty-msg">마감 임박 업무가 없습니다.</div>
             ) : (
               <>
-                <div className="dbp-warning">⚠️ {upcomingTasks.length}건의 작업이 마감 예정입니다</div>
+                <div className="dbp-warning"><AlertTriangle size={13} style={{ flexShrink: 0 }} /> {upcomingTasks.length}건의 작업이 마감 예정입니다</div>
                 <div className="dbp-upcoming-list">
                   {upcomingTasks.map((task) => (
                     <div key={task.taskId} className="dbp-upcoming-item">
@@ -377,16 +382,22 @@ export default function DashboardPage() {
         </div>
 
       </div>
-      <WorkspacePlannerPanel visible={showPlanner} workspaceId={workspace?.id} />
       </div>
 
       <WorkspaceTabBar
+        active={showWorkspacePanel ? "personal" : showPlanner ? "planner" : showCommunity ? "community" : undefined}
         onTabChange={(t) => {
           if (t === "board")     navigate("/workspace-board", { state: { workspace, workspaces } });
           if (t === "planner")   setShowPlanner((v) => !v);
           if (t === "community") setShowCommunity((v) => !v);
-          if (t === "personal")  navigate("/workspace");
+          if (t === "personal")  setShowWorkspacePanel((v) => !v);
         }}
+      />
+      <WorkspaceSwitcherPopover
+        visible={showWorkspacePanel}
+        workspace={workspace}
+        workspaces={workspaces}
+        onClose={() => setShowWorkspacePanel(false)}
       />
     </div>
   );

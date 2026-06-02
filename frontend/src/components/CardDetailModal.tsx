@@ -57,6 +57,12 @@ export default function CardDetailModal({ title, colName, taskId, workspaceId, i
       .catch(() => {});
   }, [taskId, workspaceId]);
 
+  const appendComment = (newComment: Comment) => {
+    const nextComments = [...comments, newComment];
+    setComments(nextComments);
+    onSaveComments?.(nextComments);
+  };
+
   const handleAddComment = async () => {
     if (!comment.trim()) return;
     const text = comment.trim();
@@ -65,13 +71,13 @@ export default function CardDetailModal({ title, colName, taskId, workspaceId, i
       try {
         const res = await client.post(`/workspaces/${workspaceId}/tasks/${taskId}/comments`, { senderId: userId, content: text });
         const c = res.data.data;
-        setComments((prev) => [...prev, { user: c.senderName, text: c.content, time: "방금 전" }]);
+        appendComment({ user: c.senderName, text: c.content, time: "방금 전" });
       } catch (err) {
         console.error("댓글 저장 실패:", err);
-        setComments((prev) => [...prev, { user: userName, text, time: "방금 전" }]);
+        appendComment({ user: userName, text, time: "방금 전" });
       }
     } else {
-      setComments((prev) => [...prev, { user: userName, text, time: "방금 전" }]);
+      appendComment({ user: userName, text, time: "방금 전" });
     }
   };
 

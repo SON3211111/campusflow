@@ -44,7 +44,6 @@ function parseMsg(m: any): Message {
 }
 
 export default function WorkspaceCommunityPanel({ visible, workspaceId }: Props) {
-  const userName = localStorage.getItem("userName") ?? "나";
   const userId   = localStorage.getItem("userId") ?? "";
 
   const [channels, setChannels]             = useState<Channel[]>([]);

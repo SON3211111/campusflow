@@ -28,7 +28,6 @@ export default function MemberPage() {
   const personalWs = state?.personalWorkspaces ?? [];
   const allWorkspaces = [...teamWs, ...personalWs];
 
-  const userName = localStorage.getItem("userName") ?? "사용자";
   const userId   = localStorage.getItem("userId")   ?? "-";
 
   const [expandedId, setExpandedId]     = useState<string>(workspace.id);

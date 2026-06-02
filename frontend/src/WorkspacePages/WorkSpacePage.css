@@ -15,6 +15,22 @@
   z-index: 0;
 }
 
+.wsp-panel-layout {
+  display: flex;
+  flex: 1;
+  min-width: 0;
+  gap: 12px;
+  padding: 12px;
+  overflow: hidden;
+}
+
+@media (max-width: 680px) {
+  .wsp-panel-layout {
+    gap: 8px;
+    padding: 8px;
+  }
+}
+
 /* ===== 슬라이드 패널 ===== */
 .panel-visible {
   opacity: 1;
@@ -669,7 +685,9 @@
   flex: 1;
   display: flex;
   flex-direction: column;
-  overflow: hidden;
+  min-width: 0;
+  min-height: 0;
+  overflow: visible;
 }
 
 .wsp-board-tools {
@@ -713,6 +731,7 @@
   gap: 12px;
   overflow-x: auto;
   flex: 1;
+  min-height: 0;
   align-items: flex-start;
   padding-top: 14px;
   cursor: grab;
@@ -786,6 +805,7 @@
   cursor: grab;
   transition: opacity 0.15s;
   border: 2px solid transparent;
+  position: relative;
 }
 
 .wsp-card-item:hover {
@@ -801,18 +821,11 @@
   border-color: #e53e3e;
 }
 
-.wsp-card-top {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  min-height: 18px;
-}
-
-
 .wsp-card-text {
   flex: 1;
   line-height: 1.4;
   word-break: break-word;
+  padding-right: 12px;
 }
 
 .wsp-card-footer {
@@ -825,6 +838,9 @@
 .wsp-card-due {
   font-size: 11px;
   color: #888;
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
 }
 
 .wsp-card-due.due-near {
@@ -838,14 +854,23 @@
   padding: 3px 7px;
   border-radius: 4px;
   margin-bottom: 4px;
-  display: inline-block;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  align-self: flex-start;
 }
 .wsp-card-signal.signal-help { background: #fff0f0; color: #dc2626; }
 .wsp-card-signal.signal-feedback { background: #f0f7ff; color: #2563eb; }
 
+.wsp-card-signal-spacer {
+  min-height: 19px;
+  margin-bottom: 4px;
+}
+
 .wsp-card-avatar {
   width: 22px;
   height: 22px;
+  margin-left: auto;
   border-radius: 50%;
   background: #6366f1;
   color: #fff;
@@ -866,6 +891,9 @@
   padding: 0;
   line-height: 1;
   flex-shrink: 0;
+  position: absolute;
+  top: 10px;
+  right: 12px;
 }
 
 .wsp-card-item:hover .wsp-card-delete {
@@ -1055,6 +1083,7 @@
 .wsp-col-dot[data-col="상태 없음"]      { background: #aaa; }
 .wsp-col-dot[data-col="시작하지 않음"]  { background: #888; }
 .wsp-col-dot[data-col="진행 중"]        { background: #4f7cff; }
+.wsp-col-dot[data-col="보류 중"]        { background: #f59e0b; }
 .wsp-col-dot[data-col="완료"]           { background: #22c55e; }
 
 .wsp-col-count {

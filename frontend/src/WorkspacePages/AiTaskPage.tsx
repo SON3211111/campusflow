@@ -4,7 +4,7 @@
  * - 각 섹션은 접고 펼칠 수 있음
  * - 팀원별 슬롯에 드래그로 Picking
  */
-import { useState, useRef, useEffect } from "react";
+import { useState, useEffect } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import Header from "../components/Header";
 import client from "../api/client";
@@ -101,14 +101,15 @@ export default function AiTaskPage() {
     if (!aiResult) navigate("/workspace-board", { replace: true, state: { workspace, workspaces } });
   }, []);
 
-  if (!aiResult) return null;
-
   // append 모드용 버퍼 (소비 전 캡처)
-  const buffer = isAppend ? getAppendBuffer() : null;
-  if (isAppend) clearAppendBuffer();
+  const [buffer] = useState(() => {
+    const appendBuffer = isAppend ? getAppendBuffer() : null;
+    if (isAppend) clearAppendBuffer();
+    return appendBuffer;
+  });
 
   // 새 세션 ID (마운트 시 한 번만 생성)
-  const newSessionId = `session-${Date.now()}`;
+  const [newSessionId] = useState(() => `session-${Date.now()}`);
   const newSessionPrompt = buffer?.newSessionPrompt ?? origPrompt;
 
   const buildCategories = (res: typeof aiResult, sid: string): Category[] =>
@@ -169,7 +170,7 @@ export default function AiTaskPage() {
   const [sessions, setSessions]     = useState<Session[]>(initSessions);
   const [categories, setCategories] = useState<Category[]>(initCategories);
   const [tasks, setTasks]           = useState<Task[]>(initTasks);
-  const [title]                     = useState(shouldRestoreSession ? storedSession?.title ?? "" : aiResult.title ?? "");
+  const [title]                     = useState(shouldRestoreSession ? storedSession?.title ?? "" : aiResult?.title ?? "");
   const [confirmSessionId, setConfirmSessionId] = useState<string | null>(null);
 
   const [members, setMembers]                       = useState<Member[]>([]);
@@ -178,9 +179,6 @@ export default function AiTaskPage() {
   const [draggingFromUserId, setDraggingFromUserId] = useState<string | null>(null);
   const [dragOverUserId, setDragOverUserId]         = useState<string | null>(null);
   const [loadingId, setLoadingId]                   = useState<string | null>(null);
-  const [saveMsg, setSaveMsg]                       = useState("");
-  const [cooldown, setCooldown]                     = useState(0);
-  const cooldownRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const [editingTaskId, setEditingTaskId]           = useState<string | null>(null);
   const [editingTaskName, setEditingTaskName]       = useState("");
   const [addingToCat, setAddingToCat]               = useState<number | null>(null);
@@ -214,16 +212,6 @@ export default function AiTaskPage() {
       title, categories, tasks, prompt: origPrompt, result: aiResult, memberBaskets, sessions,
     }));
   }, [categories, tasks, origPrompt, sessionKey, memberBaskets, sessions]);
-
-  const showMsg = (msg: string) => { setSaveMsg(msg); setTimeout(() => setSaveMsg(""), 5000); };
-
-  const startCooldown = () => {
-    setCooldown(3);
-    if (cooldownRef.current) clearInterval(cooldownRef.current);
-    cooldownRef.current = setInterval(() => {
-      setCooldown((prev) => { if (prev <= 1) { clearInterval(cooldownRef.current!); return 0; } return prev - 1; });
-    }, 1000);
-  };
 
   const toggleSession = (id: string) =>
     setSessions((prev) => prev.map((s) => s.id === id ? { ...s, collapsed: !s.collapsed } : s));
@@ -431,6 +419,8 @@ export default function AiTaskPage() {
     </div>
   );
 
+  if (!aiResult) return null;
+
   return (
     <>
     <div className="atp-page">
@@ -439,7 +429,6 @@ export default function AiTaskPage() {
       <div className="atp-topbar">
         <button className="atp-back-btn" onClick={() => navigate("/workspace")}>뒤로가기</button>
         {title && <span className="atp-project-title">{title}</span>}
-        {saveMsg && <span className="atp-save-msg">{saveMsg}</span>}
         <button className="atp-workspace-btn" onClick={sendBasketToWorkspace}>시작하기</button>
       </div>
 

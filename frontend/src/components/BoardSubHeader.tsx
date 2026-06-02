@@ -22,7 +22,7 @@ const MENU_ITEMS = ["Board", "AI Task", "Dash Board", "Calender", "Notification"
 
 const AVATAR_COLORS = ["#a89cf8", "#6ab4f8", "#7de89a", "#f8b4b4", "#f8d08a"];
 
-export default function BoardSubHeader({ wsName = "워크스페이스", memberCount = 1, members = [], workspace, workspaces = [], initialSelected = "Board", onAiTaskClick }: Props) {
+export default function BoardSubHeader({ wsName = "워크스페이스", members = [], workspace, workspaces = [], initialSelected = "Board", onAiTaskClick }: Props) {
   const userName = localStorage.getItem("userName") ?? "나";
   const MAX_SHOW = 3;
   const navigate = useNavigate();

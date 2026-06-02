@@ -19,7 +19,7 @@ interface Props {
   onCreate: (name: string, gradient: string) => void;
 }
 
-export default function BoardCreator({ onClose: _onClose, onCreate }: Props) {
+export default function BoardCreator({ onCreate }: Props) {
   const [title, setTitle] = useState('');
   const [selected, setSelected] = useState(GRADIENTS[0]);
 
