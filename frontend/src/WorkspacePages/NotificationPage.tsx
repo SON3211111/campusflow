@@ -77,6 +77,14 @@ export default function NotificationPage() {
     }
   };
 
+  const handleClickNoti = async (n: Noti) => {
+    await client.post(`/notifications/${n.notificationId}/read`).catch(() => {});
+    setNotis((prev) => prev.filter((x) => x.notificationId !== n.notificationId));
+    if (n.taskId && workspace) {
+      navigate("/workspace-board", { state: { workspace, workspaces, highlightTaskId: n.taskId } });
+    }
+  };
+
   const handleReadAll = async () => {
     await Promise.all(notis.map((n) => client.post(`/notifications/${n.notificationId}/read`).catch(() => {})));
     setNotis([]);
@@ -104,14 +112,19 @@ export default function NotificationPage() {
         ) : (
           <div className="ntp-list">
             {notis.map((n) => (
-              <div key={n.notificationId} className={`ntp-item ntp-item--${n.type?.toLowerCase() ?? "default"}`}>
+              <div
+                key={n.notificationId}
+                className={`ntp-item ntp-item--${n.type?.toLowerCase() ?? "default"} ${n.taskId ? "ntp-item--clickable" : ""}`}
+                onClick={() => n.taskId && handleClickNoti(n)}
+              >
                 <div className="ntp-item-icon">{TYPE_ICON[n.type] ?? "🔔"}</div>
                 <div className="ntp-item-content">
                   <span className="ntp-item-type">{TYPE_LABEL[n.type] ?? "알림"}</span>
                   <span className="ntp-item-msg">{n.message}</span>
                   <span className="ntp-item-time">{timeAgo(n.createdAt)}</span>
+                  {n.taskId && <span className="ntp-item-goto">태스크 보기 →</span>}
                 </div>
-                <button className="ntp-item-read-btn" onClick={() => handleRead(n.notificationId)}>
+                <button className="ntp-item-read-btn" onClick={(e) => { e.stopPropagation(); handleRead(n.notificationId); }}>
                   확인
                 </button>
               </div>

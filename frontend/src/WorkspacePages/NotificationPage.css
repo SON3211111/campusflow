@@ -110,3 +110,13 @@
   align-self: center;
 }
 .ntp-item-read-btn:hover { background: #e8e8e8; }
+
+.ntp-item--clickable { cursor: pointer; }
+.ntp-item--clickable:hover { box-shadow: 0 4px 14px rgba(0,0,0,0.1); transform: translateY(-1px); transition: all 0.15s; }
+
+.ntp-item-goto {
+  font-size: 11px;
+  color: #4f7cff;
+  font-weight: 600;
+  margin-top: 2px;
+}

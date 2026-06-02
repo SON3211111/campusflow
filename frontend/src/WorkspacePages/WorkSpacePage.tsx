@@ -98,6 +98,7 @@ export default function WorkSpacePage() {
       workspace?: Workspace;
       workspaces?: Workspace[];
       basketTasks?: CardItem[];
+      highlightTaskId?: string;
     };
   };
 
@@ -199,6 +200,15 @@ export default function WorkSpacePage() {
 
     init();
   }, [workspace?.id]);
+
+  // 알림에서 넘어온 경우 해당 태스크 모달 자동 오픈
+  useEffect(() => {
+    if (!state?.highlightTaskId || loading) return;
+    for (const [col, cardList] of Object.entries(cards)) {
+      const found = cardList.find((c) => c.id === state.highlightTaskId);
+      if (found) { setSelectedCard({ card: found, col }); break; }
+    }
+  }, [loading, state?.highlightTaskId]);
 
   const loadTrash = async () => {
     if (!workspace?.id) return;
