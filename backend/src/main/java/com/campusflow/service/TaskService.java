@@ -19,6 +19,7 @@ import com.campusflow.repository.TaskStatusHistoryRepository;
 import com.campusflow.repository.UserRepository;
 import com.campusflow.repository.WorkspaceRepository;
 import lombok.RequiredArgsConstructor;
+import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -42,6 +43,7 @@ public class TaskService {
     private final TaskStatusHistoryRepository taskStatusHistoryRepository;
     private final ContributionMetricsRepository contributionMetricsRepository;
     private final NotificationService notificationService;
+    private final SimpMessagingTemplate messagingTemplate;
 
     // ── 칸반 보드 ────────────────────────────────────────────
 
@@ -129,6 +131,17 @@ public class TaskService {
         }
 
         notificationService.notifyStatusChange(task, prevStatus, newStatus, userId);
+
+        if (task.getWorkspace() != null) {
+            messagingTemplate.convertAndSend(
+                "/topic/workspace/" + task.getWorkspace().getWorkspaceId() + "/tasks",
+                java.util.Map.of(
+                    "taskId", task.getTaskId(),
+                    "newStatus", newStatus.name(),
+                    "changedByUserId", userId != null ? userId : ""
+                )
+            );
+        }
     }
 
     /** 활동 피드 — task_status_history 최근 N건 */

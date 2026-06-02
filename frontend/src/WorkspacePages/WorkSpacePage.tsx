@@ -14,6 +14,7 @@ import WorkspaceTabBar from "../components/WorkspaceTabBar";
 import CardDetailModal from "../components/CardDetailModal";
 import BoardSlideView from "../components/BoardSlideView";
 import client from "../api/client";
+import { useWorkspaceSocket } from "../hooks/useWorkspaceSocket";
 import AITaskModal from "../components/AITaskModal";
 import "./WorkSpacePage.css";
 
@@ -223,6 +224,27 @@ export default function WorkSpacePage() {
 
     init();
   }, [workspace?.id]);
+
+  // WebSocket — 다른 팀원의 상태 변경 실시간 반영
+  useWorkspaceSocket(workspace?.id, ({ taskId, newStatus }) => {
+    const targetCol = STATUS_TO_COL[newStatus] ?? "상태 없음";
+    setCards((prev) => {
+      const next = { ...prev };
+      let movedCard: CardItem | undefined;
+      for (const col of Object.keys(next)) {
+        const idx = next[col].findIndex((c) => c.id === taskId);
+        if (idx !== -1) {
+          movedCard = next[col][idx];
+          next[col] = next[col].filter((c) => c.id !== taskId);
+          break;
+        }
+      }
+      if (movedCard) {
+        next[targetCol] = [...(next[targetCol] ?? []), movedCard];
+      }
+      return next;
+    });
+  });
 
   // 알림에서 넘어온 경우 해당 태스크 모달 자동 오픈
   useEffect(() => {
