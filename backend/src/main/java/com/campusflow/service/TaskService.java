@@ -18,8 +18,8 @@ import com.campusflow.repository.TaskRepository;
 import com.campusflow.repository.TaskStatusHistoryRepository;
 import com.campusflow.repository.UserRepository;
 import com.campusflow.repository.WorkspaceRepository;
+import com.campusflow.websocket.TaskWebSocketHandler;
 import lombok.RequiredArgsConstructor;
-import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -43,7 +43,7 @@ public class TaskService {
     private final TaskStatusHistoryRepository taskStatusHistoryRepository;
     private final ContributionMetricsRepository contributionMetricsRepository;
     private final NotificationService notificationService;
-    private final SimpMessagingTemplate messagingTemplate;
+    private final TaskWebSocketHandler taskWebSocketHandler;
 
     // ── 칸반 보드 ────────────────────────────────────────────
 
@@ -133,14 +133,12 @@ public class TaskService {
         notificationService.notifyStatusChange(task, prevStatus, newStatus, userId);
 
         if (task.getWorkspace() != null) {
-            messagingTemplate.convertAndSend(
-                "/topic/workspace/" + task.getWorkspace().getWorkspaceId() + "/tasks",
-                java.util.Map.of(
-                    "taskId", task.getTaskId(),
-                    "newStatus", newStatus.name(),
-                    "changedByUserId", userId != null ? userId : ""
-                )
+            String wsId = task.getWorkspace().getWorkspaceId();
+            String json = String.format(
+                "{\"taskId\":\"%s\",\"newStatus\":\"%s\",\"changedByUserId\":\"%s\"}",
+                task.getTaskId(), newStatus.name(), userId != null ? userId : ""
             );
+            taskWebSocketHandler.broadcast(wsId, json);
         }
     }
 

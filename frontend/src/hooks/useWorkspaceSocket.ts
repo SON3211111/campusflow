@@ -1,5 +1,4 @@
 import { useEffect, useRef, useCallback } from "react";
-import { Client } from "@stomp/stompjs";
 
 interface TaskStatusMessage {
   taskId: string;
@@ -11,41 +10,46 @@ export function useWorkspaceSocket(
   workspaceId: string | undefined,
   onTaskStatusChange: (msg: TaskStatusMessage) => void
 ) {
-  const clientRef = useRef<Client | null>(null);
-  const onMsgRef  = useRef(onTaskStatusChange);
+  const wsRef    = useRef<WebSocket | null>(null);
+  const onMsgRef = useRef(onTaskStatusChange);
   onMsgRef.current = onTaskStatusChange;
 
   const connect = useCallback(() => {
     if (!workspaceId) return;
 
-    const client = new Client({
-      brokerURL: "ws://localhost:8080/ws/websocket",
-      reconnectDelay: 5000,
-      onConnect: () => {
-        client.subscribe(
-          `/topic/workspace/${workspaceId}/tasks`,
-          (msg) => {
-            try {
-              const data: TaskStatusMessage = JSON.parse(msg.body);
-              const myUserId = localStorage.getItem("userId") ?? "";
-              if (data.changedByUserId !== myUserId) {
-                onMsgRef.current(data);
-              }
-            } catch (e) {
-              console.error("WS 메시지 파싱 실패:", e);
-            }
-          }
-        );
-      },
-      onStompError: (frame) => console.error("STOMP 오류:", frame),
-    });
+    const ws = new WebSocket(`ws://localhost:8080/ws/tasks?workspaceId=${workspaceId}`);
 
-    client.activate();
-    clientRef.current = client;
+    ws.onmessage = (event) => {
+      try {
+        const data: TaskStatusMessage = JSON.parse(event.data);
+        const myUserId = localStorage.getItem("userId") ?? "";
+        if (data.changedByUserId !== myUserId) {
+          onMsgRef.current(data);
+        }
+      } catch (e) {
+        console.error("WS 메시지 파싱 실패:", e);
+      }
+    };
+
+    ws.onerror = () => {
+      // 연결 실패 시 조용히 처리 (WebSocket 미지원 환경 대응)
+    };
+
+    ws.onclose = () => {
+      // 연결 끊기면 3초 후 재연결
+      setTimeout(() => {
+        if (wsRef.current?.readyState === WebSocket.CLOSED) connect();
+      }, 3000);
+    };
+
+    wsRef.current = ws;
   }, [workspaceId]);
 
   useEffect(() => {
     connect();
-    return () => { clientRef.current?.deactivate(); };
+    return () => {
+      wsRef.current?.close();
+      wsRef.current = null;
+    };
   }, [connect]);
 }
