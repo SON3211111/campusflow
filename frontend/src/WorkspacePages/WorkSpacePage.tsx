@@ -99,6 +99,7 @@ export default function WorkSpacePage() {
       workspaces?: Workspace[];
       basketTasks?: CardItem[];
       highlightTaskId?: string;
+      openPanel?: "planner" | "community" | "board";
     };
   };
 
@@ -209,6 +210,14 @@ export default function WorkSpacePage() {
       if (found) { setSelectedCard({ card: found, col }); break; }
     }
   }, [loading, state?.highlightTaskId]);
+
+  // 다른 페이지 탭 클릭으로 넘어온 경우 패널 자동 오픈
+  useEffect(() => {
+    if (!state?.openPanel) return;
+    if (state.openPanel === "planner") setShowPlanner(true);
+    if (state.openPanel === "community") setShowCommunity(true);
+    if (state.openPanel === "board") setShowBoardView(true);
+  }, [state?.openPanel]);
 
   const loadTrash = async () => {
     if (!workspace?.id) return;
