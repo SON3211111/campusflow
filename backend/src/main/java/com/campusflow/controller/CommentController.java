@@ -68,4 +68,17 @@ class WorkspaceChatController {
         );
         return ResponseEntity.ok(ApiResponse.success(200, "메시지 전송 완료", saved));
     }
+
+    @org.springframework.web.bind.annotation.PatchMapping("/{messageId}")
+    public ResponseEntity<ApiResponse<CommentResponse>> updateMessage(
+            @PathVariable String messageId,
+            @RequestBody Map<String, String> body) {
+        return ResponseEntity.ok(ApiResponse.success(200, "수정 완료", commentService.updateMessage(messageId, body.get("content"))));
+    }
+
+    @org.springframework.web.bind.annotation.DeleteMapping("/{messageId}")
+    public ResponseEntity<ApiResponse<Void>> deleteMessage(@PathVariable String messageId) {
+        commentService.deleteMessage(messageId);
+        return ResponseEntity.ok(ApiResponse.success(200, "삭제 완료"));
+    }
 }

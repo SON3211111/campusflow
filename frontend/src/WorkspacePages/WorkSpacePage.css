@@ -208,6 +208,83 @@
   background: #f4f4f4;
 }
 
+/* ===== 우클릭 컨텍스트 메뉴 ===== */
+.wsp-context-menu {
+  position: fixed;
+  background: #fff;
+  border: 1px solid #e0e0e0;
+  border-radius: 10px;
+  box-shadow: 0 4px 20px rgba(0,0,0,0.15);
+  z-index: 9999;
+  min-width: 130px;
+  overflow: hidden;
+  animation: ctxFade 0.1s ease;
+}
+@keyframes ctxFade {
+  from { opacity: 0; transform: scale(0.95); }
+  to   { opacity: 1; transform: scale(1); }
+}
+.wsp-context-menu button {
+  display: block;
+  width: 100%;
+  text-align: left;
+  padding: 10px 14px;
+  font-size: 13px;
+  color: #333;
+  background: none;
+  border: none;
+  cursor: pointer;
+}
+.wsp-context-menu button:hover { background: #f5f5f5; }
+.wsp-ctx-delete { color: #ef4444 !important; }
+
+/* ===== 카카오톡 스타일 인용 버블 ===== */
+.wsp-reply-quote {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  background: #f0f2f8;
+  border-left: 3px solid #4f7cff;
+  border-radius: 4px;
+  padding: 4px 8px;
+  margin-bottom: 4px;
+  font-size: 11px;
+}
+.wsp-reply-quote-name { font-weight: 700; color: #4f7cff; }
+.wsp-reply-quote-text { color: #777; }
+
+/* ===== 답글 바 (입력창 위) ===== */
+.wsp-reply-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background: #f0f2f8;
+  border-left: 3px solid #4f7cff;
+  border-radius: 4px;
+  padding: 6px 10px;
+  font-size: 12px;
+  color: #555;
+  margin-bottom: 6px;
+}
+.wsp-reply-bar button {
+  background: none;
+  border: none;
+  color: #aaa;
+  cursor: pointer;
+  font-size: 12px;
+}
+
+/* ===== 메시지 수정 폼 ===== */
+.wsp-edit-form { display: flex; flex-direction: column; gap: 4px; }
+.wsp-edit-input {
+  border: 1px solid #4f7cff;
+  border-radius: 6px;
+  padding: 4px 8px;
+  font-size: 13px;
+  outline: none;
+  width: 100%;
+}
+
 /* ===== 채널 생성/삭제 ===== */
 .wsp-channel-add-btn {
   background: none;

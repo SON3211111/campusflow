@@ -99,6 +99,19 @@ public class CommentService {
     }
 
     @Transactional
+    public CommentResponse updateMessage(String messageId, String content) {
+        TeamCommunication msg = communicationRepository.findById(messageId)
+                .orElseThrow(() -> new IllegalArgumentException("메시지를 찾을 수 없습니다."));
+        msg.setContent(content);
+        return CommentResponse.from(communicationRepository.save(msg));
+    }
+
+    @Transactional
+    public void deleteMessage(String messageId) {
+        communicationRepository.deleteById(messageId);
+    }
+
+    @Transactional
     public CommentResponse addComment(String workspaceId, String taskId, String senderId, String content) {
         Workspace workspace = workspaceRepository.findByWorkspaceId(workspaceId)
                 .orElseThrow(() -> new IllegalArgumentException("워크스페이스를 찾을 수 없습니다."));
