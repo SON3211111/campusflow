@@ -164,9 +164,9 @@ style(범위): UI/CSS 변경
 | 기능 | 상태 |
 |---|---|
 | 댓글 | ✅ 완료 — team_communication 테이블 연결, 저장/조회 API 연동, 댓글 시 담당자 COMMENT 알림 |
-| Community 채팅 | ✅ 완료 — team_communication(task_id=NULL) 연결, 보드/대시보드/알림 패널에서 메시지 저장/조회 |
-| 활동 로그 | localStorage 기반, 팀원 간 미공유 — task_status_history 기반 피드 표시 필요 |
-| 실시간 동기화 | WebSocket/폴링 없음 — 상태변경이 팀원 화면에 즉시 반영 안 됨 |
+| Community 채팅 | ✅ 완료 — 채널 생성/삭제(channels 테이블), 스레드(카카오톡 인용 버블), 멘션(@자동완성+알림), 우클릭 컨텍스트 메뉴(답글/수정/삭제), 채널 미읽 빨간 점 |
+| 활동 로그 | ✅ 완료 — 대시보드 활동 피드로 대체(task_status_history API) |
+| 실시간 동기화 | ✅ 완료 — 순수 WebSocket(TaskWebSocketHandler), 칸반 카드 드래그 시 팀원 화면 즉시 반영 |
 
 > **댓글 vs 채팅 구분**: 둘 다 `team_communication` 테이블 사용. `task_id IS NOT NULL` = 태스크 댓글, `task_id IS NULL` = 워크스페이스 채팅(Community 패널)
 
