@@ -33,20 +33,20 @@
 }
 
 .wtb-tab:hover {
-  color: #4f5bc8;
-  background: #f1f3ff;
+  color: var(--ws-theme-primary, #4f5bc8);
+  background: rgba(var(--ws-theme-primary-rgb, 96, 124, 255), 0.1);
   transform: translateY(-1px);
 }
 
 .wtb-tab.active {
-  color: #fff;
-  background: linear-gradient(135deg, #607cff, #805de8);
-  box-shadow: 0 5px 12px rgba(99, 102, 241, 0.24);
+  color: var(--ws-theme-on-primary, #fff);
+  background: linear-gradient(135deg, var(--ws-theme-primary, #607cff), var(--ws-theme-secondary, #805de8));
+  box-shadow: 0 5px 12px rgba(var(--ws-theme-primary-rgb, 99, 102, 241), 0.24);
 }
 
 .wtb-tab.active:hover {
-  color: #fff;
-  background: linear-gradient(135deg, #5874f4, #7654df);
+  color: var(--ws-theme-on-primary, #fff);
+  background: linear-gradient(135deg, var(--ws-theme-secondary, #5874f4), var(--ws-theme-primary, #7654df));
 }
 
 .wtb-divider {

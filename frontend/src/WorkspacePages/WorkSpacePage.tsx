@@ -19,7 +19,7 @@ import { useWorkspaceSocket } from "../hooks/useWorkspaceSocket";
 import AITaskModal from "../components/AITaskModal";
 import WorkspaceCommunityPanel from "../components/WorkspaceCommunityPanel";
 import WorkspaceSwitcherPopover from "../components/WorkspaceSwitcherPopover";
-import { withStoredGradient, withStoredGradients } from "../utils/workspaceTheme";
+import { createWorkspaceThemeStyle, withStoredGradient, withStoredGradients } from "../utils/workspaceTheme";
 import "./WorkSpacePage.css";
 
 interface Workspace {
@@ -112,6 +112,7 @@ export default function WorkSpacePage() {
   const workspace  = rawWorkspace ? withStoredGradient(rawWorkspace) : undefined;
   const workspaces = withStoredGradients(state?.workspaces ?? []);
   const gradient   = workspace?.gradient ?? "linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%)";
+  const themeStyle = createWorkspaceThemeStyle(gradient);
   const wsName     = workspace?.name ?? "워크스페이스";
 
   const basketTasks = (state?.basketTasks ?? []) as CardItem[];
@@ -469,7 +470,7 @@ export default function WorkSpacePage() {
   const slideInitialCards = [...basketTasks, ...allBoardCards];
 
   return (
-    <div className="wsp-page">
+    <div className="wsp-page" style={themeStyle}>
       <Header workspaces={workspaces} />
 
       <div className="wsp-body" style={{ background: gradient }}>

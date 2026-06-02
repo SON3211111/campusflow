@@ -4,6 +4,7 @@ import Header from "../components/Header";
 import JoinModal from "../components/JoinModal";
 import WorkspaceCard from "../components/WorkspaceCard";
 import client from "../api/client";
+import { WORKSPACE_TEMPLATES } from "../utils/workspaceTemplates";
 import "./WorkspaceList.css";
 import "./BoardPage.css";
 
@@ -16,12 +17,7 @@ interface Workspace {
 
 type PendingNav = { path: string; state?: object } | null;
 
-const templates = [
-  { id: 1, name: "초원",           bg: "linear-gradient(180deg,#87ceeb 20%,#90ee90 65%,#228b22 100%)" },
-  { id: 2, name: "밤 하늘",        bg: "linear-gradient(180deg,#0d0d2b 0%,#1a1a4e 60%,#0f0c29 100%)" },
-  { id: 3, name: "예쁘다",         bg: "linear-gradient(180deg,#1a1a3e 0%,#6b21a8 45%,#1e40af 100%)" },
-  { id: 4, name: "핑크 그라데이션", bg: "linear-gradient(135deg,#f0abfc 0%,#c084fc 50%,#a78bfa 100%)" },
-];
+const templates = WORKSPACE_TEMPLATES;
 
 export default function BoardPage() {
   const { state } = useLocation() as {
@@ -266,7 +262,7 @@ export default function BoardPage() {
           {/* 템플릿 섹션 */}
           <div className="board-section">
             <h3 className="board-section-title">기존 화면 템플릿 변경</h3>
-            <p className="board-section-sub">인기 템플릿</p>
+            <p className="board-section-sub">배경 테마 30개</p>
             <div className="template-grid">
               {templates.map((t) => (
                 <div

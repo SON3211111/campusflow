@@ -58,8 +58,8 @@
 }
 
 .wsp-workspace-panel-close:hover {
-  color: #4f5bc8;
-  background: #e9ecff;
+  color: var(--ws-theme-primary, #4f5bc8);
+  background: rgba(var(--ws-theme-primary-rgb, 96, 124, 255), 0.12);
 }
 
 .wsp-workspace-panel-desc {
@@ -92,15 +92,15 @@
 }
 
 .wsp-workspace-switch-card:hover {
-  border-color: #d7dcff;
-  background: #fafaff;
-  box-shadow: 0 6px 14px rgba(79, 91, 200, 0.1);
+  border-color: rgba(var(--ws-theme-primary-rgb, 96, 124, 255), 0.28);
+  background: rgba(var(--ws-theme-primary-rgb, 96, 124, 255), 0.05);
+  box-shadow: 0 6px 14px rgba(var(--ws-theme-primary-rgb, 79, 91, 200), 0.1);
   transform: translateY(-1px);
 }
 
 .wsp-workspace-switch-card.active {
-  border-color: #bdc7ff;
-  background: #f3f5ff;
+  border-color: rgba(var(--ws-theme-primary-rgb, 96, 124, 255), 0.42);
+  background: rgba(var(--ws-theme-primary-rgb, 96, 124, 255), 0.1);
 }
 
 .wsp-workspace-switch-thumb {
@@ -146,9 +146,9 @@
   padding: 11px 14px;
   border: none;
   border-radius: 11px;
-  color: #fff;
-  background: linear-gradient(135deg, #607cff, #805de8);
-  box-shadow: 0 5px 12px rgba(99, 102, 241, 0.2);
+  color: var(--ws-theme-on-primary, #fff);
+  background: linear-gradient(135deg, var(--ws-theme-primary, #607cff), var(--ws-theme-secondary, #805de8));
+  box-shadow: 0 5px 12px rgba(var(--ws-theme-primary-rgb, 99, 102, 241), 0.2);
   cursor: pointer;
   font-size: 13px;
   font-weight: 700;

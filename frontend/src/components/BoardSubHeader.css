@@ -6,7 +6,7 @@
   justify-content: space-between;
   padding: 0 16px;
   height: 44px;
-  background: rgba(30, 30, 40, 0.6);
+  background: rgba(var(--ws-theme-primary-rgb, 30, 30, 40), 0.68);
   backdrop-filter: blur(6px);
   border-bottom: 1px solid rgba(255,255,255,0.1);
   border-radius: 12px 12px 0 0;
@@ -69,7 +69,7 @@
   top: calc(100% + 6px);
   left: 0;
   width: 160px;
-  background: #3a3a4a;
+  background: color-mix(in srgb, var(--ws-theme-primary, #3a3a4a) 72%, #1f2230);
   border-radius: 10px;
   box-shadow: 0 6px 20px rgba(0,0,0,0.3);
   z-index: 300;
@@ -111,7 +111,7 @@
   width: 30px;
   height: 30px;
   border-radius: 50%;
-  background: #a89cf8;
+  background: linear-gradient(135deg, var(--ws-theme-primary, #a89cf8), var(--ws-theme-secondary, #8878df));
   color: #fff;
   font-size: 12px;
   font-weight: 700;

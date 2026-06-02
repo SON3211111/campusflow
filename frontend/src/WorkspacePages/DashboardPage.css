@@ -421,8 +421,8 @@
 .dbp-request-num {
   width: 26px;
   height: 26px;
-  background: #4f7cff;
-  color: #fff;
+  background: var(--ws-theme-primary, #4f7cff);
+  color: var(--ws-theme-on-primary, #fff);
   font-size: 13px;
   font-weight: 700;
   border-radius: 6px;
@@ -438,7 +438,7 @@
 
 .dbp-graph-fill {
   height: 100%;
-  background: linear-gradient(to right, #6ab4f8, #a89cf8);
+  background: linear-gradient(to right, var(--ws-theme-primary, #6ab4f8), var(--ws-theme-secondary, #a89cf8));
   border-radius: 20px;
   transition: width 0.5s;
 }

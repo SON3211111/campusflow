@@ -122,9 +122,9 @@
 
 .template-grid-full {
   display: grid;
-  grid-template-columns: repeat(4, 1fr);
+  grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
   gap: 16px;
-  max-width: 760px;
+  max-width: 1120px;
 }
 
 .template-card-full {
@@ -221,4 +221,30 @@
 
 .template-apply-btn:not(:disabled):hover {
   background: #3a65e8;
+}
+
+@media (max-width: 760px) {
+  .template-main {
+    padding: 20px 18px;
+  }
+
+  .template-top-bar {
+    align-items: flex-start;
+    flex-wrap: wrap;
+    gap: 12px;
+  }
+
+  .template-search-wrap {
+    width: 100%;
+    order: 3;
+  }
+
+  .template-search {
+    width: 100%;
+  }
+
+  .template-grid-full {
+    grid-template-columns: repeat(auto-fill, minmax(138px, 1fr));
+    gap: 14px;
+  }
 }

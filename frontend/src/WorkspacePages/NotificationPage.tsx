@@ -8,7 +8,7 @@ import client from "../api/client";
 import WorkspacePlannerPanel from "../components/WorkspacePlannerPanel";
 import WorkspaceCommunityPanel from "../components/WorkspaceCommunityPanel";
 import WorkspaceSwitcherPopover from "../components/WorkspaceSwitcherPopover";
-import { withStoredGradient, withStoredGradients } from "../utils/workspaceTheme";
+import { createWorkspaceThemeStyle, withStoredGradient, withStoredGradients } from "../utils/workspaceTheme";
 import "../WorkspacePages/WorkSpacePage.css";
 import "./NotificationPage.css";
 
@@ -62,6 +62,7 @@ export default function NotificationPage() {
   const rawWorkspace = state?.workspace ?? savedWs;
   const workspace = rawWorkspace ? withStoredGradient(rawWorkspace) : undefined;
   const workspaces = withStoredGradients(state?.workspaces ?? []);
+  const themeStyle = createWorkspaceThemeStyle(workspace?.gradient);
   const wsName = workspace?.name ?? "워크스페이스";
   const userId = localStorage.getItem("userId") ?? "";
 
@@ -118,7 +119,7 @@ export default function NotificationPage() {
   const requestCount = notis.filter((noti) => ["QUICK_SIGNAL", "COMMENT", "MENTION"].includes(noti.type)).length;
 
   return (
-    <div className="ntp-page">
+    <div className="ntp-page" style={themeStyle}>
       <Header workspaces={workspaces} />
       <BoardSubHeader wsName={wsName} members={[]} workspace={workspace} workspaces={workspaces} initialSelected="Notification" />
 

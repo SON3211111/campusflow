@@ -24,7 +24,7 @@
   white-space: nowrap;
   min-width: 130px;
   cursor: pointer;
-  color: #3949ab;
+  color: var(--ws-theme-primary, #3949ab);
 }
 
 .header-logo-mark {
@@ -36,8 +36,8 @@
   border-radius: 11px;
   color: #fff;
   font-size: 16px;
-  background: linear-gradient(135deg, #607cff, #8b5cf6);
-  box-shadow: 0 5px 12px rgba(99, 102, 241, 0.24);
+  background: linear-gradient(135deg, var(--ws-theme-primary, #607cff), var(--ws-theme-secondary, #8b5cf6));
+  box-shadow: 0 5px 12px rgba(var(--ws-theme-primary-rgb, 99, 102, 241), 0.24);
 }
 
 .header-search {
@@ -70,9 +70,9 @@
 }
 
 .search-input:focus {
-  border-color: #9daaff;
+  border-color: var(--ws-theme-primary, #9daaff);
   background: #fff;
-  box-shadow: 0 0 0 4px rgba(99, 102, 241, 0.1);
+  box-shadow: 0 0 0 4px rgba(var(--ws-theme-primary-rgb, 99, 102, 241), 0.1);
 }
 
 .search-input::placeholder {
@@ -140,20 +140,20 @@
 .header-create-btn {
   height: 40px;
   padding: 0 18px;
-  background: linear-gradient(135deg, #5b78ff, #7656e8);
-  color: #fff;
+  background: linear-gradient(135deg, var(--ws-theme-primary, #5b78ff), var(--ws-theme-secondary, #7656e8));
+  color: var(--ws-theme-on-primary, #fff);
   border: none;
   border-radius: 12px;
   font-size: 13px;
   font-weight: 700;
   cursor: pointer;
   white-space: nowrap;
-  box-shadow: 0 5px 12px rgba(99, 102, 241, 0.2);
+  box-shadow: 0 5px 12px rgba(var(--ws-theme-primary-rgb, 99, 102, 241), 0.2);
   transition: transform 0.15s, box-shadow 0.15s;
 }
 
 .header-create-btn:hover {
-  box-shadow: 0 7px 16px rgba(99, 102, 241, 0.28);
+  box-shadow: 0 7px 16px rgba(var(--ws-theme-primary-rgb, 99, 102, 241), 0.28);
   transform: translateY(-1px);
 }
 
@@ -179,7 +179,7 @@
 }
 
 .header-myprojects:hover {
-  color: #4f5bc8;
+  color: var(--ws-theme-primary, #4f5bc8);
   background: #f1f3ff;
 }
 
@@ -204,7 +204,7 @@
 }
 
 .header-icon-btn:hover {
-  color: #4f5bc8;
+  color: var(--ws-theme-primary, #4f5bc8);
   background: #eceeff;
 }
 
@@ -313,15 +313,15 @@
   padding: 5px 14px;
   border: none;
   border-radius: 6px;
-  background: #4f7cff;
-  color: #fff;
+  background: var(--ws-theme-primary, #4f7cff);
+  color: var(--ws-theme-on-primary, #fff);
   font-size: 12px;
   font-weight: 600;
   cursor: pointer;
 }
 
 .noti-accept-btn:hover {
-  background: #3a65e0;
+  background: var(--ws-theme-secondary, #3a65e0);
 }
 
 .noti-item-kick {
@@ -362,7 +362,7 @@
   height: 29px;
   border-radius: 50%;
   color: #fff;
-  background: linear-gradient(135deg, #7b8cff, #a66ceb);
+  background: linear-gradient(135deg, var(--ws-theme-primary, #7b8cff), var(--ws-theme-secondary, #a66ceb));
   font-size: 12px;
   font-weight: 800;
 }
@@ -420,7 +420,7 @@
   flex-shrink: 0;
   border-radius: 50%;
   color: #fff;
-  background: linear-gradient(135deg, #7b8cff, #a66ceb);
+  background: linear-gradient(135deg, var(--ws-theme-primary, #7b8cff), var(--ws-theme-secondary, #a66ceb));
   font-size: 14px;
   font-weight: 800;
   box-shadow: 0 4px 10px rgba(123, 140, 255, 0.2);
@@ -478,19 +478,19 @@
 
 .header-login-btn {
   padding: 9px 18px;
-  background: linear-gradient(135deg, #5b78ff, #7656e8);
-  color: #fff;
+  background: linear-gradient(135deg, var(--ws-theme-primary, #5b78ff), var(--ws-theme-secondary, #7656e8));
+  color: var(--ws-theme-on-primary, #fff);
   border: none;
   border-radius: 11px;
   font-size: 13px;
   font-weight: 700;
   cursor: pointer;
-  box-shadow: 0 5px 12px rgba(99, 102, 241, 0.2);
+  box-shadow: 0 5px 12px rgba(var(--ws-theme-primary-rgb, 99, 102, 241), 0.2);
   transition: transform 0.15s, box-shadow 0.15s;
 }
 
 .header-login-btn:hover {
-  box-shadow: 0 7px 16px rgba(99, 102, 241, 0.28);
+  box-shadow: 0 7px 16px rgba(var(--ws-theme-primary-rgb, 99, 102, 241), 0.28);
   transform: translateY(-1px);
 }
 

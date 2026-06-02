@@ -8,7 +8,7 @@ import client from "../api/client";
 import WorkspacePlannerPanel from "../components/WorkspacePlannerPanel";
 import WorkspaceCommunityPanel from "../components/WorkspaceCommunityPanel";
 import WorkspaceSwitcherPopover from "../components/WorkspaceSwitcherPopover";
-import { withStoredGradient, withStoredGradients } from "../utils/workspaceTheme";
+import { createWorkspaceThemeStyle, withStoredGradient, withStoredGradients } from "../utils/workspaceTheme";
 import "../WorkspacePages/WorkSpacePage.css";
 import "./DashboardPage.css";
 
@@ -45,6 +45,7 @@ export default function DashboardPage() {
   const rawWorkspace = state?.workspace ?? state?.workspaces?.[0] ?? savedWs;
   const workspace = rawWorkspace ? withStoredGradient(rawWorkspace) : undefined;
   const workspaces = withStoredGradients(state?.workspaces ?? []);
+  const themeStyle = createWorkspaceThemeStyle(workspace?.gradient);
   const wsName    = workspace?.name ?? "워크스페이스";
   const userName  = localStorage.getItem("userName") ?? "나";
 
@@ -194,7 +195,7 @@ export default function DashboardPage() {
   const notStartedDash = arc(donut.notStarted + donut.todo, ((donut.done + donut.progress + donut.hold) / TOTAL) * CIRC, TOTAL);
 
   return (
-    <div className="dbp-page">
+    <div className="dbp-page" style={themeStyle}>
       <Header workspaces={workspaces} />
       <BoardSubHeader wsName={wsName} members={wsMembers} workspace={workspace} workspaces={workspaces} initialSelected="Dash Board" />
 

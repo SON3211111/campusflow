@@ -9,6 +9,7 @@ import { useLocation, useNavigate } from "react-router-dom";
 import Header from "../components/Header";
 import client from "../api/client";
 import { getAppendBuffer, clearAppendBuffer, hasAppendBuffer } from "../store/aiTaskBuffer";
+import { createWorkspaceThemeStyle, withStoredGradient, withStoredGradients } from "../utils/workspaceTheme";
 import "./AiTaskPage.css";
 
 interface Task {
@@ -83,8 +84,10 @@ export default function AiTaskPage() {
     };
   };
   const navigate = useNavigate();
-  const workspaces = state?.workspaces ?? [];
-  const workspace  = state?.workspace ?? workspaces[0];
+  const workspaces = withStoredGradients(state?.workspaces ?? []);
+  const rawWorkspace = state?.workspace ?? workspaces[0];
+  const workspace = rawWorkspace ? withStoredGradient(rawWorkspace) : undefined;
+  const themeStyle = createWorkspaceThemeStyle(workspace?.gradient);
   const sessionKey = `ai_task_session_${workspace?.id ?? "default"}`;
 
   const storedSession: AiTaskSession | null = (() => {
@@ -423,7 +426,7 @@ export default function AiTaskPage() {
 
   return (
     <>
-    <div className="atp-page">
+    <div className="atp-page" style={{ ...themeStyle, background: workspace?.gradient ?? "#fff" }}>
       <Header workspaces={workspaces} />
 
       <div className="atp-topbar">
