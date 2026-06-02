@@ -44,13 +44,20 @@ export default function DashboardPage() {
   const [donut, setDonut] = useState({ progress: 0, done: 0, hold: 0, notStarted: 0, todo: 0 });
   const [wsMembers, setWsMembers] = useState<{ userId: string; name: string }[]>([]);
   const [memberStats, setMemberStats] = useState<Record<string, { done: number; progress: number; hold: number; total: number }>>({});
+  const [activityFeed, setActivityFeed] = useState<{ taskId: string; taskTitle: string; changedByName: string; prevStatus: string | null; currStatus: string; occurredAt: string }[]>([]);
+  const [bottleneckTasks, setBottleneckTasks] = useState<{ taskId: string; title: string; status: string; assigneeName?: string }[]>([]);
 
   useEffect(() => {
-    if (workspace?.id) {
-      client.get(`/workspaces/${workspace.id}/members`)
-        .then((res) => setWsMembers(res.data.data ?? []))
-        .catch(() => {});
-    }
+    if (!workspace?.id) return;
+    client.get(`/workspaces/${workspace.id}/members`)
+      .then((res) => setWsMembers(res.data.data ?? []))
+      .catch(() => {});
+    client.get(`/workspaces/${workspace.id}/tasks/activity?limit=20`)
+      .then((res) => setActivityFeed(res.data.data ?? []))
+      .catch(() => {});
+    client.get(`/workspaces/${workspace.id}/tasks/bottleneck?days=3`)
+      .then((res) => setBottleneckTasks(res.data.data ?? []))
+      .catch(() => {});
   }, [workspace?.id]);
   const [upcomingTasks, setUpcomingTasks] = useState<{ taskId: string; title: string; dueDate: string; daysLeft: number }[]>([]);
 
@@ -132,25 +139,29 @@ export default function DashboardPage() {
   }, [workspace?.id]);
 
   const total = donut.progress + donut.done + donut.hold + donut.notStarted + donut.todo;
-  const wsActivityLog: { icon: string; type: string; desc: string }[] = workspace?.id
-    ? (JSON.parse(localStorage.getItem(`workspace_activity_${workspace.id}`) ?? "[]") as { message: string; time: string }[])
-        .map((a) => ({ icon: "👥", type: "참여", desc: a.message }))
-    : [];
+  const STATUS_LABEL: Record<string, string> = {
+    DONE: "완료", DOING: "진행 중", ISSUE: "보류 중", REVIEW: "검토 중", TODO: "시작 전",
+  };
+  const STATUS_ICON: Record<string, string> = {
+    DONE: "✓", DOING: "▶", ISSUE: "⏸", REVIEW: "◎", TODO: "○",
+  };
 
-  const activityLog = (() => {
-    const log: { icon: string; type: string; desc: string }[] = [...wsActivityLog];
-    if (donut.done > 0)
-      log.push({ icon: "✓", type: "완료됨", desc: `${donut.done}개의 태스크가 완료되었습니다.` });
-    if (donut.progress > 0)
-      log.push({ icon: "▶", type: "진행 중", desc: `${donut.progress}개의 태스크가 진행 중입니다.` });
-    if (donut.hold > 0)
-      log.push({ icon: "⏸", type: "보류 중", desc: `${donut.hold}개의 태스크가 보류 중입니다.` });
-    if (donut.notStarted + donut.todo > 0)
-      log.push({ icon: "○", type: "미시작", desc: `${donut.notStarted + donut.todo}개의 태스크가 대기 중입니다.` });
-    if (log.length === 0)
-      log.push({ icon: "👥", type: "워크스페이스", desc: "보드에 태스크를 추가하면 현황이 표시됩니다." });
-    return log;
-  })();
+  function timeAgo(iso: string) {
+    const diff = Math.floor((Date.now() - new Date(iso).getTime()) / 1000);
+    if (diff < 60) return "방금 전";
+    if (diff < 3600) return `${Math.floor(diff / 60)}분 전`;
+    if (diff < 86400) return `${Math.floor(diff / 3600)}시간 전`;
+    return `${Math.floor(diff / 86400)}일 전`;
+  }
+
+  const activityLog = activityFeed.length > 0
+    ? activityFeed.map((a) => ({
+        icon: STATUS_ICON[a.currStatus] ?? "·",
+        type: STATUS_LABEL[a.currStatus] ?? a.currStatus,
+        desc: `${a.changedByName}이(가) [${a.taskTitle}]을(를) ${STATUS_LABEL[a.currStatus] ?? a.currStatus} 처리`,
+        time: timeAgo(a.occurredAt),
+      }))
+    : [{ icon: "👥", type: "활동 없음", desc: "보드에서 태스크를 이동하면 여기에 기록됩니다.", time: "" }];
 
   const TOTAL = total || 1;
   const GRAPH = wsMembers.length > 0
@@ -235,8 +246,7 @@ export default function DashboardPage() {
           {/* 활동 로그 */}
           <div className="dbp-card dbp-activity-card">
             <div className="dbp-activity-header">
-              <h3 className="dbp-card-title" style={{ margin: 0 }}>① 활동로그</h3>
-              <span className="dbp-activity-user-label">유저</span>
+              <h3 className="dbp-card-title" style={{ margin: 0 }}>활동 피드</h3>
             </div>
             <div className="dbp-timeline">
               {activityLog.map((a, i) => (
@@ -248,6 +258,7 @@ export default function DashboardPage() {
                   <div className="dbp-timeline-content">
                     <span className="dbp-timeline-type">{a.type}</span>
                     <span className="dbp-timeline-desc">{a.desc}</span>
+                    {a.time && <span className="dbp-timeline-time">{a.time}</span>}
                   </div>
                 </div>
               ))}
@@ -307,6 +318,28 @@ export default function DashboardPage() {
               <span className="dbp-legend-item"><span className="dbp-dot" style={{ background: "#6ab4f8" }} />진행중</span>
               <span className="dbp-legend-item"><span className="dbp-dot" style={{ background: "#f8d08a" }} />보류</span>
             </div>
+          </div>
+
+          {/* 병목 태스크 */}
+          <div className="dbp-card">
+            <h3 className="dbp-card-title">⚠️ 주의 필요 태스크</h3>
+            {bottleneckTasks.length === 0 ? (
+              <div className="dbp-empty-msg">병목 태스크가 없습니다.</div>
+            ) : (
+              <div className="dbp-upcoming-list">
+                {bottleneckTasks.map((t) => (
+                  <div key={t.taskId} className="dbp-upcoming-item">
+                    <div className="dbp-upcoming-title">{t.title}</div>
+                    <div className="dbp-upcoming-info">
+                      <span className={`dbp-upcoming-days urgent`}>
+                        {t.status === "DOING" ? "진행 중" : "보류 중"} · 3일 이상 정체
+                      </span>
+                      {t.assigneeName && <span className="dbp-upcoming-date">담당: {t.assigneeName}</span>}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
 
           {/* 마감 임박 */}

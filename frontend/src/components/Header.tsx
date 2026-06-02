@@ -31,6 +31,9 @@ interface Invitation {
 interface KickNotification {
   notificationId: string;
   message: string;
+  type?: string;
+  taskId?: string;
+  createdAt?: string;
 }
 
 export default function Header({ workspaces = [], showSearch = true, onLogout }: HeaderProps) {
@@ -165,7 +168,9 @@ export default function Header({ workspaces = [], showSearch = true, onLogout }:
             <div className="header-noti-wrap" ref={notiRef}>
               <button className="header-icon-btn noti-btn" onClick={() => setNotiOpen((v) => !v)}>
                 🔔
-                {(invitations.length + kickNotis.length) > 0 && <span className="noti-badge">!</span>}
+                {(invitations.length + kickNotis.length) > 0 && (
+                  <span className="noti-badge">{invitations.length + kickNotis.length}</span>
+                )}
               </button>
               {notiOpen && (
                 <div className="noti-dropdown">
@@ -175,6 +180,22 @@ export default function Header({ workspaces = [], showSearch = true, onLogout }:
                   ) : (
                     <>
                       {kickNotis.map((n) => {
+                        // STATUS_CHANGE 알림
+                        if (n.type === "STATUS_CHANGE") {
+                          return (
+                            <div key={n.notificationId} className="noti-item">
+                              <p className="noti-msg">🔔 {n.message}</p>
+                              <div className="noti-actions">
+                                <button className="noti-reject-btn" onClick={async () => {
+                                  await client.post(`/notifications/${n.notificationId}/read`).catch(() => {});
+                                  setKickNotis((prev) => prev.filter((x) => x.notificationId !== n.notificationId));
+                                }}>확인</button>
+                              </div>
+                            </div>
+                          );
+                        }
+
+                        // JOIN_REQUEST 알림
                         let joinReq: { type?: string; requesterId?: string; requesterName?: string; workspaceId?: string; workspaceName?: string } | null = null;
                         try { joinReq = JSON.parse(n.message); } catch {}
                         const isJoinRequest = joinReq?.type === "JOIN_REQUEST";
@@ -199,6 +220,8 @@ export default function Header({ workspaces = [], showSearch = true, onLogout }:
                             </div>
                           );
                         }
+
+                        // 일반 알림 (수락/거절/강퇴 등)
                         const isAccepted = n.message.includes("수락");
                         const isRejected = n.message.includes("거절");
                         const icon = isAccepted ? "✅" : isRejected ? "❌" : "🚫";

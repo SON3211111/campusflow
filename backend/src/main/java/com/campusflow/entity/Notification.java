@@ -24,6 +24,12 @@ public class Notification {
     @Column(nullable = false)
     private String message;
 
+    @Column(name = "type", nullable = true)
+    private String type; // STATUS_CHANGE | DUE_DATE | BOTTLENECK
+
+    @Column(name = "task_id", nullable = true)
+    private String taskId;
+
     @Column(name = "is_read")
     @Builder.Default
     private boolean read = false;

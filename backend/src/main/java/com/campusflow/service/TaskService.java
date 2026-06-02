@@ -1,5 +1,6 @@
 package com.campusflow.service;
 
+import com.campusflow.dto.ActivityFeedItemDto;
 import com.campusflow.dto.ProjectProgressDto;
 import com.campusflow.dto.TaskCreateRequest;
 import com.campusflow.dto.TaskResponse;
@@ -21,10 +22,13 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import org.springframework.data.domain.PageRequest;
+
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.stream.Collectors;
 
 @Service
@@ -34,9 +38,10 @@ public class TaskService {
     private final TaskRepository taskRepository;
     private final ProjectRepository projectRepository;
     private final UserRepository userRepository;
-    private final WorkspaceRepository workspaceRepository; // createTask에서 사용
+    private final WorkspaceRepository workspaceRepository;
     private final TaskStatusHistoryRepository taskStatusHistoryRepository;
     private final ContributionMetricsRepository contributionMetricsRepository;
+    private final NotificationService notificationService;
 
     // ── 칸반 보드 ────────────────────────────────────────────
 
@@ -122,6 +127,50 @@ public class TaskService {
         if (newStatus == TaskStatus.DONE && task.getAssignee() != null && task.getProject() != null) {
             updateContributionMetrics(task.getProject(), task.getAssignee(), prevStatus == TaskStatus.ISSUE);
         }
+
+        notificationService.notifyStatusChange(task, prevStatus, newStatus, userId);
+    }
+
+    /** 활동 피드 — task_status_history 최근 N건 */
+    @Transactional(readOnly = true)
+    public List<ActivityFeedItemDto> getActivityFeed(String workspaceId, int limit) {
+        return taskStatusHistoryRepository
+                .findAllByWorkspace_WorkspaceIdOrderByOccurredAtDesc(workspaceId, PageRequest.of(0, limit))
+                .stream()
+                .map(ActivityFeedItemDto::from)
+                .toList();
+    }
+
+    /** 병목 태스크 — DOING/ISSUE 상태로 N일 이상 변경 없는 태스크 */
+    @Transactional(readOnly = true)
+    public List<TaskResponse> getBottleneckTasks(String workspaceId, int days) {
+        LocalDateTime threshold = LocalDateTime.now().minusDays(days);
+        List<TaskStatus> stuckStatuses = List.of(TaskStatus.DOING, TaskStatus.ISSUE);
+
+        List<Task> candidates = taskRepository
+                .findAllByWorkspace_WorkspaceIdAndDeletedFalse(workspaceId)
+                .stream()
+                .filter(t -> stuckStatuses.contains(t.getStatus()))
+                .toList();
+
+        // 히스토리가 있는 태스크 중 마지막 변경이 threshold 이전인 것만 반환
+        Set<String> stuckIds = taskStatusHistoryRepository
+                .findAllByWorkspace_WorkspaceIdOrderByOccurredAtDesc(workspaceId)
+                .stream()
+                .collect(Collectors.toMap(
+                        h -> h.getTask().getTaskId(),
+                        h -> h,
+                        (a, b) -> a   // 가장 최근 것만 유지
+                ))
+                .entrySet().stream()
+                .filter(e -> e.getValue().getOccurredAt().isBefore(threshold))
+                .map(Map.Entry::getKey)
+                .collect(Collectors.toSet());
+
+        return candidates.stream()
+                .filter(t -> stuckIds.contains(t.getTaskId()))
+                .map(TaskResponse::from)
+                .toList();
     }
 
     private void updateContributionMetrics(Project project, User user, boolean issueSolved) {

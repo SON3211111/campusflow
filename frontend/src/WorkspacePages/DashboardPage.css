@@ -88,6 +88,7 @@
 .dbp-activity-card {
   display: flex;
   flex-direction: column;
+  overflow: hidden;
 }
 
 .dbp-activity-header {
@@ -95,6 +96,7 @@
   align-items: center;
   justify-content: space-between;
   margin-bottom: 20px;
+  flex-shrink: 0;
 }
 
 .dbp-activity-user-label {
@@ -106,6 +108,9 @@
   display: flex;
   flex-direction: column;
   gap: 0;
+  max-height: 300px;
+  overflow-y: auto;
+  padding-right: 4px;
 }
 
 .dbp-timeline-item {
@@ -167,6 +172,12 @@
   line-height: 1.4;
 }
 
+.dbp-timeline-time {
+  font-size: 11px;
+  color: #aaa;
+  margin-top: 2px;
+}
+
 /* ===== 그라프 목록 ===== */
 .dbp-graph-card {
   width: 100%;
@@ -215,7 +226,7 @@
 /* ===== 하단 행 ===== */
 .dbp-bottom-row {
   display: grid;
-  grid-template-columns: 1fr 1fr;
+  grid-template-columns: 1.2fr 1fr 1fr;
   gap: 20px;
 }
 
@@ -415,12 +426,12 @@
   transition: width 0.5s;
 }
 
-/* ===== 마감 임박 작업 리스트 ===== */
+/* ===== 마감 임박 / 병목 리스트 ===== */
 .dbp-upcoming-list {
   display: flex;
   flex-direction: column;
   gap: 10px;
-  max-height: 300px;
+  max-height: 220px;
   overflow-y: auto;
 }
 

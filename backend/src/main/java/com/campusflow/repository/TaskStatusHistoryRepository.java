@@ -12,4 +12,7 @@ public interface TaskStatusHistoryRepository extends JpaRepository<TaskStatusHis
     List<TaskStatusHistory> findAllByWorkspace_WorkspaceIdOrderByOccurredAtDesc(String workspaceId);
 
     List<TaskStatusHistory> findAllByTask_TaskIdOrderByOccurredAtDesc(String taskId);
+
+    org.springframework.data.domain.Page<TaskStatusHistory> findAllByWorkspace_WorkspaceIdOrderByOccurredAtDesc(
+            String workspaceId, org.springframework.data.domain.Pageable pageable);
 }

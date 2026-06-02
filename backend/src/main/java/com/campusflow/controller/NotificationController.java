@@ -21,10 +21,15 @@ public class NotificationController {
     @GetMapping
     public ResponseEntity<ApiResponse<?>> getUnread(@RequestParam String userId) {
         List<Notification> list = notificationRepository.findByUserIdAndReadFalse(userId);
-        List<Map<String, Object>> result = list.stream().map(n -> Map.of(
-                "notificationId", (Object) n.getNotificationId(),
-                "message", n.getMessage()
-        )).collect(Collectors.toList());
+        List<Map<String, Object>> result = list.stream().map(n -> {
+            Map<String, Object> m = new java.util.LinkedHashMap<>();
+            m.put("notificationId", n.getNotificationId());
+            m.put("message", n.getMessage());
+            m.put("type", n.getType());
+            m.put("taskId", n.getTaskId());
+            m.put("createdAt", n.getCreatedAt());
+            return m;
+        }).collect(Collectors.toList());
         return ResponseEntity.ok(ApiResponse.success(200, "조회 성공", result));
     }
 

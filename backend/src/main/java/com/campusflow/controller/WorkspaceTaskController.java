@@ -1,5 +1,6 @@
 package com.campusflow.controller;
 
+import com.campusflow.dto.ActivityFeedItemDto;
 import com.campusflow.dto.ApiResponse;
 import com.campusflow.dto.TaskCreateRequest;
 import com.campusflow.dto.TaskResponse;
@@ -79,5 +80,21 @@ public class WorkspaceTaskController {
             @RequestBody Map<String, String> body) {
         taskService.updateDescription(taskId, body.getOrDefault("description", ""));
         return ResponseEntity.ok(ApiResponse.success(200, "설명 수정 완료"));
+    }
+
+    @GetMapping("/activity")
+    public ResponseEntity<ApiResponse<List<ActivityFeedItemDto>>> getActivity(
+            @PathVariable String workspaceId,
+            @RequestParam(defaultValue = "20") int limit) {
+        List<ActivityFeedItemDto> feed = taskService.getActivityFeed(workspaceId, limit);
+        return ResponseEntity.ok(ApiResponse.success(200, "조회 성공", feed));
+    }
+
+    @GetMapping("/bottleneck")
+    public ResponseEntity<ApiResponse<List<TaskResponse>>> getBottleneck(
+            @PathVariable String workspaceId,
+            @RequestParam(defaultValue = "3") int days) {
+        List<TaskResponse> bottlenecks = taskService.getBottleneckTasks(workspaceId, days);
+        return ResponseEntity.ok(ApiResponse.success(200, "조회 성공", bottlenecks));
     }
 }

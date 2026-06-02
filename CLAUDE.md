@@ -151,12 +151,13 @@ style(범위): UI/CSS 변경
 ### 툴의 능동적 개입 (지속적 관리 느낌)
 | 기능 | 상태 |
 |---|---|
-| DONE 처리 시 활동 피드 즉시 기록 | ✅ 완료 — task_status_history 기록, 활동 피드 API 연결 예정 |
+| DONE 처리 시 활동 피드 즉시 기록 | ✅ 완료 — task_status_history 기록, 대시보드 활동 피드 API 연결 완료 |
 | ContributionMetrics 업데이트 | ✅ 완료 — DONE 시 task_completion_count 증가, ISSUE→DONE 시 issue_solving_count 증가 |
-| 병목 태스크 감지 | 구현 중 — API + 대시보드 섹션 추가 예정 |
-| 활동 피드 UI | 구현 중 — task_status_history 기반 대시보드 피드 연결 예정 |
-| 알림 UI | 구현 중 — Notification 엔티티 확장 + 헤더 벨 아이콘 + 드롭다운 예정 |
-| 마감 D-3 알림 | 구현 예정 — @Scheduled 스케줄러로 담당자에게 자동 알림 |
+| 병목 태스크 감지 | ✅ 완료 — GET /api/workspaces/{id}/tasks/bottleneck, 대시보드 "⚠️ 주의 필요 태스크" 섹션 |
+| 활동 피드 UI | ✅ 완료 — 대시보드 활동 피드 localStorage → task_status_history API 교체 |
+| 알림 자동 생성 | ✅ 완료 — 상태 변경 시 본인 제외 워크스페이스 멤버 전체 알림 자동 저장 |
+| 알림 UI | ✅ 완료 — 헤더 벨 아이콘 숫자 뱃지, STATUS_CHANGE 알림 드롭다운 표시 |
+| 마감 D-3 알림 | 미구현 — @Scheduled 스케줄러로 담당자에게 자동 알림 필요 |
 
 ### 소통 (팀 간 실시간 공유)
 | 기능 | 상태 |
