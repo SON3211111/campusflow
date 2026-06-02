@@ -47,8 +47,9 @@ public class WorkspaceTaskController {
     @PatchMapping("/{taskId}/status")
     public ResponseEntity<ApiResponse<Void>> updateStatus(
             @PathVariable String taskId,
-            @RequestParam TaskStatus status) {
-        taskService.updateTaskStatus(taskId, status);
+            @RequestParam TaskStatus status,
+            @RequestParam(required = false) String userId) {
+        taskService.updateTaskStatus(taskId, status, userId);
         return ResponseEntity.ok(ApiResponse.success(200, "상태 변경 완료"));
     }
 

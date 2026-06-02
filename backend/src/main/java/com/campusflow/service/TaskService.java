@@ -3,14 +3,18 @@ package com.campusflow.service;
 import com.campusflow.dto.ProjectProgressDto;
 import com.campusflow.dto.TaskCreateRequest;
 import com.campusflow.dto.TaskResponse;
+import com.campusflow.entity.ContributionMetrics;
 import com.campusflow.entity.Project;
 import com.campusflow.entity.Task;
+import com.campusflow.entity.TaskStatusHistory;
 import com.campusflow.entity.User;
 import com.campusflow.entity.Workspace;
 import com.campusflow.entity.enums.TaskPriority;
 import com.campusflow.entity.enums.TaskStatus;
+import com.campusflow.repository.ContributionMetricsRepository;
 import com.campusflow.repository.ProjectRepository;
 import com.campusflow.repository.TaskRepository;
+import com.campusflow.repository.TaskStatusHistoryRepository;
 import com.campusflow.repository.UserRepository;
 import com.campusflow.repository.WorkspaceRepository;
 import lombok.RequiredArgsConstructor;
@@ -30,7 +34,9 @@ public class TaskService {
     private final TaskRepository taskRepository;
     private final ProjectRepository projectRepository;
     private final UserRepository userRepository;
-    private final WorkspaceRepository workspaceRepository;
+    private final WorkspaceRepository workspaceRepository; // createTask에서 사용
+    private final TaskStatusHistoryRepository taskStatusHistoryRepository;
+    private final ContributionMetricsRepository contributionMetricsRepository;
 
     // ── 칸반 보드 ────────────────────────────────────────────
 
@@ -92,12 +98,46 @@ public class TaskService {
         return TaskResponse.from(saved);
     }
 
-    /** 태스크 상태 변경 (칸반 드래그앤드롭) */
+    /** 태스크 상태 변경 (칸반 드래그앤드롭) — 히스토리 기록 + DONE 시 기여도 업데이트 */
     @Transactional
-    public void updateTaskStatus(String taskId, TaskStatus newStatus) {
+    public void updateTaskStatus(String taskId, TaskStatus newStatus, String userId) {
         Task task = taskRepository.findById(taskId)
                 .orElseThrow(() -> new IllegalArgumentException("태스크를 찾을 수 없습니다. ID: " + taskId));
+
+        TaskStatus prevStatus = task.getStatus();
         task.setStatus(newStatus);
+
+        User changedBy = (userId != null && !userId.isBlank())
+                ? userRepository.findById(userId).orElse(null)
+                : null;
+
+        taskStatusHistoryRepository.save(TaskStatusHistory.builder()
+                .task(task)
+                .workspace(task.getWorkspace())
+                .prevStatus(prevStatus)
+                .currStatus(newStatus)
+                .changedBy(changedBy)
+                .build());
+
+        if (newStatus == TaskStatus.DONE && task.getAssignee() != null && task.getProject() != null) {
+            updateContributionMetrics(task.getProject(), task.getAssignee(), prevStatus == TaskStatus.ISSUE);
+        }
+    }
+
+    private void updateContributionMetrics(Project project, User user, boolean issueSolved) {
+        ContributionMetrics metrics = contributionMetricsRepository
+                .findByProject_ProjectIdAndUser_UserId(project.getProjectId(), user.getUserId())
+                .orElseGet(() -> ContributionMetrics.builder()
+                        .project(project)
+                        .user(user)
+                        .taskCompletionCount(0)
+                        .issueSolvingCount(0)
+                        .build());
+        metrics.setTaskCompletionCount(metrics.getTaskCompletionCount() + 1);
+        if (issueSolved) {
+            metrics.setIssueSolvingCount(metrics.getIssueSolvingCount() + 1);
+        }
+        contributionMetricsRepository.save(metrics);
     }
 
     /** 태스크 소프트 삭제 (DB에서 제거하지 않고 isDeleted=true로 마킹) */

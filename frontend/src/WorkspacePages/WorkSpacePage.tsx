@@ -246,9 +246,12 @@ export default function WorkSpacePage() {
 
     const newStatus = COL_TO_STATUS[targetCol];
     if (newStatus && workspace?.id) {
+      const userId = localStorage.getItem("userId") ?? "";
       try {
-        await client.patch(`/workspaces/${workspace.id}/tasks/${card.id}/status?status=${newStatus}`);
-      } catch {}
+        await client.patch(`/workspaces/${workspace.id}/tasks/${card.id}/status?status=${newStatus}&userId=${userId}`);
+      } catch (err) {
+        console.error("상태 변경 실패:", err);
+      }
     }
   };
 
@@ -367,9 +370,12 @@ export default function WorkSpacePage() {
   const handleBoardStatusChange = async (taskId: string, newColKey: string) => {
     const newStatus = BSV_KEY_TO_STATUS[newColKey];
     if (newStatus && workspace?.id) {
+      const userId = localStorage.getItem("userId") ?? "";
       try {
-        await client.patch(`/workspaces/${workspace.id}/tasks/${taskId}/status?status=${newStatus}`);
-      } catch {}
+        await client.patch(`/workspaces/${workspace.id}/tasks/${taskId}/status?status=${newStatus}&userId=${userId}`);
+      } catch (err) {
+        console.error("상태 변경 실패:", err);
+      }
     }
   };
 

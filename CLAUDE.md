@@ -151,10 +151,12 @@ style(범위): UI/CSS 변경
 ### 툴의 능동적 개입 (지속적 관리 느낌)
 | 기능 | 상태 |
 |---|---|
-| DONE 처리 시 활동 피드 즉시 기록 | DONE 해도 아무 일 없음 — 기여도 반영 + 팀원 피드에 기록 필요 |
-| ContributionMetrics 업데이트 | 로직 없어 항상 0 — DONE 시 카운트 증가 필요 |
-| 병목 태스크 감지 | ISSUE/DOING 상태에 오래 머문 태스크 아무도 모름 — 대시보드 강조 필요 |
-| 알림 UI | 백엔드 API 완성, 프론트엔드 없음 — 상태변경/댓글/마감임박 시 알림 필요 |
+| DONE 처리 시 활동 피드 즉시 기록 | ✅ 완료 — task_status_history 기록, 활동 피드 API 연결 예정 |
+| ContributionMetrics 업데이트 | ✅ 완료 — DONE 시 task_completion_count 증가, ISSUE→DONE 시 issue_solving_count 증가 |
+| 병목 태스크 감지 | 구현 중 — API + 대시보드 섹션 추가 예정 |
+| 활동 피드 UI | 구현 중 — task_status_history 기반 대시보드 피드 연결 예정 |
+| 알림 UI | 구현 중 — Notification 엔티티 확장 + 헤더 벨 아이콘 + 드롭다운 예정 |
+| 마감 D-3 알림 | 구현 예정 — @Scheduled 스케줄러로 담당자에게 자동 알림 |
 
 ### 소통 (팀 간 실시간 공유)
 | 기능 | 상태 |
