@@ -90,6 +90,21 @@ public class WorkspaceTaskController {
         return ResponseEntity.ok(ApiResponse.success(200, "제목 수정 완료"));
     }
 
+    @PatchMapping("/{taskId}/quick-signal")
+    public ResponseEntity<ApiResponse<Void>> sendQuickSignal(
+            @PathVariable String taskId,
+            @RequestParam String signal,
+            @RequestParam(required = false) String userId) {
+        taskService.sendQuickSignal(taskId, signal, userId);
+        return ResponseEntity.ok(ApiResponse.success(200, "시그널 전송 완료"));
+    }
+
+    @DeleteMapping("/{taskId}/quick-signal")
+    public ResponseEntity<ApiResponse<Void>> clearQuickSignal(@PathVariable String taskId) {
+        taskService.clearQuickSignal(taskId);
+        return ResponseEntity.ok(ApiResponse.success(200, "시그널 초기화 완료"));
+    }
+
     @GetMapping("/activity")
     public ResponseEntity<ApiResponse<List<ActivityFeedItemDto>>> getActivity(
             @PathVariable String workspaceId,

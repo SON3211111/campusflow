@@ -29,12 +29,14 @@ const TYPE_LABEL: Record<string, string> = {
   STATUS_CHANGE: "상태 변경",
   DUE_DATE: "마감 임박",
   BOTTLENECK: "병목 감지",
+  QUICK_SIGNAL: "도움 요청",
 };
 
 const TYPE_ICON: Record<string, string> = {
   STATUS_CHANGE: "🔔",
   DUE_DATE: "📅",
   BOTTLENECK: "⚠️",
+  QUICK_SIGNAL: "🆘",
 };
 
 export default function NotificationPage() {
@@ -49,7 +51,7 @@ export default function NotificationPage() {
   const [notis, setNotis] = useState<Noti[]>([]);
   const [loading, setLoading] = useState(true);
 
-  const VALID_TYPES = ["STATUS_CHANGE", "DUE_DATE", "BOTTLENECK"];
+  const VALID_TYPES = ["STATUS_CHANGE", "DUE_DATE", "BOTTLENECK", "QUICK_SIGNAL"];
 
   const fetchNotis = async () => {
     if (!userId) return;

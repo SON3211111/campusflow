@@ -589,6 +589,17 @@
   font-weight: 600;
 }
 
+.wsp-card-signal {
+  font-size: 11px;
+  font-weight: 600;
+  padding: 3px 7px;
+  border-radius: 4px;
+  margin-bottom: 4px;
+  display: inline-block;
+}
+.wsp-card-signal.signal-help { background: #fff0f0; color: #dc2626; }
+.wsp-card-signal.signal-feedback { background: #f0f7ff; color: #2563eb; }
+
 .wsp-card-avatar {
   width: 22px;
   height: 22px;

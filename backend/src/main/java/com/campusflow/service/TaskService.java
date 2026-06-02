@@ -232,6 +232,23 @@ public class TaskService {
         task.setTitle(title);
     }
 
+    /** 퀵 시그널 — 도움/피드백 요청 → 팀원 알림 */
+    @Transactional
+    public void sendQuickSignal(String taskId, String signal, String requesterId) {
+        Task task = taskRepository.findById(taskId)
+                .orElseThrow(() -> new IllegalArgumentException("태스크를 찾을 수 없습니다. ID: " + taskId));
+        task.setQuickSignal(signal);
+        notificationService.notifyQuickSignal(task, signal, requesterId);
+    }
+
+    /** 퀵 시그널 초기화 */
+    @Transactional
+    public void clearQuickSignal(String taskId) {
+        Task task = taskRepository.findById(taskId)
+                .orElseThrow(() -> new IllegalArgumentException("태스크를 찾을 수 없습니다. ID: " + taskId));
+        task.setQuickSignal(null);
+    }
+
     // ── 기존: 칸반 맵 조회 (TaskController에서 사용) ─────────
 
     /** 상태별 그룹화된 태스크 맵 반환 */

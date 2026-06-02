@@ -60,6 +60,9 @@ public class Task {
     @Column(name = "locked_by", nullable = true)
     private String lockedBy;
 
+    @Column(name = "quick_signal", nullable = true)
+    private String quickSignal; // HELP_NEEDED | FEEDBACK_NEEDED | null
+
     @Column(name = "due_date")
     private LocalDate dueDate;
 

@@ -14,17 +14,20 @@ interface Props {
   initialDesc?: string;
   initialDueDate?: string;
   initialComments?: Comment[];
+  initialQuickSignal?: string;
   onSaveTitle?: (title: string) => void;
   onSaveDesc?: (desc: string) => void;
   onSaveDueDate?: (dueDate: string) => void;
   onSaveComments?: (comments: Comment[]) => void;
+  onSendSignal?: (signal: string | null) => void;
   onClose: () => void;
 }
 
-export default function CardDetailModal({ title, colName, initialDesc = "", initialDueDate = "", initialComments = [], onSaveTitle, onSaveDesc, onSaveDueDate, onSaveComments, onClose }: Props) {
+export default function CardDetailModal({ title, colName, initialDesc = "", initialDueDate = "", initialComments = [], initialQuickSignal, onSaveTitle, onSaveDesc, onSaveDueDate, onSaveComments, onSendSignal, onClose }: Props) {
   const userName  = localStorage.getItem("userName") ?? "나";
   const [cardTitle, setCardTitle] = useState(title);
   const [editingTitle, setEditingTitle] = useState(false);
+  const [quickSignal, setQuickSignal] = useState(initialQuickSignal ?? null);
   const [desc, setDesc]         = useState(initialDesc);
   const [editingDesc, setEditingDesc] = useState(false);
   const [dueDate, setDueDate]   = useState(initialDueDate);
@@ -102,6 +105,32 @@ export default function CardDetailModal({ title, colName, initialDesc = "", init
                 </div>
               )}
             </div>
+            <div className="cdm-section">
+              <div className="cdm-section-title">🆘 도움 요청</div>
+              <div className="cdm-signal-btns">
+                <button
+                  className={`cdm-signal-btn ${quickSignal === "HELP_NEEDED" ? "active-help" : ""}`}
+                  onClick={() => {
+                    const next = quickSignal === "HELP_NEEDED" ? null : "HELP_NEEDED";
+                    setQuickSignal(next);
+                    onSendSignal?.(next);
+                  }}
+                >
+                  🆘 도움 요청
+                </button>
+                <button
+                  className={`cdm-signal-btn ${quickSignal === "FEEDBACK_NEEDED" ? "active-feedback" : ""}`}
+                  onClick={() => {
+                    const next = quickSignal === "FEEDBACK_NEEDED" ? null : "FEEDBACK_NEEDED";
+                    setQuickSignal(next);
+                    onSendSignal?.(next);
+                  }}
+                >
+                  💬 피드백 요청
+                </button>
+              </div>
+            </div>
+
             <div className="cdm-section">
               <div className="cdm-section-title">
                 📅 마감일

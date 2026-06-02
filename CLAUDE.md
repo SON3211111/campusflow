@@ -156,7 +156,8 @@ style(범위): UI/CSS 변경
 | 병목 태스크 감지 | ✅ 완료 — GET /api/workspaces/{id}/tasks/bottleneck, 대시보드 "⚠️ 주의 필요 태스크" 섹션 |
 | 활동 피드 UI | ✅ 완료 — 대시보드 활동 피드 localStorage → task_status_history API 교체 |
 | 알림 자동 생성 | ✅ 완료 — 상태 변경 시 본인 제외 워크스페이스 멤버 전체 알림 자동 저장 |
-| 알림 UI | ✅ 완료 — 헤더 벨 아이콘 숫자 뱃지, STATUS_CHANGE 알림 드롭다운 표시 |
+| 알림 UI | ✅ 완료 — 헤더 벨 아이콘 숫자 뱃지, STATUS_CHANGE/QUICK_SIGNAL 알림 드롭다운 표시 |
+| 퀵 시그널 (핑) | ✅ 완료 — 카드 상세 모달에서 도움/피드백 요청 버튼, 카드 뱃지 표시, 팀원 알림 전송 |
 | 마감 D-3 알림 | ✅ 완료 — @Scheduled 매일 오전 9시, dueDate D-3 담당자에게 DUE_DATE 알림 자동 생성 |
 
 ### 소통 (팀 간 실시간 공유)

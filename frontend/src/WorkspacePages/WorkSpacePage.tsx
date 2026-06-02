@@ -31,6 +31,7 @@ interface CardItem {
   assigneeId?: string;
   assigneeName?: string;
   priority?: string;
+  quickSignal?: string;
   comments: { user: string; text: string; time: string }[];
 }
 
@@ -183,7 +184,7 @@ export default function WorkSpacePage() {
         for (const t of (res.data.data ?? [])) {
           const col = STATUS_TO_COL[t.status] ?? "상태 없음";
           if (newCards[col]) {
-            newCards[col].push({ id: t.taskId, title: t.title, desc: t.description ?? "", dueDate: t.dueDate ?? "", assigneeId: t.assigneeId ?? "", assigneeName: t.assigneeName ?? "", priority: t.priority ?? "", comments: [] });
+            newCards[col].push({ id: t.taskId, title: t.title, desc: t.description ?? "", dueDate: t.dueDate ?? "", assigneeId: t.assigneeId ?? "", assigneeName: t.assigneeName ?? "", priority: t.priority ?? "", quickSignal: t.quickSignal ?? "", comments: [] });
           }
         }
         setCards(newCards);
@@ -351,6 +352,21 @@ export default function WorkSpacePage() {
       try {
         await client.patch(`/workspaces/${workspace.id}/tasks/${id}/description`, { description: desc });
       } catch {}
+    }
+  };
+
+  const handleSendSignal = async (col: string, id: string, signal: string | null) => {
+    setCards((prev) => ({ ...prev, [col]: prev[col].map((c) => c.id === id ? { ...c, quickSignal: signal ?? "" } : c) }));
+    if (!workspace?.id) return;
+    const userId = localStorage.getItem("userId") ?? "";
+    try {
+      if (signal) {
+        await client.patch(`/workspaces/${workspace.id}/tasks/${id}/quick-signal?signal=${signal}&userId=${userId}`);
+      } else {
+        await client.delete(`/workspaces/${workspace.id}/tasks/${id}/quick-signal`);
+      }
+    } catch (err) {
+      console.error("시그널 전송 실패:", err);
     }
   };
 
@@ -600,6 +616,11 @@ export default function WorkSpacePage() {
                           onClick={(e) => { e.stopPropagation(); handleDeleteCard(col, card.id); }}
                         >✕</button>
                       </div>
+                      {card.quickSignal && (
+                        <div className={`wsp-card-signal ${card.quickSignal === "HELP_NEEDED" ? "signal-help" : "signal-feedback"}`}>
+                          {card.quickSignal === "HELP_NEEDED" ? "🆘 도움 요청" : "💬 피드백 요청"}
+                        </div>
+                      )}
                       <span className="wsp-card-text">{card.title}</span>
                       <div className="wsp-card-footer">
                         {card.dueDate && (
@@ -700,10 +721,12 @@ export default function WorkSpacePage() {
           initialDesc={selectedCard.card.desc}
           initialDueDate={selectedCard.card.dueDate}
           initialComments={selectedCard.card.comments}
+          initialQuickSignal={selectedCard.card.quickSignal}
           onSaveTitle={(t) => handleSaveTitle(selectedCard.col, selectedCard.card.id, t)}
           onSaveDesc={(desc) => handleSaveDesc(selectedCard.col, selectedCard.card.id, desc)}
           onSaveDueDate={(dueDate) => handleSaveDueDate(selectedCard.col, selectedCard.card.id, dueDate)}
           onSaveComments={(comments) => handleSaveComments(selectedCard.col, selectedCard.card.id, comments)}
+          onSendSignal={(signal) => handleSendSignal(selectedCard.col, selectedCard.card.id, signal)}
           onClose={() => setSelectedCard(null)}
         />
       )}

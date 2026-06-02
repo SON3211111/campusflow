@@ -88,6 +88,22 @@
 
 .cdm-title-editor { display: flex; flex-direction: column; gap: 6px; flex: 1; }
 
+/* 퀵 시그널 */
+.cdm-signal-btns { display: flex; gap: 8px; margin-top: 6px; }
+
+.cdm-signal-btn {
+  padding: 7px 14px;
+  border-radius: 8px;
+  border: 1.5px solid #e0e0e0;
+  background: #f8f8f8;
+  font-size: 13px;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+.cdm-signal-btn:hover { border-color: #aaa; background: #f0f0f0; }
+.cdm-signal-btn.active-help { background: #fff0f0; border-color: #f87171; color: #dc2626; font-weight: 600; }
+.cdm-signal-btn.active-feedback { background: #f0f7ff; border-color: #6ab4f8; color: #2563eb; font-weight: 600; }
+
 .cdm-title-input {
   font-size: 18px;
   font-weight: 700;

@@ -56,6 +56,31 @@ public class NotificationService {
         };
     }
 
+    @Transactional
+    public void notifyQuickSignal(Task task, String signal, String requesterId) {
+        if (task.getWorkspace() == null) return;
+
+        String requesterName = resolveUserName(task.getWorkspace().getWorkspaceId(), requesterId);
+        String signalLabel = "HELP_NEEDED".equals(signal) ? "도움을 요청" : "피드백을 요청";
+        String message = requesterName + "이(가) [" + task.getTitle() + "]에서 " + signalLabel + "했습니다 🆘";
+
+        List<String> memberIds = workspaceMemberRepository
+                .findAllByWorkspace_WorkspaceId(task.getWorkspace().getWorkspaceId())
+                .stream()
+                .map(m -> m.getUser().getUserId())
+                .filter(uid -> !uid.equals(requesterId))
+                .toList();
+
+        for (String userId : memberIds) {
+            notificationRepository.save(Notification.builder()
+                    .userId(userId)
+                    .message(message)
+                    .type("QUICK_SIGNAL")
+                    .taskId(task.getTaskId())
+                    .build());
+        }
+    }
+
     private String resolveUserName(String workspaceId, String userId) {
         return workspaceMemberRepository
                 .findByWorkspace_WorkspaceIdAndUser_UserId(workspaceId, userId)
