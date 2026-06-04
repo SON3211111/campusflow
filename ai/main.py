@@ -195,7 +195,7 @@ async def subdivide_task(req: SubdivideRequest):
                     "model": model,
                     "prompt": prompt,
                     "stream": False,
-                    "options": {"num_predict": 400, "temperature": 0.3},
+                    "options": {"num_predict": 600, "temperature": 0.2},
                 },
             )
             response.raise_for_status()
