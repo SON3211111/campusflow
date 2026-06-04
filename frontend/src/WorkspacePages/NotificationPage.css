@@ -277,6 +277,8 @@
 
 .ntp-item--clickable { cursor: pointer; }
 .ntp-item--clickable:hover { box-shadow: 0 7px 18px rgba(56, 65, 113, 0.12); transform: translateY(-1px); }
+.ntp-item--read { opacity: 0.55; background: #f7f7fa; }
+.ntp-item--read .ntp-item-read-btn { display: none; }
 
 .ntp-item-goto {
   font-size: 11px;

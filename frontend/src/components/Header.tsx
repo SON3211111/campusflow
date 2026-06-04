@@ -6,7 +6,6 @@
 import { useState, useRef, useEffect, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import { Bell, ChevronDown, LayoutGrid, LogOut, Search, Settings, UserRound } from "lucide-react";
-import AITaskModal from "./AITaskModal";
 import client from "../api/client";
 import "./Header.css";
 
@@ -45,7 +44,6 @@ export default function Header({ workspaces = [], showSearch = true, onLogout }:
   const [query, setQuery] = useState('');
   const [searchOpen, setSearchOpen] = useState(false);
   const [userMenuOpen, setUserMenuOpen] = useState(false);
-  const [aiTaskOpen, setAiTaskOpen] = useState(false);
   const [notiOpen, setNotiOpen] = useState(false);
   const [invitations, setInvitations] = useState<Invitation[]>([]);
   const [kickNotis, setKickNotis] = useState<KickNotification[]>([]);
@@ -58,7 +56,7 @@ export default function Header({ workspaces = [], showSearch = true, onLogout }:
     try {
       const [invRes, kickRes] = await Promise.all([
         client.get(`/invitations?userId=${userId}`),
-        client.get(`/notifications?userId=${userId}`),
+        client.get(`/notifications?userId=${userId}&unreadOnly=true`),
       ]);
       setInvitations(invRes.data.data ?? []);
       setKickNotis(kickRes.data.data ?? []);
@@ -317,7 +315,6 @@ export default function Header({ workspaces = [], showSearch = true, onLogout }:
         )}
       </div>
     </header>
-    {aiTaskOpen && <AITaskModal onClose={() => setAiTaskOpen(false)} />}
     </>
   );
 }

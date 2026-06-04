@@ -19,6 +19,7 @@ interface Noti {
   message: string;
   type: string;
   taskId?: string;
+  read: boolean;
   createdAt?: string;
 }
 
@@ -50,9 +51,10 @@ const TYPE_ICON: Record<string, React.ReactNode> = {
 };
 
 const FILTERS = [
-  { key: "ALL", label: "전체" },
-  { key: "TASK", label: "업무", types: ["STATUS_CHANGE", "DUE_DATE", "BOTTLENECK"] },
-  { key: "REQUEST", label: "요청", types: ["QUICK_SIGNAL", "COMMENT", "MENTION"] },
+  { key: "ALL",     label: "전체" },
+  { key: "UNREAD",  label: "미읽음" },
+  { key: "TASK",    label: "업무",  types: ["STATUS_CHANGE", "DUE_DATE", "BOTTLENECK"] },
+  { key: "REQUEST", label: "요청",  types: ["QUICK_SIGNAL", "COMMENT", "MENTION"] },
 ];
 
 export default function NotificationPage() {
@@ -88,34 +90,40 @@ export default function NotificationPage() {
     }
   };
 
+  const unreadCount = notis.filter((n) => !n.read).length;
+
   useEffect(() => { fetchNotis(); }, [userId]);
 
   const handleRead = async (notificationId: string) => {
     try {
       await client.post(`/notifications/${notificationId}/read`);
-      setNotis((prev) => prev.filter((n) => n.notificationId !== notificationId));
+      setNotis((prev) => prev.map((n) => n.notificationId === notificationId ? { ...n, read: true } : n));
     } catch (err) {
       console.error("읽음 처리 실패:", err);
     }
   };
 
   const handleClickNoti = async (n: Noti) => {
-    await client.post(`/notifications/${n.notificationId}/read`).catch(() => {});
-    setNotis((prev) => prev.filter((x) => x.notificationId !== n.notificationId));
+    if (!n.read) {
+      await client.post(`/notifications/${n.notificationId}/read`).catch(() => {});
+      setNotis((prev) => prev.map((x) => x.notificationId === n.notificationId ? { ...x, read: true } : x));
+    }
     if (n.taskId && workspace) {
       navigate("/workspace-board", { state: { workspace, workspaces, highlightTaskId: n.taskId } });
     }
   };
 
   const handleReadAll = async () => {
-    await Promise.all(notis.map((n) => client.post(`/notifications/${n.notificationId}/read`).catch(() => {})));
-    setNotis([]);
+    await Promise.all(notis.filter((n) => !n.read).map((n) => client.post(`/notifications/${n.notificationId}/read`).catch(() => {})));
+    setNotis((prev) => prev.map((n) => ({ ...n, read: true })));
   };
 
   const activeFilter = FILTERS.find((item) => item.key === filter);
-  const filteredNotis = activeFilter?.types
-    ? notis.filter((noti) => activeFilter.types?.includes(noti.type))
-    : notis;
+  const filteredNotis = notis.filter((noti) => {
+    if (activeFilter?.key === "UNREAD") return !noti.read;
+    if (activeFilter?.types) return activeFilter.types.includes(noti.type);
+    return true;
+  });
   const requestCount = notis.filter((noti) => ["QUICK_SIGNAL", "COMMENT", "MENTION"].includes(noti.type)).length;
 
   return (
@@ -135,8 +143,8 @@ export default function NotificationPage() {
           </div>
           <div className="ntp-hero-count">
             <Bell size={18} />
-            <strong>{notis.length}</strong>
-            <span>새 알림</span>
+            <strong>{unreadCount}</strong>
+            <span>미읽음</span>
           </div>
         </section>
 
@@ -175,7 +183,7 @@ export default function NotificationPage() {
             {filteredNotis.map((n) => (
               <div
                 key={n.notificationId}
-                className={`ntp-item ntp-item--${n.type?.toLowerCase() ?? "default"} ${n.taskId ? "ntp-item--clickable" : ""}`}
+                className={`ntp-item ntp-item--${n.type?.toLowerCase() ?? "default"} ${n.taskId ? "ntp-item--clickable" : ""} ${n.read ? "ntp-item--read" : ""}`}
                 onClick={() => n.taskId && handleClickNoti(n)}
               >
                 <div className="ntp-item-icon">{TYPE_ICON[n.type] ?? <Bell size={20} color="#999" />}</div>

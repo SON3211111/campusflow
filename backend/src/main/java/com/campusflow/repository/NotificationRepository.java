@@ -7,4 +7,5 @@ import java.util.List;
 
 public interface NotificationRepository extends JpaRepository<Notification, String> {
     List<Notification> findByUserIdAndReadFalse(String userId);
+    List<Notification> findByUserIdOrderByCreatedAtDesc(String userId);
 }

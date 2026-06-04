@@ -19,14 +19,19 @@ public class NotificationController {
     private final NotificationRepository notificationRepository;
 
     @GetMapping
-    public ResponseEntity<ApiResponse<?>> getUnread(@RequestParam String userId) {
-        List<Notification> list = notificationRepository.findByUserIdAndReadFalse(userId);
+    public ResponseEntity<ApiResponse<?>> getNotifications(
+            @RequestParam String userId,
+            @RequestParam(defaultValue = "false") boolean unreadOnly) {
+        List<Notification> list = unreadOnly
+                ? notificationRepository.findByUserIdAndReadFalse(userId)
+                : notificationRepository.findByUserIdOrderByCreatedAtDesc(userId);
         List<Map<String, Object>> result = list.stream().map(n -> {
             Map<String, Object> m = new java.util.LinkedHashMap<>();
             m.put("notificationId", n.getNotificationId());
             m.put("message", n.getMessage());
             m.put("type", n.getType());
             m.put("taskId", n.getTaskId());
+            m.put("read", n.isRead());
             m.put("createdAt", n.getCreatedAt());
             return m;
         }).collect(Collectors.toList());
