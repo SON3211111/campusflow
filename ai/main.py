@@ -110,14 +110,31 @@ Rules:
 - Do NOT generate duplicate or near-duplicate tasks. Each task must have a clearly distinct purpose — if two tasks sound similar, merge them into one or drop the weaker one.  # 중복/유사 태스크 금지
 - Order tasks in logical execution sequence: planning and research first, then design/setup, then implementation, then verification/testing, then wrap-up or deployment last.        # 논리적 실행 순서로 정렬
 - Set priority to HIGH, MEDIUM, or LOW. Assign HIGH to at most 30% of tasks.                                             # HIGH는 전체의 30% 이하
-- Estimate hours as a positive integer between 1 and 24 (realistic working hours for one person).                         # 시간 추정 1~24시간
+- estimatedHours MUST be an integer. NEVER output null.                                                                   # null 금지, 반드시 숫자
+  Guide: 1~3h = 단순 작업 (문서 작성, 환경 설정, 조사)
+         4~8h = 일반 구현 (API 엔드포인트 1~2개, 화면 1개)
+         9~16h = 복잡한 기능 (인증 시스템, 실시간 기능, 외부 연동)
+         17~24h = 대형 작업 (전체 모듈, 대규모 리팩토링)
 - Do NOT assign tasks to anyone.                                                                                          # 담당자 지정 금지
 - Infer 4 to 6 category names that fit the project domain. Do NOT use vague names like "작업" or "기타".                  # 카테고리 4~6개, 도메인에 맞는 구체적 이름
 - Write all task titles and descriptions in Korean. Technical terms may stay in English.                                   # 한국어 출력
 - Keep each task title concise (under 25 characters).                                                                     # title 25자 이하
-- description must NOT restate or paraphrase the title. It must add NEW information only — such as:                       # description은 title 반복 금지
-    approach/method (e.g. "JWT + Redis 세션 관리"), key condition (e.g. "실패 시 rollback 처리"),
-    tech/tool to use (e.g. "react-beautiful-dnd 사용"), or acceptance criteria (e.g. "응답시간 200ms 이하").
+- task description must add SPECIFIC new information not present in the title.                                            # description은 title에 없는 구체적 정보 필수
+  It must answer one of: HOW (method/tool), WHAT EXACTLY (scope/details), or CONDITION (constraint/criteria).
+  BAD descriptions (too vague or restating title):
+    "요구사항을 정의한다", "API를 구현한다", "설계를 진행한다",
+    "Spring Boot 기반으로 작업", "프론트엔드 관련 작업", "테스트를 수행한다"
+  GOOD descriptions (specific method / scope / condition):
+    "사용자·태스크·워크스페이스 3개 테이블 ERD 작성",
+    "WebSocket + STOMP 방식, 채널별 메시지 브로드캐스트",
+    "로그인·회원가입·로그아웃 3개 엔드포인트, JWT 발급",
+    "Figma로 주요 화면 5개 와이어프레임 작성",
+    "react-beautiful-dnd 사용, 컬럼 간 드래그 이동",
+    "JUnit5 단위 테스트, 서비스 레이어 커버리지 80% 목표",
+    "인스타그램·페이스북 각 3개 게시물 일정 수립",
+    "행사장 3곳 비교 후 계약, 수용 인원 200명 기준",
+    "선행 연구 20편 수집, 키워드별 분류 및 요약 정리",
+    "AWS S3 업로드, 파일 크기 10MB 제한, 형식 검증 포함"
 - Keep each task description concise (under 60 characters).                                                               # description 60자 이하
 
 Respond with ONLY the following JSON and nothing else:
