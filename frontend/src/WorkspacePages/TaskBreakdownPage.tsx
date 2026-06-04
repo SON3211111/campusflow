@@ -97,15 +97,16 @@ function SpaceLoading() {
   );
 }
 
-interface AiTask {
+interface CategoryTaskItem {
   name: string;
-  priority?: string;
+  desc: string;
+  priority: string;
 }
 
 interface Category {
   id: string;
   name: string;
-  tasks: AiTask[];
+  tasks: CategoryTaskItem[];
 }
 
 interface BreakdownResult {
@@ -141,13 +142,17 @@ const TASK_COLORS = [
 ];
 
 function convertToBreakdownResult(data: any, prompt: string): BreakdownResult {
-  const categoryMap = new Map<string, AiTask[]>();
+  const categoryMap = new Map<string, CategoryTaskItem[]>();
   (data.tasks ?? []).forEach((task: any) => {
     if (!categoryMap.has(task.category)) categoryMap.set(task.category, []);
-    categoryMap.get(task.category)!.push({ name: task.title, priority: task.priority ?? undefined });
+    categoryMap.get(task.category)!.push({
+      name: task.title ?? "",
+      desc: task.description ?? "",
+      priority: task.priority ?? "MEDIUM",
+    });
   });
   return {
-    title: prompt.slice(0, 15),
+    title: prompt.slice(0, 30),
     categories: Array.from(categoryMap.entries()).map(([name, tasks], i) => ({
       id: `c${i + 1}`,
       name,

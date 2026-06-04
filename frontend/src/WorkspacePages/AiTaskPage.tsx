@@ -16,8 +16,15 @@ interface Task {
   id: string;
   name: string;
   categoryIdx: number;
+  desc?: string;
   priority?: string;
   backendId?: string;
+}
+
+interface CategoryTaskItem {
+  name: string;
+  desc: string;
+  priority: string;
 }
 
 interface Category {
@@ -52,7 +59,7 @@ interface AiTask {
 
 interface AiResult {
   title: string;
-  categories: { id: string; name: string; tasks: AiTask[] }[];
+  categories: { id: string; name: string; tasks: CategoryTaskItem[] }[];
 }
 
 interface AiTaskSession {
@@ -129,6 +136,7 @@ export default function AiTaskPage() {
         id: `${offset > 0 ? `append-${Date.now()}-` : ""}c${ci}-t${ti}`,
         name: t.name,
         categoryIdx: ci + offset,
+        desc: t.desc,
         priority: t.priority,
       }))
     );
@@ -265,9 +273,15 @@ export default function AiTaskPage() {
     try {
       const category = categories[task.categoryIdx]?.name ?? "";
       const res = await client.post("/ai/subdivide-task", { task: task.name, category }, { timeout: 60000 });
-      const subtasks: string[] = res.data.data?.tasks ?? [];
+      const subtasks: { title: string; description: string }[] = res.data.data?.tasks ?? [];
       if (subtasks.length === 0) { alert("더 이상 분할 할 수 없습니다."); return; }
-      const newTasks: Task[] = subtasks.map((t, i) => ({ id: `${task.id}-sub${i}`, name: t, categoryIdx: task.categoryIdx }));
+      const newTasks: Task[] = subtasks.map((t, i) => ({
+        id: `${task.id}-sub${i}`,
+        name: t.title,
+        categoryIdx: task.categoryIdx,
+        priority: task.priority,
+        desc: t.description,
+      }));
       setTasks((prev) => {
         const idx = prev.findIndex((t) => t.id === task.id);
         const next = [...prev];
@@ -367,7 +381,7 @@ export default function AiTaskPage() {
         for (const [userId, task] of unsaved) {
           await client.post(`/workspaces/${workspace.id}/tasks`, {
             title: task.name,
-            description: categories[task.categoryIdx]?.name ?? "",
+            description: task.desc || categories[task.categoryIdx]?.name || "",
             status: "TODO",
             assigneeId: userId,
             priority: task.priority ?? null,
@@ -413,7 +427,13 @@ export default function AiTaskPage() {
           title="더블클릭하여 수정"
         >{task.name}</span>
       )}
+      {task.desc && <p className="atp-task-detail-desc">{task.desc}</p>}
       <div className="atp-task-actions">
+        {task.priority && (
+          <span className="atp-task-priority" style={{ color: task.priority === "HIGH" ? "#e53935" : task.priority === "LOW" ? "#43a047" : "#fb8c00" }}>
+            ● {task.priority}
+          </span>
+        )}
         <button className="atp-subdivide-btn" onClick={(e) => { e.stopPropagation(); handleSubDivide(task); }} disabled={loadingId === task.id}>
           {loadingId === task.id ? "..." : "세부 분할"}
         </button>
