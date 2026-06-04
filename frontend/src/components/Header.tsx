@@ -68,7 +68,7 @@ export default function Header({ workspaces = [], showSearch = true, onLogout }:
 
   useEffect(() => {
     const initialTimer = setTimeout(fetchNotifications, 0);
-    const timer = setInterval(fetchNotifications, 15000);
+    const timer = setInterval(fetchNotifications, 3000);
     return () => {
       clearTimeout(initialTimer);
       clearInterval(timer);
