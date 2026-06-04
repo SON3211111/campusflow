@@ -20,24 +20,55 @@ interface Props {
   workspace?: WsItem;
 }
 
+const DOMAIN_OPTIONS = [
+  { value: "",                 label: "🤖 AI가 자동 판단" },
+  { value: "software_dev",    label: "💻 소프트웨어 개발" },
+  { value: "academic_report", label: "📄 팀 레포트 / 논문" },
+  { value: "presentation",    label: "🎤 발표 과제" },
+  { value: "design_ux",       label: "🎨 UI/UX 디자인" },
+  { value: "engineering",     label: "⚙️ 공학 설계·제작" },
+  { value: "marketing_biz",   label: "📊 마케팅 / 비즈니스" },
+  { value: "event_planning",  label: "🎉 행사 / 이벤트 기획" },
+  { value: "research_science",label: "🔬 실험 / 데이터 분석" },
+];
+
 export default function AITaskModal({ onClose, workspaces = [], workspace }: Props) {
   const navigate = useNavigate();
   const [screen, setScreen] = useState<Screen>("home");
-  const [prompt, setPrompt] = useState("");
+  const [prompt, setPrompt]       = useState("");
+  const [domain, setDomain]       = useState("");
+  const [teamSize, setTeamSize]   = useState("");
+  const [deadline, setDeadline]   = useState("");
 
   const activeWs = workspace ?? workspaces[0];
   const sessionKey = `ai_task_session_${activeWs?.id ?? "default"}`;
   const hasSession = !!localStorage.getItem(sessionKey);
 
+  // 구조화된 입력을 AI가 이해하기 좋은 형태로 조합
+  const buildStructuredPrompt = () => {
+    const parts = [prompt.trim()];
+    if (teamSize) parts.push(`팀 인원: ${teamSize}명`);
+    if (deadline) parts.push(`마감: ${deadline}`);
+    return parts.join(" / ");
+  };
+
   const handleNewBreakdown = () => {
     if (!prompt.trim()) return;
     onClose();
-    navigate("/task-breakdown", { state: { prompt: prompt.trim(), workspaces, workspace: activeWs } });
+    navigate("/task-breakdown", {
+      state: {
+        prompt: buildStructuredPrompt(),
+        domain: domain || undefined,
+        teamSize: teamSize ? parseInt(teamSize) : undefined,
+        deadline: deadline || undefined,
+        workspaces,
+        workspace: activeWs,
+      },
+    });
   };
 
   const handleAppendBreakdown = () => {
     if (!prompt.trim()) return;
-    // 기존 세션을 buffer에 저장 (이 시점에 localStorage가 최신 상태)
     try {
       const saved = JSON.parse(localStorage.getItem(sessionKey) ?? "null");
       if (saved) {
@@ -46,12 +77,22 @@ export default function AITaskModal({ onClose, workspaces = [], workspace }: Pro
           tasks: saved.tasks ?? [],
           memberBaskets: saved.memberBaskets ?? {},
           sessions: saved.sessions ?? [],
-          newSessionPrompt: prompt.trim(),
+          newSessionPrompt: buildStructuredPrompt(),
         });
       }
     } catch {}
     onClose();
-    navigate("/task-breakdown", { state: { prompt: prompt.trim(), workspaces, workspace: activeWs, append: true } });
+    navigate("/task-breakdown", {
+      state: {
+        prompt: buildStructuredPrompt(),
+        domain: domain || undefined,
+        teamSize: teamSize ? parseInt(teamSize) : undefined,
+        deadline: deadline || undefined,
+        workspaces,
+        workspace: activeWs,
+        append: true,
+      },
+    });
   };
 
   return (
@@ -108,39 +149,65 @@ export default function AITaskModal({ onClose, workspaces = [], workspace }: Pro
           </>
         )}
 
-        {screen === "new-prompt" && (
+        {(screen === "new-prompt" || screen === "append-prompt") && (
           <>
-            <h3 className="ai-modal-title">새로 시작</h3>
-            <label className="ai-prompt-label">업무 내용을 입력하세요</label>
-            <textarea
-              className="ai-prompt-textarea"
-              value={prompt}
-              onChange={(e) => setPrompt(e.target.value)}
-              placeholder="예: 쇼핑몰 웹사이트 제작하기"
-              autoFocus
-            />
-            <button className="ai-generate-btn" disabled={!prompt.trim()} onClick={handleNewBreakdown}>
-              <Bot size={17} />
-              AI로 업무 분해하기
-            </button>
-            <button className="ai-modal-back" onClick={() => setScreen("home")}>← 뒤로</button>
-          </>
-        )}
+            <h3 className="ai-modal-title">
+              {screen === "new-prompt" ? "새로 시작" : "작업 추가하기"}
+            </h3>
 
-        {screen === "append-prompt" && (
-          <>
-            <h3 className="ai-modal-title">작업 추가하기</h3>
-            <label className="ai-prompt-label">추가할 업무 내용을 입력하세요</label>
+            <label className="ai-prompt-label">과제 / 프로젝트 내용 <span className="ai-required">*</span></label>
             <textarea
               className="ai-prompt-textarea"
               value={prompt}
               onChange={(e) => setPrompt(e.target.value)}
-              placeholder="예: 협업툴 웹사이트 제작하기"
+              placeholder={"예: 경영학원론 팀 레포트 — MZ세대 소비 트렌드 분석\n예: React + Spring Boot 쇼핑몰 웹사이트 제작\n예: 캡스톤디자인 — AI 일정 관리 앱 개발"}
               autoFocus
+              rows={3}
             />
-            <button className="ai-generate-btn" disabled={!prompt.trim()} onClick={handleAppendBreakdown}>
-              <Sparkles size={17} />
-              기존 Pool에 추가 분해하기
+
+            <div className="ai-form-row">
+              <div className="ai-form-field">
+                <label className="ai-prompt-label">과제 유형</label>
+                <select
+                  className="ai-select"
+                  value={domain}
+                  onChange={(e) => setDomain(e.target.value)}
+                >
+                  {DOMAIN_OPTIONS.map((d) => (
+                    <option key={d.value} value={d.value}>{d.label}</option>
+                  ))}
+                </select>
+              </div>
+              <div className="ai-form-field ai-form-field--sm">
+                <label className="ai-prompt-label">팀 인원</label>
+                <input
+                  className="ai-input"
+                  type="number"
+                  min={1} max={20}
+                  placeholder="4"
+                  value={teamSize}
+                  onChange={(e) => setTeamSize(e.target.value)}
+                />
+              </div>
+              <div className="ai-form-field">
+                <label className="ai-prompt-label">마감</label>
+                <input
+                  className="ai-input"
+                  type="text"
+                  placeholder="2주 후 / 6월 30일"
+                  value={deadline}
+                  onChange={(e) => setDeadline(e.target.value)}
+                />
+              </div>
+            </div>
+
+            <button
+              className="ai-generate-btn"
+              disabled={!prompt.trim()}
+              onClick={screen === "new-prompt" ? handleNewBreakdown : handleAppendBreakdown}
+            >
+              {screen === "new-prompt" ? <Bot size={17} /> : <Sparkles size={17} />}
+              {screen === "new-prompt" ? "AI로 업무 분해하기" : "기존 Pool에 추가 분해하기"}
             </button>
             <button className="ai-modal-back" onClick={() => setScreen("home")}>← 뒤로</button>
           </>

@@ -165,6 +165,9 @@ export default function TaskBreakdownPage() {
   const { state } = useLocation() as {
     state: {
       prompt: string;
+      domain?: string;
+      teamSize?: number;
+      deadline?: string;
       workspaces: { id: string; name: string; gradient: string }[];
       workspace?: { id: string; name: string; gradient: string };
       append?: boolean;
@@ -173,6 +176,9 @@ export default function TaskBreakdownPage() {
   const navigate = useNavigate();
 
   const prompt     = state?.prompt     ?? "";
+  const domain     = state?.domain;
+  const teamSize   = state?.teamSize;
+  const deadline   = state?.deadline;
   const workspaces = state?.workspaces ?? [];
   const workspace  = state?.workspace;
   const append     = state?.append ?? false;
@@ -201,8 +207,13 @@ export default function TaskBreakdownPage() {
     setLoading(true);
     setError("");
     try {
+      // domain/teamSize/deadline을 body로 전달 (구조화된 입력)
       const params = new URLSearchParams({ description: prompt });
-      const res = await client.post(`/ai/generate-tasks?${params}`, {}, { timeout: 120000 });
+      const body: Record<string, unknown> = {};
+      if (domain)   body.domain    = domain;
+      if (teamSize) body.team_size = teamSize;
+      if (deadline) body.deadline  = deadline;
+      const res = await client.post(`/ai/generate-tasks?${params}`, body, { timeout: 300000 });
       setResult(convertToBreakdownResult(res.data.data, prompt));
     } catch (err: any) {
       const detail = err?.response?.data?.detail ?? err?.message ?? String(err);

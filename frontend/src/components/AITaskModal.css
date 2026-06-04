@@ -2,7 +2,7 @@
   background: #fff;
   border-radius: 16px;
   padding: 28px 32px 28px;
-  width: 400px;
+  width: 480px;
   box-shadow: 0 8px 32px rgba(0, 0, 0, 0.18);
   position: relative;
 }
@@ -119,9 +119,63 @@
   display: block;
 }
 
+.ai-required {
+  color: #ef4444;
+  margin-left: 2px;
+}
+
+/* 구조화 입력 폼 */
+.ai-form-row {
+  display: flex;
+  gap: 10px;
+  margin-bottom: 16px;
+}
+
+.ai-form-field {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+}
+
+.ai-form-field--sm {
+  flex: 0 0 72px;
+}
+
+.ai-form-field .ai-prompt-label {
+  margin-bottom: 5px;
+  font-size: 12px;
+}
+
+.ai-select {
+  width: 100%;
+  padding: 8px 10px;
+  border: 1px solid #ddd;
+  border-radius: 8px;
+  font-size: 13px;
+  background: #fff;
+  outline: none;
+  cursor: pointer;
+  color: #333;
+}
+
+.ai-select:focus { border-color: #4f7cff; }
+
+.ai-input {
+  width: 100%;
+  padding: 8px 10px;
+  border: 1px solid #ddd;
+  border-radius: 8px;
+  font-size: 13px;
+  outline: none;
+  box-sizing: border-box;
+  color: #333;
+}
+
+.ai-input:focus { border-color: #4f7cff; }
+
 .ai-prompt-textarea {
   width: 100%;
-  height: 140px;
+  height: 90px;
   border: 1px solid #ddd;
   border-radius: 10px;
   padding: 12px;
