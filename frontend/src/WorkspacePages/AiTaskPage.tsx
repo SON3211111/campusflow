@@ -4,7 +4,7 @@
  * - 각 섹션은 접고 펼칠 수 있음
  * - 팀원별 슬롯에 드래그로 Picking
  */
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import Header from "../components/Header";
 import client from "../api/client";
@@ -194,6 +194,9 @@ export default function AiTaskPage() {
   const [editingTaskName, setEditingTaskName]       = useState("");
   const [addingToCat, setAddingToCat]               = useState<number | null>(null);
   const [newTaskName, setNewTaskName]               = useState("");
+  // 삭제 undo — 최근 삭제된 태스크와 원래 위치(categoryIdx) 보관
+  const [undoStack, setUndoStack]   = useState<Task[]>([]);
+  const undoTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => {
     if (!workspace?.id) return;
@@ -253,7 +256,26 @@ export default function AiTaskPage() {
     setConfirmSessionId(sessionId);
   };
 
-  const handleDeleteTask = (taskId: string) => setTasks((prev) => prev.filter((t) => t.id !== taskId));
+  const handleDeleteTask = (taskId: string) => {
+    const target = tasks.find((t) => t.id === taskId);
+    if (!target) return;
+    setTasks((prev) => prev.filter((t) => t.id !== taskId));
+    // undo 스택에 추가 (최대 5개 유지)
+    setUndoStack((prev) => [target, ...prev].slice(0, 5));
+    // 기존 타이머 리셋 후 5초 뒤 스택 비움
+    if (undoTimerRef.current) clearTimeout(undoTimerRef.current);
+    undoTimerRef.current = setTimeout(() => setUndoStack([]), 5000);
+  };
+
+  const handleUndo = () => {
+    if (undoStack.length === 0) return;
+    const [latest, ...rest] = undoStack;
+    setTasks((prev) => [...prev, latest]);
+    setUndoStack(rest);
+    if (rest.length === 0) {
+      if (undoTimerRef.current) clearTimeout(undoTimerRef.current);
+    }
+  };
 
   const handleSaveEditTask = (taskId: string) => {
     if (!editingTaskName.trim()) { setEditingTaskId(null); return; }
@@ -446,6 +468,13 @@ export default function AiTaskPage() {
 
   return (
     <>
+    {/* 삭제 undo 토스트 */}
+    {undoStack.length > 0 && (
+      <div className="atp-undo-toast">
+        <span>"{undoStack[0].name}" 삭제됨</span>
+        <button className="atp-undo-btn" onClick={handleUndo}>되돌리기</button>
+      </div>
+    )}
     <div className="atp-page" style={{ ...themeStyle, background: workspace?.gradient ?? "#fff" }}>
       <Header workspaces={workspaces} />
 
