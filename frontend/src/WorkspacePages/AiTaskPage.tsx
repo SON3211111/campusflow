@@ -225,14 +225,14 @@ export default function AiTaskPage() {
     try {
       const category = categories[task.categoryIdx]?.name ?? "";
       const res = await client.post("/ai/subdivide-task", { task: task.name, category }, { timeout: 60000 });
-      const subtasks: string[] = res.data.data?.tasks ?? [];
+      const subtasks: { title: string; description: string }[] = res.data.data?.tasks ?? [];
       if (subtasks.length === 0) { alert("더 이상 분할 할 수 없습니다."); return; }
       const newTasks: Task[] = subtasks.map((t, i) => ({
         id: `${task.id}-sub${i}`,
-        name: t,
+        name: t.title,
         categoryIdx: task.categoryIdx,
         priority: task.priority,
-        desc: "",
+        desc: t.description,
       }));
       setTasks((prev) => {
         const idx = prev.findIndex((t) => t.id === task.id);

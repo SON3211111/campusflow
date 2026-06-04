@@ -43,9 +43,14 @@ class TaskGenerateResponse(BaseModel):
     tasks: list[Task]
 
 
-# /subdivide-task 응답 구조 (세부 업무 이름 목록)
+# 세부 분할된 서브태스크 하나
+class SubdivideTask(BaseModel):
+    title: str
+    description: str
+
+# /subdivide-task 응답 구조 (세부 업무 목록)
 class SubdivideResponse(BaseModel):
-    tasks: list[str]
+    tasks: list[SubdivideTask]
 
 
 def _extract_json(text: str) -> dict:
@@ -81,11 +86,13 @@ Rules:
 - Each subtask must be meaningfully different from the other (not just numbered variants of the same action).                  # 비슷한 거 2개 금지
 - One subtask should focus on preparation or planning (e.g. research, design, setup), the other on execution or implementation. # 준비 하나, 실행 하나
 - If the task cannot be meaningfully split, return an empty tasks array.                                                       # 분해 불가 시 빈 배열
-- Write task names in Korean. Technical terms (API, UI/UX, etc.) may stay in English.                                         # 한국어 출력
-- Keep each subtask name concise (under 20 characters).                                                                       # 20자 이하
+- Write task names and descriptions in Korean. Technical terms (API, UI/UX, etc.) may stay in English.                        # 한국어 출력
+- Keep each subtask title concise (under 20 characters).                                                                      # title 20자 이하
+- description must add new information (method, condition, tool) — do NOT restate the title.                                  # description은 title 반복 금지
+- Keep each description concise (under 60 characters).                                                                        # description 60자 이하
 
 Respond with ONLY the following JSON and nothing else:
-{{"tasks": ["subtask1", "subtask2"]}}"""
+{{"tasks": [{{"title": "subtask1", "description": "what needs to be done"}}, {{"title": "subtask2", "description": "what needs to be done"}}]}}"""
 
 
 def _build_generate_prompt(description: str) -> str:
@@ -212,7 +219,13 @@ async def subdivide_task(req: SubdivideRequest):
             detail=f"AI 응답 파싱 실패: {e}\n원문: {raw_text[:300]}",
         )
 
-    return SubdivideResponse(tasks=[str(t) for t in subtasks])
+    result = []
+    for t in subtasks:
+        if isinstance(t, dict):
+            result.append(SubdivideTask(title=t.get("title", ""), description=t.get("description", "")))
+        else:
+            result.append(SubdivideTask(title=str(t), description=""))
+    return SubdivideResponse(tasks=result)
 
 
 # 프로젝트 정보 → 업무 카드 목록 반환 (장바구니 핵심 기능)
