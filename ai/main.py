@@ -137,6 +137,8 @@ Rules:
     "AWS S3 업로드, 파일 크기 10MB 제한, 형식 검증 포함"
 - Keep each task description concise (under 60 characters).                                                               # description 60자 이하
 
+IMPORTANT: estimated_hours must always be an integer. Outputting null is not allowed under any circumstances.
+
 Respond with ONLY the following JSON and nothing else:
 {{
   "tasks": [
