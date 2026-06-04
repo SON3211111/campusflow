@@ -303,7 +303,7 @@ export default function AiTaskPage() {
         for (const task of basket) {
           await client.post(`/workspaces/${workspace.id}/tasks`, {
             title: task.name,
-            description: categories[task.categoryIdx]?.name ?? "",
+            description: task.desc || categories[task.categoryIdx]?.name || "",
             status: "TODO",
             assigneeId: userId,
           });
