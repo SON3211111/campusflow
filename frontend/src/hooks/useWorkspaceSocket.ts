@@ -1,18 +1,61 @@
 import { useEffect, useRef, useCallback } from "react";
 
-interface TaskStatusMessage {
+export interface WsStatusChange {
+  type: "STATUS_CHANGE";
   taskId: string;
   newStatus: string;
   changedByUserId: string;
 }
 
+export interface WsTaskCreated {
+  type: "TASK_CREATED";
+  taskId: string;
+  title: string;
+  status: string;
+  assigneeId: string;
+  assigneeName: string;
+  priority: string;
+}
+
+export interface WsTaskDeleted {
+  type: "TASK_DELETED";
+  taskId: string;
+}
+
+export interface WsTaskRestored {
+  type: "TASK_RESTORED";
+  taskId: string;
+  title: string;
+  status: string;
+  assigneeId: string;
+  assigneeName: string;
+  priority: string;
+}
+
+export interface WsTaskUpdated {
+  type: "TASK_UPDATED";
+  taskId: string;
+  field: "title" | "description" | "dueDate";
+  value: string;
+}
+
+export type WsMessage = WsStatusChange | WsTaskCreated | WsTaskDeleted | WsTaskRestored | WsTaskUpdated;
+
+interface Handlers {
+  onStatusChange?: (msg: WsStatusChange) => void;
+  onTaskCreated?:  (msg: WsTaskCreated)  => void;
+  onTaskDeleted?:  (msg: WsTaskDeleted)  => void;
+  onTaskRestored?: (msg: WsTaskRestored) => void;
+  onTaskUpdated?:  (msg: WsTaskUpdated)  => void;
+}
+
 export function useWorkspaceSocket(
   workspaceId: string | undefined,
-  onTaskStatusChange: (msg: TaskStatusMessage) => void
+  handlers: Handlers
 ) {
-  const wsRef    = useRef<WebSocket | null>(null);
-  const onMsgRef = useRef(onTaskStatusChange);
-  onMsgRef.current = onTaskStatusChange;
+  const wsRef      = useRef<WebSocket | null>(null);
+  const handlersRef = useRef(handlers);
+  handlersRef.current = handlers;
 
   const connect = useCallback(() => {
     if (!workspaceId) return;
@@ -22,10 +65,28 @@ export function useWorkspaceSocket(
 
     ws.onmessage = (event) => {
       try {
-        const data: TaskStatusMessage = JSON.parse(event.data);
+        const data: WsMessage = JSON.parse(event.data);
         const myUserId = localStorage.getItem("userId") ?? "";
-        if (data.changedByUserId !== myUserId) {
-          onMsgRef.current(data);
+
+        switch (data.type) {
+          case "STATUS_CHANGE":
+            // 본인이 변경한 건 본인 화면엔 이미 반영됐으므로 제외
+            if (data.changedByUserId !== myUserId) {
+              handlersRef.current.onStatusChange?.(data);
+            }
+            break;
+          case "TASK_CREATED":
+            handlersRef.current.onTaskCreated?.(data);
+            break;
+          case "TASK_DELETED":
+            handlersRef.current.onTaskDeleted?.(data);
+            break;
+          case "TASK_RESTORED":
+            handlersRef.current.onTaskRestored?.(data);
+            break;
+          case "TASK_UPDATED":
+            handlersRef.current.onTaskUpdated?.(data);
+            break;
         }
       } catch (e) {
         console.error("WS 메시지 파싱 실패:", e);

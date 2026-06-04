@@ -202,25 +202,83 @@ export default function WorkSpacePage() {
     init();
   }, [workspace?.id]);
 
-  // WebSocket — 다른 팀원의 상태 변경 실시간 반영
-  useWorkspaceSocket(workspace?.id, ({ taskId, newStatus }) => {
-    const targetCol = STATUS_TO_COL[newStatus] ?? "상태 없음";
-    setCards((prev) => {
-      const next = { ...prev };
-      let movedCard: CardItem | undefined;
-      for (const col of Object.keys(next)) {
-        const idx = next[col].findIndex((c) => c.id === taskId);
-        if (idx !== -1) {
-          movedCard = next[col][idx];
-          next[col] = next[col].filter((c) => c.id !== taskId);
-          break;
+  // WebSocket — 다른 팀원의 변경사항 실시간 반영
+  useWorkspaceSocket(workspace?.id, {
+    onStatusChange: ({ taskId, newStatus }) => {
+      const targetCol = STATUS_TO_COL[newStatus] ?? "상태 없음";
+      setCards((prev) => {
+        const next = { ...prev };
+        let movedCard: CardItem | undefined;
+        for (const col of Object.keys(next)) {
+          const idx = next[col].findIndex((c) => c.id === taskId);
+          if (idx !== -1) {
+            movedCard = next[col][idx];
+            next[col] = next[col].filter((c) => c.id !== taskId);
+            break;
+          }
         }
-      }
-      if (movedCard) {
-        next[targetCol] = [...(next[targetCol] ?? []), movedCard];
-      }
-      return next;
-    });
+        if (movedCard) {
+          next[targetCol] = [...(next[targetCol] ?? []), movedCard];
+        }
+        return next;
+      });
+    },
+    onTaskCreated: ({ taskId, title, status, assigneeId, assigneeName, priority }) => {
+      const col = STATUS_TO_COL[status] ?? "상태 없음";
+      const newCard: CardItem = {
+        id: taskId,
+        title,
+        desc: "",
+        assigneeId: assigneeId || undefined,
+        assigneeName: assigneeName || undefined,
+        priority: priority || undefined,
+        comments: [],
+      };
+      setCards((prev) => ({
+        ...prev,
+        [col]: [...(prev[col] ?? []), newCard],
+      }));
+    },
+    onTaskDeleted: ({ taskId }) => {
+      setCards((prev) => {
+        const next = { ...prev };
+        for (const col of Object.keys(next)) {
+          next[col] = next[col].filter((c) => c.id !== taskId);
+        }
+        return next;
+      });
+    },
+    onTaskRestored: ({ taskId, title, status, assigneeId, assigneeName, priority }) => {
+      const col = STATUS_TO_COL[status] ?? "상태 없음";
+      const restoredCard: CardItem = {
+        id: taskId,
+        title,
+        desc: "",
+        assigneeId: assigneeId || undefined,
+        assigneeName: assigneeName || undefined,
+        priority: priority || undefined,
+        comments: [],
+      };
+      setCards((prev) => ({
+        ...prev,
+        [col]: [...(prev[col] ?? []), restoredCard],
+      }));
+    },
+    onTaskUpdated: ({ taskId, field, value }) => {
+      setCards((prev) => {
+        const next = { ...prev };
+        for (const col of Object.keys(next)) {
+          next[col] = next[col].map((c) => {
+            if (c.id !== taskId) return c;
+            if (field === "title")       return { ...c, title: value };
+            if (field === "description") return { ...c, desc: value };
+            if (field === "dueDate")     return { ...c, dueDate: value };
+            return c;
+          });
+        }
+        return next;
+      });
+    },
   });
 
   // 알림에서 넘어온 경우 해당 태스크 모달 자동 오픈

@@ -102,6 +102,19 @@ public class TaskService {
                 .build();
 
         Task saved = taskRepository.save(task);
+        // 팀원들에게 새 카드 생성 알림
+        String assigneeId   = saved.getAssignee() != null ? saved.getAssignee().getUserId() : "";
+        String assigneeName = saved.getAssignee() != null ? saved.getAssignee().getName()   : "";
+        String createJson = String.format(
+            "{\"type\":\"TASK_CREATED\",\"taskId\":\"%s\",\"title\":\"%s\",\"status\":\"%s\",\"assigneeId\":\"%s\",\"assigneeName\":\"%s\",\"priority\":\"%s\"}",
+            saved.getTaskId(),
+            saved.getTitle().replace("\"", "\\\""),
+            saved.getStatus().name(),
+            assigneeId,
+            assigneeName.replace("\"", "\\\""),
+            saved.getPriority() != null ? saved.getPriority().name() : ""
+        );
+        taskWebSocketHandler.broadcast(workspaceId, createJson);
         return TaskResponse.from(saved);
     }
 
@@ -135,7 +148,7 @@ public class TaskService {
         if (task.getWorkspace() != null) {
             String wsId = task.getWorkspace().getWorkspaceId();
             String json = String.format(
-                "{\"taskId\":\"%s\",\"newStatus\":\"%s\",\"changedByUserId\":\"%s\"}",
+                "{\"type\":\"STATUS_CHANGE\",\"taskId\":\"%s\",\"newStatus\":\"%s\",\"changedByUserId\":\"%s\"}",
                 task.getTaskId(), newStatus.name(), userId != null ? userId : ""
             );
             taskWebSocketHandler.broadcast(wsId, json);
@@ -207,6 +220,13 @@ public class TaskService {
                 .orElseThrow(() -> new IllegalArgumentException("태스크를 찾을 수 없습니다. ID: " + taskId));
         task.setDeleted(true);
         task.setDeletedAt(LocalDateTime.now());
+        // 팀원들에게 카드 삭제 알림
+        if (task.getWorkspace() != null) {
+            String json = String.format(
+                "{\"type\":\"TASK_DELETED\",\"taskId\":\"%s\"}", task.getTaskId()
+            );
+            taskWebSocketHandler.broadcast(task.getWorkspace().getWorkspaceId(), json);
+        }
     }
 
     /** 휴지통에서 태스크 복원 (isDeleted=false 로 되돌림) */
@@ -216,6 +236,21 @@ public class TaskService {
                 .orElseThrow(() -> new IllegalArgumentException("태스크를 찾을 수 없습니다. ID: " + taskId));
         task.setDeleted(false);
         task.setDeletedAt(null);
+        // 팀원들에게 카드 복원 알림
+        if (task.getWorkspace() != null) {
+            String assigneeId   = task.getAssignee() != null ? task.getAssignee().getUserId() : "";
+            String assigneeName = task.getAssignee() != null ? task.getAssignee().getName()   : "";
+            String json = String.format(
+                "{\"type\":\"TASK_RESTORED\",\"taskId\":\"%s\",\"title\":\"%s\",\"status\":\"%s\",\"assigneeId\":\"%s\",\"assigneeName\":\"%s\",\"priority\":\"%s\"}",
+                task.getTaskId(),
+                task.getTitle().replace("\"", "\\\""),
+                task.getStatus().name(),
+                assigneeId,
+                assigneeName.replace("\"", "\\\""),
+                task.getPriority() != null ? task.getPriority().name() : ""
+            );
+            taskWebSocketHandler.broadcast(task.getWorkspace().getWorkspaceId(), json);
+        }
         return TaskResponse.from(task);
     }
 
@@ -225,6 +260,7 @@ public class TaskService {
         Task task = taskRepository.findById(taskId)
                 .orElseThrow(() -> new IllegalArgumentException("태스크를 찾을 수 없습니다. ID: " + taskId));
         task.setDueDate(LocalDate.parse(dueDate));
+        broadcastTaskUpdated(task, "dueDate", dueDate);
     }
 
     /** 태스크 설명 업데이트 */
@@ -233,6 +269,7 @@ public class TaskService {
         Task task = taskRepository.findById(taskId)
                 .orElseThrow(() -> new IllegalArgumentException("태스크를 찾을 수 없습니다. ID: " + taskId));
         task.setDescription(description);
+        broadcastTaskUpdated(task, "description", description.replace("\"", "\\\""));
     }
 
     /** 태스크 제목 업데이트 */
@@ -241,6 +278,17 @@ public class TaskService {
         Task task = taskRepository.findById(taskId)
                 .orElseThrow(() -> new IllegalArgumentException("태스크를 찾을 수 없습니다. ID: " + taskId));
         task.setTitle(title);
+        broadcastTaskUpdated(task, "title", title.replace("\"", "\\\""));
+    }
+
+    /** 공통 TASK_UPDATED 브로드캐스트 헬퍼 */
+    private void broadcastTaskUpdated(Task task, String field, String value) {
+        if (task.getWorkspace() == null) return;
+        String json = String.format(
+            "{\"type\":\"TASK_UPDATED\",\"taskId\":\"%s\",\"field\":\"%s\",\"value\":\"%s\"}",
+            task.getTaskId(), field, value
+        );
+        taskWebSocketHandler.broadcast(task.getWorkspace().getWorkspaceId(), json);
     }
 
     /** 퀵 시그널 — 도움/피드백 요청 → 팀원 알림 */
