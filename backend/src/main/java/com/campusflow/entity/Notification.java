@@ -21,11 +21,14 @@ public class Notification {
     @Column(name = "user_id", length = 50, nullable = false)
     private String userId;
 
+    @Column(name = "workspace_id", length = 50, nullable = true)
+    private String workspaceId;
+
     @Column(nullable = false)
     private String message;
 
     @Column(name = "type", nullable = true)
-    private String type; // STATUS_CHANGE | DUE_DATE | BOTTLENECK
+    private String type; // STATUS_CHANGE | DUE_DATE | BOTTLENECK | QUICK_SIGNAL | QUICK_SIGNAL_SENT | COMMENT | MENTION
 
     @Column(name = "task_id", nullable = true)
     private String taskId;

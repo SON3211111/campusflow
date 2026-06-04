@@ -21,10 +21,16 @@ public class NotificationController {
     @GetMapping
     public ResponseEntity<ApiResponse<?>> getNotifications(
             @RequestParam String userId,
+            @RequestParam(required = false) String workspaceId,
             @RequestParam(defaultValue = "false") boolean unreadOnly) {
-        List<Notification> list = unreadOnly
-                ? notificationRepository.findByUserIdAndReadFalse(userId)
-                : notificationRepository.findByUserIdOrderByCreatedAtDesc(userId);
+        List<Notification> list;
+        if (unreadOnly) {
+            list = notificationRepository.findByUserIdAndReadFalse(userId);
+        } else if (workspaceId != null) {
+            list = notificationRepository.findByUserIdAndWorkspaceIdOrderByCreatedAtDesc(userId, workspaceId);
+        } else {
+            list = notificationRepository.findByUserIdOrderByCreatedAtDesc(userId);
+        }
         List<Map<String, Object>> result = list.stream().map(n -> {
             Map<String, Object> m = new java.util.LinkedHashMap<>();
             m.put("notificationId", n.getNotificationId());

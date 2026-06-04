@@ -33,28 +33,30 @@ function timeAgo(iso?: string) {
 }
 
 const TYPE_LABEL: Record<string, string> = {
-  STATUS_CHANGE: "상태 변경",
-  DUE_DATE: "마감 임박",
-  BOTTLENECK: "병목 감지",
-  QUICK_SIGNAL: "도움 요청",
-  COMMENT: "댓글",
-  MENTION: "멘션",
+  STATUS_CHANGE:     "상태 변경",
+  DUE_DATE:          "마감 임박",
+  BOTTLENECK:        "병목 감지",
+  QUICK_SIGNAL:      "도움 요청",
+  QUICK_SIGNAL_SENT: "보낸 요청",
+  COMMENT:           "댓글",
+  MENTION:           "멘션",
 };
 
 const TYPE_ICON: Record<string, React.ReactNode> = {
-  STATUS_CHANGE: <Bell size={20} color="#4f7cff" />,
-  DUE_DATE:      <Calendar size={20} color="#f97316" />,
-  BOTTLENECK:    <AlertTriangle size={20} color="#ef4444" />,
-  QUICK_SIGNAL:  <HelpCircle size={20} color="#dc2626" />,
-  COMMENT:       <MessageCircle size={20} color="#22c55e" />,
-  MENTION:       <AtSign size={20} color="#a855f7" />,
+  STATUS_CHANGE:     <Bell size={20} color="#4f7cff" />,
+  DUE_DATE:          <Calendar size={20} color="#f97316" />,
+  BOTTLENECK:        <AlertTriangle size={20} color="#ef4444" />,
+  QUICK_SIGNAL:      <HelpCircle size={20} color="#dc2626" />,
+  QUICK_SIGNAL_SENT: <HelpCircle size={20} color="#94a3b8" />,
+  COMMENT:           <MessageCircle size={20} color="#22c55e" />,
+  MENTION:           <AtSign size={20} color="#a855f7" />,
 };
 
 const FILTERS = [
   { key: "ALL",     label: "전체" },
   { key: "UNREAD",  label: "미읽음" },
   { key: "TASK",    label: "업무",  types: ["STATUS_CHANGE", "DUE_DATE", "BOTTLENECK"] },
-  { key: "REQUEST", label: "요청",  types: ["QUICK_SIGNAL", "COMMENT", "MENTION"] },
+  { key: "REQUEST", label: "요청",  types: ["QUICK_SIGNAL", "QUICK_SIGNAL_SENT", "COMMENT", "MENTION"] },
 ];
 
 export default function NotificationPage() {
@@ -75,12 +77,13 @@ export default function NotificationPage() {
   const [showWorkspacePanel, setShowWorkspacePanel] = useState(false);
   const [filter, setFilter] = useState("ALL");
 
-  const VALID_TYPES = ["STATUS_CHANGE", "DUE_DATE", "BOTTLENECK", "QUICK_SIGNAL", "COMMENT", "MENTION"];
+  const VALID_TYPES = ["STATUS_CHANGE", "DUE_DATE", "BOTTLENECK", "QUICK_SIGNAL", "QUICK_SIGNAL_SENT", "COMMENT", "MENTION"];
 
   const fetchNotis = async () => {
     if (!userId) return;
     try {
-      const res = await client.get(`/notifications?userId=${userId}`);
+      const wsParam = workspace?.id ? `&workspaceId=${workspace.id}` : "";
+      const res = await client.get(`/notifications?userId=${userId}${wsParam}`);
       const all: Noti[] = res.data.data ?? [];
       setNotis(all.filter((n) => VALID_TYPES.includes(n.type)));
     } catch (err) {

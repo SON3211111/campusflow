@@ -36,8 +36,10 @@ public class DueDateNotificationScheduler {
                 .filter(t -> t.getStatus() != TaskStatus.DONE)
                 .filter(t -> t.getAssignee() != null)
                 .filter(t -> targetDate.equals(t.getDueDate()))
+                .filter(t -> t.getWorkspace() != null)
                 .forEach(task -> notificationRepository.save(Notification.builder()
                         .userId(task.getAssignee().getUserId())
+                        .workspaceId(task.getWorkspace().getWorkspaceId())
                         .message("[" + task.getTitle() + "] 마감이 3일 남았습니다.")
                         .type("DUE_DATE")
                         .taskId(task.getTaskId())
@@ -63,14 +65,17 @@ public class DueDateNotificationScheduler {
                 .filter(t -> !t.isDeleted())
                 .filter(t -> stuckStatuses.contains(t.getStatus()))
                 .filter(t -> t.getAssignee() != null)
+                .filter(t -> t.getWorkspace() != null)
                 .filter(t -> {
                     LocalDateTime lastChanged = lastChangedMap.get(t.getTaskId());
                     return lastChanged != null && lastChanged.isBefore(threshold);
                 })
+                .filter(t -> !notificationRepository.existsByTaskIdAndTypeAndReadFalse(t.getTaskId(), "BOTTLENECK"))
                 .forEach(task -> {
                     String statusLabel = task.getStatus() == TaskStatus.DOING ? "진행 중" : "보류 중";
                     notificationRepository.save(Notification.builder()
                             .userId(task.getAssignee().getUserId())
+                            .workspaceId(task.getWorkspace().getWorkspaceId())
                             .message("[" + task.getTitle() + "]이(가) 3일 이상 " + statusLabel + " 상태입니다.")
                             .type("BOTTLENECK")
                             .taskId(task.getTaskId())

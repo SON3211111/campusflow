@@ -29,8 +29,9 @@ public class NotificationService {
 
         String message = buildMessage(changedByName, taskTitle, newStatus);
 
+        String workspaceId = task.getWorkspace().getWorkspaceId();
         List<String> memberIds = workspaceMemberRepository
-                .findAllByWorkspace_WorkspaceId(task.getWorkspace().getWorkspaceId())
+                .findAllByWorkspace_WorkspaceId(workspaceId)
                 .stream()
                 .map(m -> m.getUser().getUserId())
                 .filter(uid -> !uid.equals(changedByUserId))
@@ -39,6 +40,7 @@ public class NotificationService {
         for (String userId : memberIds) {
             notificationRepository.save(Notification.builder()
                     .userId(userId)
+                    .workspaceId(workspaceId)
                     .message(message)
                     .type("STATUS_CHANGE")
                     .taskId(task.getTaskId())
@@ -64,8 +66,9 @@ public class NotificationService {
         String signalLabel = "HELP_NEEDED".equals(signal) ? "도움을 요청" : "피드백을 요청";
         String message = requesterName + "이(가) [" + task.getTitle() + "]에서 " + signalLabel + "했습니다 🆘";
 
+        String wsId = task.getWorkspace().getWorkspaceId();
         List<String> memberIds = workspaceMemberRepository
-                .findAllByWorkspace_WorkspaceId(task.getWorkspace().getWorkspaceId())
+                .findAllByWorkspace_WorkspaceId(wsId)
                 .stream()
                 .map(m -> m.getUser().getUserId())
                 .filter(uid -> !uid.equals(requesterId))
@@ -74,11 +77,22 @@ public class NotificationService {
         for (String userId : memberIds) {
             notificationRepository.save(Notification.builder()
                     .userId(userId)
+                    .workspaceId(wsId)
                     .message(message)
                     .type("QUICK_SIGNAL")
                     .taskId(task.getTaskId())
                     .build());
         }
+
+        // 보낸 사람 기록 (본인이 요청했다는 것을 나중에 확인 가능)
+        String sentMessage = "내가 [" + task.getTitle() + "]에서 " + signalLabel + "했습니다";
+        notificationRepository.save(Notification.builder()
+                .userId(requesterId)
+                .workspaceId(wsId)
+                .message(sentMessage)
+                .type("QUICK_SIGNAL_SENT")
+                .taskId(task.getTaskId())
+                .build());
     }
 
     private String resolveUserName(String workspaceId, String userId) {
