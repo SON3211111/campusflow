@@ -118,6 +118,8 @@ Rules:
 - Do NOT assign tasks to anyone.                                                                                          # 담당자 지정 금지
 - Infer 4 to 6 category names that fit the project domain. Do NOT use vague names like "작업" or "기타".                  # 카테고리 4~6개, 도메인에 맞는 구체적 이름
 - Write all task titles and descriptions in Korean. Technical terms may stay in English.                                   # 한국어 출력
+- NEVER mix Korean and English characters within a single word. Each word must be fully Korean or fully English.           # 단어 중간에 한영 혼합 금지
+  BAD: "인TEGRATION", "프론트END", "데이터BASE" — GOOD: "Integration Test", "프론트엔드", "데이터베이스"
 - Keep each task title concise (under 25 characters).                                                                     # title 25자 이하
 - task description must add SPECIFIC new information not present in the title.                                            # description은 title에 없는 구체적 정보 필수
   It must answer one of: HOW (method/tool), WHAT EXACTLY (scope/details), or CONDITION (constraint/criteria).
