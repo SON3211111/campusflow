@@ -14,6 +14,14 @@ interface Task {
   id: string;
   name: string;
   categoryIdx: number;
+  desc?: string;
+  priority?: string;
+}
+
+interface CategoryTaskItem {
+  name: string;
+  desc: string;
+  priority: string;
 }
 
 interface Category {
@@ -36,7 +44,7 @@ interface WorkspaceItem {
 
 interface AiResult {
   title: string;
-  categories: { id: string; name: string; tasks: string[] }[];
+  categories: { id: string; name: string; tasks: CategoryTaskItem[] }[];
 }
 
 interface AiTaskSession {
@@ -93,7 +101,7 @@ export default function AiTaskPage() {
 
   const buildTasks = (res: typeof aiResult): Task[] =>
     (res?.categories ?? []).flatMap((cat, ci) =>
-      cat.tasks.map((t, ti) => ({ id: `c${ci}-t${ti}`, name: t, categoryIdx: ci }))
+      cat.tasks.map((t, ti) => ({ id: `c${ci}-t${ti}`, name: t.name, categoryIdx: ci, desc: t.desc, priority: t.priority }))
     );
 
   const [title, setTitle]           = useState(shouldRestoreSession ? storedSession?.title ?? "" : aiResult.title ?? "");
@@ -103,6 +111,8 @@ export default function AiTaskPage() {
   // 멤버별 장바구니: { [userId]: Task[] }
   const [members, setMembers]             = useState<Member[]>([]);
   const [memberBaskets, setMemberBaskets] = useState<Record<string, Task[]>>({});
+
+  const [expandedTaskId, setExpandedTaskId] = useState<string | null>(null);
 
   const [draggingId, setDraggingId]               = useState<string | null>(null);
   const [draggingFromUserId, setDraggingFromUserId] = useState<string | null>(null);
@@ -169,7 +179,7 @@ export default function AiTaskPage() {
         name: cat.name,
         tasks: [...tasks, ...allBasketTasks]
           .filter((t) => t.categoryIdx === ci)
-          .map((t) => t.name),
+          .map((t) => ({ name: t.name, desc: t.desc ?? "", priority: t.priority ?? "MEDIUM" })),
       })),
     };
   };
@@ -190,12 +200,12 @@ export default function AiTaskPage() {
       const params = new URLSearchParams({ description: origPrompt });
       const res = await client.post(`/ai/generate-tasks?${params}`, {}, { timeout: 120000 });
       const data = res.data.data;
-      const categoryMap = new Map<string, string[]>();
+      const categoryMap = new Map<string, CategoryTaskItem[]>();
       (data.tasks ?? []).forEach((task: any) => {
         if (!categoryMap.has(task.category)) categoryMap.set(task.category, []);
-        categoryMap.get(task.category)!.push(task.title);
+        categoryMap.get(task.category)!.push({ name: task.title ?? "", desc: task.description ?? "", priority: task.priority ?? "MEDIUM" });
       });
-      const json = {
+      const json: AiResult = {
         title: origPrompt.slice(0, 30),
         categories: Array.from(categoryMap.entries()).map(([name, tasks], i) => ({ id: `c${i + 1}`, name, tasks })),
       };
@@ -374,7 +384,10 @@ export default function AiTaskPage() {
                   {cat.name}
                 </div>
                 <div className="atp-tasks">
-                  {tasksByCategory[ci].map((task) => (
+                  {tasksByCategory[ci].map((task) => {
+                    const isExpanded = expandedTaskId === task.id;
+                    const priorityColor = task.priority === "HIGH" ? "#e53935" : task.priority === "LOW" ? "#43a047" : "#fb8c00";
+                    return (
                     <div
                       key={task.id}
                       className={`atp-task-card ${draggingId === task.id ? "dragging" : ""}`}
@@ -383,16 +396,32 @@ export default function AiTaskPage() {
                       onDragStart={() => handleDragStart(task.id)}
                       onDragEnd={() => setDraggingId(null)}
                     >
-                      <span className="atp-task-name">{task.name}</span>
-                      <button
-                        className="atp-subdivide-btn"
-                        onClick={(e) => { e.stopPropagation(); handleSubDivide(task); }}
-                        disabled={loadingId === task.id}
-                      >
-                        {loadingId === task.id ? "..." : "세부 분할"}
-                      </button>
+                      <div className="atp-task-top">
+                        <button
+                          className={`atp-expand-btn ${isExpanded ? "expanded" : ""}`}
+                          onClick={(e) => { e.stopPropagation(); setExpandedTaskId(isExpanded ? null : task.id); }}
+                        >›</button>
+                        <span className="atp-task-name">{task.name}</span>
+                        <button
+                          className="atp-subdivide-btn"
+                          onClick={(e) => { e.stopPropagation(); handleSubDivide(task); }}
+                          disabled={loadingId === task.id}
+                        >
+                          {loadingId === task.id ? "..." : "세부 분할"}
+                        </button>
+                      </div>
+                      {isExpanded && (
+                        <div className="atp-task-detail">
+                          {task.desc && <p className="atp-task-detail-desc">{task.desc}</p>}
+                          <div className="atp-task-detail-meta">
+                            <span className="atp-task-priority" style={{ color: priorityColor }}>● {task.priority}</span>
+                            <span className="atp-task-category">{categories[task.categoryIdx]?.name}</span>
+                          </div>
+                        </div>
+                      )}
                     </div>
-                  ))}
+                    );
+                  })}
                   {tasksByCategory[ci].length === 0 && (
                     <div className="atp-empty-col">모두 배정됨</div>
                   )}

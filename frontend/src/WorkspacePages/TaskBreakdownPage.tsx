@@ -9,10 +9,16 @@ import client from "../api/client";
 import Header from "../components/Header";
 import "./TaskBreakdownPage.css";
 
+interface CategoryTaskItem {
+  name: string;
+  desc: string;
+  priority: string;
+}
+
 interface Category {
   id: string;
   name: string;
-  tasks: string[];
+  tasks: CategoryTaskItem[];
 }
 
 interface BreakdownResult {
@@ -48,10 +54,14 @@ const TASK_COLORS = [
 ];
 
 function convertToBreakdownResult(data: any, prompt: string): BreakdownResult {
-  const categoryMap = new Map<string, string[]>();
+  const categoryMap = new Map<string, CategoryTaskItem[]>();
   (data.tasks ?? []).forEach((task: any) => {
     if (!categoryMap.has(task.category)) categoryMap.set(task.category, []);
-    categoryMap.get(task.category)!.push(task.title);
+    categoryMap.get(task.category)!.push({
+      name: task.title ?? "",
+      desc: task.description ?? "",
+      priority: task.priority ?? "MEDIUM",
+    });
   });
   return {
     title: prompt.slice(0, 30),
@@ -178,10 +188,10 @@ export default function TaskBreakdownPage() {
                           className="tbp-task-card"
                           style={{ background: TASK_COLORS[ci % TASK_COLORS.length] }}
                           draggable
-                          onDragStart={() => handleDragStart(ci, ti, task)}
+                          onDragStart={() => handleDragStart(ci, ti, task.name)}
                         >
                           <span className="tbp-task-label">업무 시작 부탁</span>
-                          <span className="tbp-task-name">{task}</span>
+                          <span className="tbp-task-name">{task.name}</span>
                         </div>
                       ))}
                     </div>
