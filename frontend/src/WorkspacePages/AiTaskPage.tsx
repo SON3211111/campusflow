@@ -231,6 +231,8 @@ export default function AiTaskPage() {
         id: `${task.id}-sub${i}`,
         name: t,
         categoryIdx: task.categoryIdx,
+        priority: task.priority,
+        desc: "",
       }));
       setTasks((prev) => {
         const idx = prev.findIndex((t) => t.id === task.id);
