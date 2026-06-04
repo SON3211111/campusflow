@@ -1,6 +1,7 @@
 package com.campusflow.controller;
 
 import com.campusflow.dto.ActivityFeedItemDto;
+import com.campusflow.dto.BottleneckReportDto;
 import com.campusflow.dto.ApiResponse;
 import com.campusflow.dto.TaskCreateRequest;
 import com.campusflow.dto.TaskResponse;
@@ -119,5 +120,14 @@ public class WorkspaceTaskController {
             @RequestParam(defaultValue = "3") int days) {
         List<TaskResponse> bottlenecks = taskService.getBottleneckTasks(workspaceId, days);
         return ResponseEntity.ok(ApiResponse.success(200, "조회 성공", bottlenecks));
+    }
+
+    /** 병목 영향 리포트 — 정체 일수·후속 영향 업무·프로젝트 연기 예상일 반환 */
+    @GetMapping("/bottleneck-report")
+    public ResponseEntity<ApiResponse<BottleneckReportDto>> getBottleneckReport(
+            @PathVariable String workspaceId,
+            @RequestParam(defaultValue = "3") int days) {
+        BottleneckReportDto report = taskService.getBottleneckReport(workspaceId, days);
+        return ResponseEntity.ok(ApiResponse.success(200, "조회 성공", report));
     }
 }

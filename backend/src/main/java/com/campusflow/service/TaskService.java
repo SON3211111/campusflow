@@ -1,6 +1,7 @@
 package com.campusflow.service;
 
 import com.campusflow.dto.ActivityFeedItemDto;
+import com.campusflow.dto.BottleneckReportDto;
 import com.campusflow.dto.ProjectProgressDto;
 import com.campusflow.dto.TaskCreateRequest;
 import com.campusflow.dto.TaskResponse;
@@ -195,6 +196,89 @@ public class TaskService {
                 .filter(t -> stuckIds.contains(t.getTaskId()))
                 .map(TaskResponse::from)
                 .toList();
+    }
+
+    /**
+     * 병목 영향 리포트
+     * - 병목 태스크별 정체 일수, 후속 영향 업무 목록, 예상 지연일 계산
+     * - task_dependencies 없이 dueDate 기준으로 후속 업무를 휴리스틱하게 추정
+     */
+    @Transactional(readOnly = true)
+    public BottleneckReportDto getBottleneckReport(String workspaceId, int thresholdDays) {
+        List<Task> allActive = taskRepository.findAllByWorkspace_WorkspaceIdAndDeletedFalse(workspaceId);
+        List<TaskStatus> stuckStatuses = List.of(TaskStatus.DOING, TaskStatus.ISSUE);
+
+        // 태스크별 마지막 상태 변경 시각 맵핑
+        Map<String, java.time.LocalDateTime> lastChangedMap = taskStatusHistoryRepository
+                .findAllByWorkspace_WorkspaceIdOrderByOccurredAtDesc(workspaceId)
+                .stream()
+                .collect(Collectors.toMap(
+                        h -> h.getTask().getTaskId(),
+                        h -> h.getOccurredAt(),
+                        (a, b) -> a
+                ));
+
+        java.time.LocalDateTime threshold = java.time.LocalDateTime.now().minusDays(thresholdDays);
+
+        // 전체 태스크 중 가장 늦은 dueDate (프로젝트 마감일 기준)
+        java.time.LocalDate projectDeadline = allActive.stream()
+                .filter(t -> t.getDueDate() != null && t.getStatus() != TaskStatus.DONE)
+                .map(Task::getDueDate)
+                .max(java.time.LocalDate::compareTo)
+                .orElse(null);
+
+        int maxDelayDays = 0;
+
+        List<BottleneckReportDto.BottleneckItem> items = new java.util.ArrayList<>();
+
+        for (Task t : allActive) {
+            if (!stuckStatuses.contains(t.getStatus())) continue;
+            java.time.LocalDateTime lastChanged = lastChangedMap.get(t.getTaskId());
+            if (lastChanged == null || !lastChanged.isBefore(threshold)) continue;
+
+            // 정체 일수 계산
+            long daysStuck = java.time.temporal.ChronoUnit.DAYS.between(lastChanged, java.time.LocalDateTime.now());
+            int delayDays = (int) Math.max(daysStuck - thresholdDays, 0);
+            maxDelayDays = Math.max(maxDelayDays, delayDays);
+
+            // 후속 영향 업무: dueDate가 이 태스크 이후이거나, dueDate 없는 미완료 태스크
+            List<BottleneckReportDto.AffectedTask> affected = allActive.stream()
+                    .filter(a -> !a.getTaskId().equals(t.getTaskId()))
+                    .filter(a -> a.getStatus() != TaskStatus.DONE)
+                    .filter(a -> {
+                        if (t.getDueDate() == null) return true; // 병목에 마감일 없으면 전체 영향
+                        if (a.getDueDate() == null) return true; // 후속도 마감일 없으면 영향받을 수 있음
+                        return !a.getDueDate().isBefore(t.getDueDate()); // 병목 이후 마감이면 영향
+                    })
+                    .map(a -> new BottleneckReportDto.AffectedTask(
+                            a.getTaskId(),
+                            a.getTitle(),
+                            a.getDueDate() != null ? a.getDueDate().toString() : null,
+                            a.getStatus().name(),
+                            a.getAssignee() != null ? a.getAssignee().getName() : null
+                    ))
+                    .toList();
+
+            items.add(new BottleneckReportDto.BottleneckItem(
+                    t.getTaskId(),
+                    t.getTitle(),
+                    t.getStatus().name(),
+                    (int) daysStuck,
+                    delayDays,
+                    t.getAssignee() != null ? t.getAssignee().getName() : null,
+                    t.getDueDate() != null ? t.getDueDate().toString() : null,
+                    affected.size(),
+                    affected
+            ));
+        }
+
+        // 예상 새 마감일 계산
+        String deadlineStr = projectDeadline != null ? projectDeadline.toString() : null;
+        String newDeadlineStr = (projectDeadline != null && maxDelayDays > 0)
+                ? projectDeadline.plusDays(maxDelayDays).toString()
+                : deadlineStr;
+
+        return new BottleneckReportDto(items, maxDelayDays, deadlineStr, newDeadlineStr);
     }
 
     private void updateContributionMetrics(Project project, User user, boolean issueSolved) {
