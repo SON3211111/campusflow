@@ -112,8 +112,6 @@ export default function AiTaskPage() {
   const [members, setMembers]             = useState<Member[]>([]);
   const [memberBaskets, setMemberBaskets] = useState<Record<string, Task[]>>({});
 
-  const [expandedTaskId, setExpandedTaskId] = useState<string | null>(null);
-
   const [draggingId, setDraggingId]               = useState<string | null>(null);
   const [draggingFromUserId, setDraggingFromUserId] = useState<string | null>(null);
   const [dragOverUserId, setDragOverUserId]         = useState<string | null>(null);
@@ -385,41 +383,31 @@ export default function AiTaskPage() {
                 </div>
                 <div className="atp-tasks">
                   {tasksByCategory[ci].map((task) => {
-                    const isExpanded = expandedTaskId === task.id;
                     const priorityColor = task.priority === "HIGH" ? "#e53935" : task.priority === "LOW" ? "#43a047" : "#fb8c00";
                     return (
-                    <div
-                      key={task.id}
-                      className={`atp-task-card ${draggingId === task.id ? "dragging" : ""}`}
-                      style={{ background: cat.taskColor }}
-                      draggable
-                      onDragStart={() => handleDragStart(task.id)}
-                      onDragEnd={() => setDraggingId(null)}
-                    >
-                      <div className="atp-task-top">
-                        <button
-                          className={`atp-expand-btn ${isExpanded ? "expanded" : ""}`}
-                          onClick={(e) => { e.stopPropagation(); setExpandedTaskId(isExpanded ? null : task.id); }}
-                        >›</button>
+                      <div
+                        key={task.id}
+                        className={`atp-task-card ${draggingId === task.id ? "dragging" : ""}`}
+                        style={{ background: cat.taskColor }}
+                        draggable
+                        onDragStart={() => handleDragStart(task.id)}
+                        onDragEnd={() => setDraggingId(null)}
+                      >
                         <span className="atp-task-name">{task.name}</span>
-                        <button
-                          className="atp-subdivide-btn"
-                          onClick={(e) => { e.stopPropagation(); handleSubDivide(task); }}
-                          disabled={loadingId === task.id}
-                        >
-                          {loadingId === task.id ? "..." : "세부 분할"}
-                        </button>
-                      </div>
-                      {isExpanded && (
-                        <div className="atp-task-detail">
-                          {task.desc && <p className="atp-task-detail-desc">{task.desc}</p>}
-                          <div className="atp-task-detail-meta">
+                        {task.desc && <p className="atp-task-detail-desc">{task.desc}</p>}
+                        <div className="atp-task-footer">
+                          {task.priority && (
                             <span className="atp-task-priority" style={{ color: priorityColor }}>● {task.priority}</span>
-                            <span className="atp-task-category">{categories[task.categoryIdx]?.name}</span>
-                          </div>
+                          )}
+                          <button
+                            className="atp-subdivide-btn"
+                            onClick={(e) => { (e as any).stopPropagation(); handleSubDivide(task); }}
+                            disabled={loadingId === task.id}
+                          >
+                            {loadingId === task.id ? "..." : "세부 분할"}
+                          </button>
                         </div>
-                      )}
-                    </div>
+                      </div>
                     );
                   })}
                   {tasksByCategory[ci].length === 0 && (
