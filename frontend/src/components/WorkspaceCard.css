@@ -1,22 +1,36 @@
 .ws-card {
   display: flex;
   flex-direction: column;
-  width: 200px;
+  width: 210px;
   cursor: pointer;
+  animation: workspaceCardPop 0.58s cubic-bezier(0.16, 1, 0.3, 1) both;
+  transition: transform 0.18s;
+}
+
+.ws-card:hover {
+  transform: translateY(-7px) scale(1.025);
 }
 
 .card-thumb {
-  width: 200px;
-  height: 130px;
-  border-radius: 12px;
+  width: 210px;
+  height: 136px;
+  border: 1px solid rgba(255, 255, 255, 0.55);
+  border-radius: 8px;
   position: relative;
+  overflow: hidden;
+  box-shadow: 0 7px 17px rgba(56, 67, 116, 0.14);
+  transition: box-shadow 0.18s;
+}
+
+.ws-card:hover .card-thumb {
+  box-shadow: 0 18px 34px rgba(56, 67, 116, 0.22);
 }
 
 .star {
   position: absolute;
   top: 8px;
   right: 8px;
-  font-size: 16px;
+  font-size: 18px;
   cursor: pointer;
   transition: color 0.15s, opacity 0.15s;
 }
@@ -56,34 +70,73 @@
   bottom: 10px;
   left: 10px;
   right: 10px;
-  background: #fff;
+  background: rgba(255, 255, 255, 0.9);
+  border: 1px solid rgba(255, 255, 255, 0.65);
   border-radius: 6px;
-  padding: 6px 10px;
-  font-size: 12px;
-  color: #333;
-  font-weight: 500;
+  padding: 7px 10px;
+  color: #3d4562;
+  font-size: 13px;
+  font-weight: 700;
+  backdrop-filter: blur(8px);
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
 
 .gray-thumb {
-  background: #d8d8d8;
+  background: #f8f9ff;
   display: flex;
+  flex-direction: column;
   align-items: center;
   justify-content: center;
-  width: 200px;
-  height: 130px;
-  border-radius: 12px;
+  gap: 7px;
+  width: 210px;
+  height: 136px;
+  border: 1px dashed #cfd5ee;
+  border-radius: 8px;
+  color: #8992b6;
+  transition: border-color 0.15s, background 0.15s, color 0.15s;
 }
 
 .new-label {
   font-size: 13px;
-  color: #666;
+  color: inherit;
+  font-weight: 700;
 }
 
 .new-card {
   cursor: pointer;
+}
+
+.new-card:hover .gray-thumb {
+  border-color: #aeb9ed;
+  background: #f1f3ff;
+  color: #6673bd;
+}
+
+.card-grid .ws-card:nth-child(1) { animation-delay: 0.04s; }
+.card-grid .ws-card:nth-child(2) { animation-delay: 0.1s; }
+.card-grid .ws-card:nth-child(3) { animation-delay: 0.16s; }
+.card-grid .ws-card:nth-child(4) { animation-delay: 0.22s; }
+.card-grid .ws-card:nth-child(5) { animation-delay: 0.28s; }
+.card-grid .ws-card:nth-child(6) { animation-delay: 0.34s; }
+
+@keyframes workspaceCardPop {
+  from {
+    opacity: 0;
+    transform: translateY(24px) scale(0.9);
+    filter: blur(7px);
+  }
+  72% {
+    opacity: 1;
+    transform: translateY(-5px) scale(1.035);
+    filter: blur(0);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+    filter: blur(0);
+  }
 }
 
 /* ===== 반응형 ===== */

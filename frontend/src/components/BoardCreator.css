@@ -1,18 +1,19 @@
 .board-creator {
-  background: #fff;
-  border-radius: 12px;
-  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.18);
+  width: 226px;
   padding: 16px;
-  width: 210px;
+  border: 1px solid #e5e8f7;
+  border-radius: 15px;
+  background: rgba(255, 255, 255, 0.97);
+  box-shadow: 0 14px 34px rgba(64, 74, 125, 0.2);
   display: flex;
   flex-direction: column;
   gap: 10px;
 }
 
 .bc-heading {
-  font-size: 13px;
-  font-weight: 600;
-  color: #222;
+  color: #39415f;
+  font-size: 14px;
+  font-weight: 800;
   margin: 0;
   text-align: center;
 }
@@ -20,7 +21,8 @@
 .bc-preview {
   width: 100%;
   height: 80px;
-  border-radius: 8px;
+  border-radius: 10px;
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.3);
 }
 
 .bc-section-label {
@@ -38,7 +40,7 @@
 .bc-swatch {
   width: 40px;
   height: 28px;
-  border-radius: 6px;
+  border-radius: 7px;
   cursor: pointer;
   border: 2px solid transparent;
   transition: border-color 0.15s;
@@ -46,7 +48,8 @@
 }
 
 .bc-swatch.active {
-  border-color: #4f7cff;
+  border-color: #6674d8;
+  box-shadow: 0 0 0 2px #e9ecff;
 }
 
 .bc-field {
@@ -61,30 +64,32 @@
 }
 
 .bc-input {
-  border: 1px solid #d0d0d0;
-  border-radius: 6px;
-  padding: 6px 8px;
+  border: 1px solid #dce0f0;
+  border-radius: 8px;
+  padding: 8px 9px;
   font-size: 13px;
   outline: none;
   transition: border-color 0.15s;
 }
 
 .bc-input:focus {
-  border-color: #4f7cff;
+  border-color: #7785dc;
+  box-shadow: 0 0 0 3px rgba(102, 116, 216, 0.12);
 }
 
 .bc-create-btn {
-  background: #b0b0b0;
+  background: #c5cada;
   color: #fff;
   border: none;
-  border-radius: 6px;
-  padding: 8px;
+  border-radius: 8px;
+  padding: 9px;
   font-size: 13px;
   cursor: not-allowed;
   transition: background 0.15s;
 }
 
 .bc-create-btn:not(:disabled) {
-  background: #4f7cff;
+  background: linear-gradient(135deg, #607cff, #805de8);
+  box-shadow: 0 5px 12px rgba(99, 102, 241, 0.2);
   cursor: pointer;
 }

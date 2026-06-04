@@ -4,6 +4,7 @@
  * 설명/마감일 인라인 편집, 댓글 작성 기능 포함
  */
 import { useState, useEffect } from "react";
+import { CalendarDays, MessageSquare } from "lucide-react";
 import client from "../api/client";
 import "./CardDetailModal.css";
 
@@ -164,14 +165,16 @@ export default function CardDetailModal({ title, colName, taskId, workspaceId, i
                     onSendSignal?.(next);
                   }}
                 >
-                  💬 피드백 요청
+                  <MessageSquare size={14} />
+                  피드백 요청
                 </button>
               </div>
             </div>
 
             <div className="cdm-section">
               <div className="cdm-section-title">
-                📅 마감일
+                <CalendarDays size={15} />
+                마감일
                 {!editingDueDate && <button className="cdm-edit-btn" onClick={() => setEditingDueDate(true)}>수정</button>}
               </div>
               {editingDueDate ? (

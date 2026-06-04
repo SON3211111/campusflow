@@ -1,62 +1,89 @@
-/**
- * 회원가입 1단계: 이메일 입력 + 약관 동의
- * 이메일을 localStorage에 저장 후 UserSetup(2단계)으로 이동
- */
-import React, { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
-import './Signup.css';
-import logoImg from '../assets/Logo.png';
+import React, { useState } from "react";
+import { useNavigate } from "react-router-dom";
+import { ArrowRight, CheckCircle2, Mail, Sparkles, UsersRound, Zap } from "lucide-react";
+import logoImg from "../assets/Logo.png";
+import "./Signup.css";
 
 const Signup: React.FC = () => {
   const navigate = useNavigate();
-  const [email, setEmail] = useState('');
+  const [email, setEmail] = useState("");
   const [agreed, setAgreed] = useState(false);
-  const [errorMsg, setErrorMsg] = useState('');
+  const [errorMsg, setErrorMsg] = useState("");
 
   const handleSignup = () => {
-    setErrorMsg('');
+    setErrorMsg("");
 
     if (!email) {
-      setErrorMsg('이메일을 입력해주세요.');
+      setErrorMsg("이메일을 입력해 주세요.");
       return;
     }
     if (!agreed) {
-      setErrorMsg('이용약관에 동의해주세요.');
+      setErrorMsg("이용약관에 동의해 주세요.");
       return;
     }
 
-    localStorage.setItem('signupEmail', email);
-    navigate('/usersetup');
+    localStorage.setItem("signupEmail", email);
+    navigate("/usersetup");
   };
 
   return (
-    <div className="signup-container">
-      <aside className="ad-sidebar left">
-        <div className="ad-box box-1"></div>
-        <div className="ad-box box-2"></div>
-      </aside>
-
-      <div className="signup-card">
-        <div className="logo-wrapper">
-          <img src={logoImg} alt="C'flow" className="signup-logo-img" onClick={() => navigate('/')} style={{ cursor: 'pointer' }} />
+    <div className="auth-page signup-auth-page">
+      <section className="auth-visual signup-visual">
+        <button className="auth-logo-button" onClick={() => navigate("/")}>
+          <img src={logoImg} alt="CampusFlow" />
+        </button>
+        <div className="auth-hero-copy">
+          <p className="auth-eyebrow">
+            <Sparkles size={15} />
+            START YOUR FLOW
+          </p>
+          <h1>
+            팀 과제를
+            <span>시작부터</span>
+            다르게
+          </h1>
+          <p>워크스페이스를 만들고 AI 업무 분해, 멤버 초대, 진행률 확인까지 이어가세요.</p>
         </div>
-
-        <p className="signup-subtitle">이메일로 가입하기</p>
-
-        <div className="signup-form">
-          <div className="input-group">
-            <label>이메일</label>
-            <input
-              type="email"
-              placeholder="name@company.com"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-            />
-            {errorMsg === '이메일을 입력해주세요.' && <p className="error-msg">{errorMsg}</p>}
+        <div className="signup-motion-stack">
+          <div className="signup-flow-card primary">
+            <Zap size={18} />
+            AI가 업무를 쪼개요
           </div>
+          <div className="signup-flow-card">
+            <UsersRound size={18} />
+            팀원을 초대해요
+          </div>
+          <div className="signup-flow-card">
+            <CheckCircle2 size={18} />
+            제출 전까지 추적해요
+          </div>
+        </div>
+      </section>
 
-          <div className="terms-container">
-            <label className="checkbox-label">
+      <section className="auth-panel-wrap">
+        <div className="auth-card">
+          <p className="auth-card-kicker">SIGN UP</p>
+          <h2>이메일로 시작하기</h2>
+          <p className="auth-card-desc">먼저 사용할 이메일을 입력하면 프로필 설정으로 이어집니다.</p>
+
+          <div className="auth-form">
+            <label className="auth-field">
+              <span>이메일</span>
+              <div className="auth-input-shell">
+                <Mail size={18} />
+                <input
+                  type="email"
+                  placeholder="name@company.com"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter") handleSignup();
+                  }}
+                />
+              </div>
+            </label>
+
+            <label className="auth-check-row">
               <input
                 type="checkbox"
                 checked={agreed}
@@ -64,35 +91,30 @@ const Signup: React.FC = () => {
               />
               <span>이용약관 및 개인정보 처리방침에 동의합니다.</span>
             </label>
-            {errorMsg === '이용약관에 동의해주세요.' && <p className="error-msg">{errorMsg}</p>}
+
+            {errorMsg && <p className="auth-error">{errorMsg}</p>}
+
+            <button className="auth-submit" onClick={handleSignup}>
+              다음 단계로
+              <ArrowRight size={17} />
+            </button>
           </div>
 
-          <button className="submit-btn" onClick={handleSignup}>
-            가입
-          </button>
-        </div>
+          <div className="auth-social">
+            <span>간편 가입</span>
+            <div>
+              <button className="google">G</button>
+              <button className="naver">N</button>
+              <button className="microsoft">M</button>
+            </div>
+          </div>
 
-        <div className="social-login">
-          <p>간편 Sign up</p>
-          <div className="social-icons">
-            <button className="icon-google">G</button>
-            <button className="icon-naver">N</button>
-            <button className="icon-ms">M</button>
+          <div className="auth-footer-link">
+            <span>이미 계정이 있나요?</span>
+            <button onClick={() => navigate("/login")}>로그인하기</button>
           </div>
         </div>
-
-        <div className="signup-footer-links">
-          <span className="link-text" onClick={() => navigate('/login')}>
-            로그인 페이지로 이동하기
-          </span>
-        </div>
-      </div>
-
-      <aside className="ad-sidebar right">
-        <div className="ad-box box-3"></div>
-        <div className="ad-box box-4"></div>
-        <div className="ad-box box-5"></div>
-      </aside>
+      </section>
     </div>
   );
 };

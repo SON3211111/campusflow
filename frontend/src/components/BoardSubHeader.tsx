@@ -4,6 +4,7 @@
  */
 import { useState, useRef, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
+import { LayoutDashboard } from "lucide-react";
 import "./BoardSubHeader.css";
 
 interface Member { userId: string; name: string; }
@@ -46,7 +47,7 @@ export default function BoardSubHeader({ wsName = "워크스페이스", members 
         <span className="bsh-ws-name">{wsName} Board</span>
         <div className="bsh-drop-wrap" ref={dropRef}>
           <button className="bsh-view-btn" onClick={() => setDropOpen((v) => !v)}>
-            <span className="bsh-view-icon">🖥</span>
+            <LayoutDashboard className="bsh-view-icon" size={15} />
             {selected}
             <span className="bsh-chevron">▾</span>
           </button>

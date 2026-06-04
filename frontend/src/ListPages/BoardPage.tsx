@@ -1,5 +1,6 @@
 import { useState, useRef, useEffect } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
+import { Edit3, Globe2, Home, LayoutDashboard, LockKeyhole, Settings, UsersRound } from "lucide-react";
 import Header from "../components/Header";
 import JoinModal from "../components/JoinModal";
 import WorkspaceCard from "../components/WorkspaceCard";
@@ -158,7 +159,7 @@ export default function BoardPage() {
               tryNavigate("/board", { workspace: ws, teamWorkspaces: teamWs, personalWorkspaces: personalWs })
             }
           >
-            <span className="subitem-icon">□</span> Board
+            <LayoutDashboard className="subitem-icon" size={14} /> Board
           </div>
           <div
             className="sidebar-subitem"
@@ -166,7 +167,7 @@ export default function BoardPage() {
               tryNavigate("/members", { workspace: ws, teamWorkspaces: teamWs, personalWorkspaces: personalWs })
             }
           >
-            <span className="subitem-icon">👥</span> Members
+            <UsersRound className="subitem-icon" size={14} /> Members
           </div>
           <div
             className="sidebar-subitem"
@@ -174,7 +175,7 @@ export default function BoardPage() {
               tryNavigate("/settings", { workspace: ws, teamWorkspaces: teamWs, personalWorkspaces: personalWs })
             }
           >
-            <span className="subitem-icon">⚙</span> Setting
+            <Settings className="subitem-icon" size={14} /> Setting
           </div>
         </div>
       </div>
@@ -204,11 +205,11 @@ export default function BoardPage() {
           <div className="sidebar-bottom">
             <hr className="sidebar-divider" />
             <div className="sidebar-nav-item" onClick={() => tryNavigate('/workspace')}>
-              <span className="nav-icon">🏠</span>
+              <Home size={15} />
               <span>Home</span>
             </div>
             <div className="sidebar-nav-item active">
-              <span className="nav-icon">🖥</span>
+              <LayoutDashboard className="nav-icon" size={15} />
               <span>Board</span>
             </div>
             <button className="join-btn" onClick={() => setJoinOpen(true)}>워크스페이스 참여 !</button>
@@ -247,12 +248,14 @@ export default function BoardPage() {
                 ) : (
                   <span className="board-ws-name">{wsName}</span>
                 )}
-                <span className="board-ws-edit" onClick={startEdit}>✏️</span>
+                <button className="board-ws-edit" onClick={startEdit} type="button" aria-label="워크스페이스 이름 수정">
+                  <Edit3 size={14} />
+                </button>
               </div>
               <div className="board-ws-private">
                 {localStorage.getItem(`visibility_${workspace.id}`) === "public"
-                  ? <><span>🌐</span><span>public</span></>
-                  : <><span>🔒</span><span>private</span></>}
+                  ? <><Globe2 size={13} /><span>public</span></>
+                  : <><LockKeyhole size={13} /><span>private</span></>}
               </div>
             </div>
           </div>

@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
+import { Globe2, Home, LayoutDashboard, LockKeyhole, Palette, Save, Settings, Trash2, UsersRound } from "lucide-react";
 import Header from "../components/Header";
 import JoinModal from "../components/JoinModal";
 import client from "../api/client";
@@ -87,14 +88,14 @@ const handleSaveAll = async () => {
         </div>
         <div className={`sidebar-submenu ${expandedId === ws.id ? "open" : ""}`}>
           <div className="sidebar-subitem" onClick={() => navigate("/workspace-board", { state: { workspace: ws, workspaces: allWorkspaces } })}>
-            <span className="subitem-icon">□</span> Board
+            <LayoutDashboard className="subitem-icon" size={14} /> Board
           </div>
           <div className="sidebar-subitem" onClick={() => navigate("/members", { state: navState(ws) })}>
-            <span className="subitem-icon">👥</span> Members
+            <UsersRound className="subitem-icon" size={14} /> Members
           </div>
           <div className={`sidebar-subitem ${ws.id === workspace.id ? "active-subitem" : ""}`}
             onClick={() => navigate("/settings", { state: navState(ws) })}>
-            <span className="subitem-icon">⚙</span> Setting
+            <Settings className="subitem-icon" size={14} /> Setting
           </div>
         </div>
       </div>
@@ -123,11 +124,11 @@ const handleSaveAll = async () => {
           <div className="sidebar-bottom">
             <hr className="sidebar-divider" />
             <div className="sidebar-nav-item" onClick={() => navigate("/workspace")}>
-              <span className="nav-icon">🏠</span>
+              <Home size={15} />
               <span>Home</span>
             </div>
             <div className="sidebar-nav-item active">
-              <span className="nav-icon">⚙</span>
+              <Settings className="nav-icon" size={15} />
               <span>Setting</span>
             </div>
             <button className="join-btn" onClick={() => setJoinOpen(true)}>워크스페이스 참여 !</button>
@@ -135,6 +136,35 @@ const handleSaveAll = async () => {
         </aside>
 
         <main className="setting-main">
+          <section className="setting-hero-panel">
+            <div>
+              <p className="setting-hero-eyebrow">WORKSPACE SETTINGS</p>
+              <h1>{wsName}</h1>
+              <p>워크스페이스 이름, 공개 범위, 테마와 삭제 위험 설정을 관리합니다.</p>
+            </div>
+            <button className="setting-save-top-btn" onClick={handleSaveAll} disabled={saving}>
+              <Save size={16} />
+              {saving ? "저장 중.." : "저장"}
+            </button>
+          </section>
+
+          <div className="setting-summary-grid">
+            <div className="setting-summary-card">
+              <Palette size={19} />
+              <strong>테마</strong>
+              <span>배경 템플릿 변경 가능</span>
+            </div>
+            <div className="setting-summary-card">
+              <LockKeyhole size={19} />
+              <strong>{savedVis === "private" ? "Private" : "Public"}</strong>
+              <span>현재 공개 범위</span>
+            </div>
+            <div className="setting-summary-card danger">
+              <Trash2 size={19} />
+              <strong>주의</strong>
+              <span>삭제 후 복구 불가</span>
+            </div>
+          </div>
           <div className="setting-action-bar">
             <button className="setting-save-top-btn" onClick={handleSaveAll} disabled={saving}>
               {saving ? "저장 중..." : "저장"}
@@ -146,7 +176,17 @@ const handleSaveAll = async () => {
             <div>
               <div className="setting-ws-name">{wsName}</div>
               <div className="setting-ws-private">
-                {savedVis === "private" ? "🔒 private" : "🌐 public"}
+                {savedVis === "private" ? (
+                  <>
+                    <LockKeyhole size={13} />
+                    <span>private</span>
+                  </>
+                ) : (
+                  <>
+                    <Globe2 size={13} />
+                    <span>public</span>
+                  </>
+                )}
               </div>
             </div>
           </div>
@@ -167,7 +207,8 @@ const handleSaveAll = async () => {
                 }
               })}
             >
-              🎨 템플릿 선택
+              <Palette size={15} />
+              템플릿 선택
             </button>
           </section>
 
@@ -195,13 +236,15 @@ const handleSaveAll = async () => {
                 className={`vis-btn ${visibility === "private" ? "active" : ""}`}
                 onClick={() => setVisibility("private")}
               >
-                🔒 Private
+                <LockKeyhole size={14} />
+                Private
               </button>
               <button
                 className={`vis-btn ${visibility === "public" ? "active" : ""}`}
                 onClick={() => setVisibility("public")}
               >
-                🌐 Public
+                <Globe2 size={14} />
+                Public
               </button>
             </div>
             <p className="setting-desc">

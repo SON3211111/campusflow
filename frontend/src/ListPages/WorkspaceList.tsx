@@ -5,12 +5,11 @@
  */
 import { useState, useRef, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { LayoutGrid, Users, Settings, Home, Monitor } from "lucide-react";
+import { LayoutGrid, Users, Settings, Home, Monitor, Plus, Sparkles } from "lucide-react";
 import Header from "../components/Header";
 import WorkspaceCard from "../components/WorkspaceCard";
 import BoardCreator from "../components/BoardCreator";
 import JoinModal from "../components/JoinModal";
-import AITaskModal from "../components/AITaskModal";
 import client from "../api/client";
 import "./WorkspaceList.css";
 
@@ -48,7 +47,6 @@ export default function WorkspaceList() {
   const [creatorSection, setCreatorSection] = useState<'team' | 'personal' | null>(null);
   const [deleteTarget, setDeleteTarget] = useState<{ id: any; section: 'team' | 'personal'; name: string; ownerId?: string } | null>(null);
   const [joinOpen, setJoinOpen]   = useState(false);
-  const [aiTaskOpen, setAiTaskOpen] = useState(false);
   const creatorRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -161,6 +159,13 @@ export default function WorkspaceList() {
 
   const allWorkspaces = [...teamWorkspaces, ...personalWorkspaces];
   const favorites = allWorkspaces.filter((ws) => ws.starred);
+  const openWorkspace = (ws: Workspace) => {
+    localStorage.setItem("clickedWorkspace", JSON.stringify(ws));
+    navigate('/workspace-board', { state: { workspace: ws, workspaces: allWorkspaces } });
+  };
+
+  const getWorkspaceSection = (ws: Workspace): 'team' | 'personal' =>
+    ws.type === 'TEAM' ? 'team' : 'personal';
 
   const renderSidebarItems = (workspaces: Workspace[], section: 'team' | 'personal') =>
     workspaces.map((ws) => (
@@ -202,7 +207,7 @@ export default function WorkspaceList() {
 
           <div className="sidebar-bottom">
             <hr className="sidebar-divider" />
-            <div className="sidebar-nav-item">
+            <div className="sidebar-nav-item" onClick={() => navigate("/workspace")}>
               <Home size={15} />
               <span>Home</span>
             </div>
@@ -215,8 +220,27 @@ export default function WorkspaceList() {
         </aside>
 
         <main className="main-content">
+          <section className="workspace-hero">
+            <div>
+              <p className="workspace-hero-eyebrow">CAMPUS COLLABORATION</p>
+              <h1>내 워크스페이스</h1>
+              <p className="workspace-hero-desc">팀 프로젝트와 개인 계획을 한곳에서 가볍게 정리해 보세요.</p>
+            </div>
+            <div className="workspace-hero-summary">
+              <Sparkles size={17} />
+              <strong>{allWorkspaces.length}</strong>
+              <span>개의 보드</span>
+            </div>
+          </section>
+
           <section className="ws-section">
-            <h3 className="section-title">팀 Work Space</h3>
+            <div className="ws-section-header">
+              <div>
+                <h3 className="section-title">팀 워크스페이스</h3>
+                <p className="section-desc">함께 진행하는 과제와 프로젝트를 관리합니다.</p>
+              </div>
+              <span className="section-count">{teamWorkspaces.length}</span>
+            </div>
             <div className="card-grid">
               {teamWorkspaces.map((ws) => (
                 <WorkspaceCard
@@ -226,10 +250,7 @@ export default function WorkspaceList() {
                   starred={ws.starred}
                   onToggleStar={() => toggleStar(ws.id, 'team')}
                   onDelete={() => setDeleteTarget({ id: ws.id, section: 'team', name: ws.name, ownerId: ws.ownerId })}
-                  onClick={() => {
-                    localStorage.setItem("clickedWorkspace", JSON.stringify(ws));
-                    navigate('/workspace-board', { state: { workspace: ws, workspaces: [...teamWorkspaces, ...personalWorkspaces] } });
-                  }}
+                  onClick={() => openWorkspace(ws)}
                 />
               ))}
               <div
@@ -238,6 +259,7 @@ export default function WorkspaceList() {
                 onClick={handleNewCardClick('team')}
               >
                 <div className="gray-thumb">
+                  <Plus size={19} />
                   <span className="new-label">새로 만들기</span>
                 </div>
               </div>
@@ -247,7 +269,13 @@ export default function WorkspaceList() {
           <hr className="divider" />
 
           <section className="ws-section">
-            <h3 className="section-title">개인 Work Space</h3>
+            <div className="ws-section-header">
+              <div>
+                <h3 className="section-title">개인 워크스페이스</h3>
+                <p className="section-desc">나만의 일정과 아이디어를 편하게 모아두세요.</p>
+              </div>
+              <span className="section-count">{personalWorkspaces.length}</span>
+            </div>
             <div className="card-grid">
               {personalWorkspaces.map((ws) => (
                 <WorkspaceCard
@@ -257,10 +285,7 @@ export default function WorkspaceList() {
                   starred={ws.starred}
                   onToggleStar={() => toggleStar(ws.id, 'personal')}
                   onDelete={() => setDeleteTarget({ id: ws.id, section: 'personal', name: ws.name, ownerId: ws.ownerId })}
-                  onClick={() => {
-                    localStorage.setItem("clickedWorkspace", JSON.stringify(ws));
-                    navigate('/workspace-board', { state: { workspace: ws, workspaces: [...teamWorkspaces, ...personalWorkspaces] } });
-                  }}
+                  onClick={() => openWorkspace(ws)}
                 />
               ))}
               <div
@@ -269,6 +294,7 @@ export default function WorkspaceList() {
                 onClick={handleNewCardClick('personal')}
               >
                 <div className="gray-thumb">
+                  <Plus size={19} />
                   <span className="new-label">새로 만들기</span>
                 </div>
               </div>
@@ -278,7 +304,13 @@ export default function WorkspaceList() {
           <hr className="divider" />
 
           <section className="ws-section">
-            <h3 className="section-title">즐겨찾기</h3>
+            <div className="ws-section-header">
+              <div>
+                <h3 className="section-title">즐겨찾기</h3>
+                <p className="section-desc">자주 확인하는 워크스페이스를 빠르게 열어보세요.</p>
+              </div>
+              <span className="section-count">{favorites.length}</span>
+            </div>
             <div className="card-grid">
               {favorites.map((ws) => (
                 <WorkspaceCard
@@ -286,8 +318,13 @@ export default function WorkspaceList() {
                   name={ws.name}
                   gradient={ws.gradient}
                   starred
+                  onToggleStar={() => toggleStar(ws.id, getWorkspaceSection(ws))}
+                  onClick={() => openWorkspace(ws)}
                 />
               ))}
+              {favorites.length === 0 && (
+                <div className="workspace-empty-state">별표를 누르면 즐겨찾기 보드가 여기에 표시됩니다.</div>
+              )}
             </div>
           </section>
         </main>
@@ -302,9 +339,7 @@ export default function WorkspaceList() {
         </div>
       )}
 
-      <button className="settings-btn"><Settings size={18} /></button>
       {joinOpen && <JoinModal onClose={() => setJoinOpen(false)} />}
-      {aiTaskOpen && <AITaskModal onClose={() => setAiTaskOpen(false)} workspaces={allWorkspaces} />}
 
       {deleteTarget && (
         <div className="modal-overlay" onClick={() => setDeleteTarget(null)}>

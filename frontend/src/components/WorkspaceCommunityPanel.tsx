@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef } from "react";
+import { Pencil, Trash2 } from "lucide-react";
 import client from "../api/client";
 
 interface Props {
@@ -319,11 +320,17 @@ export default function WorkspaceCommunityPanel({ visible, workspaceId }: Props)
                 setEditTarget(contextMenu.message);
                 setEditInput(contextMenu.message.content);
                 setContextMenu(null);
-              }}>✏️ 수정</button>
+              }}>
+                <Pencil size={13} />
+                수정
+              </button>
               <button className="wsp-ctx-delete" onClick={() => {
                 deleteMessage(contextMenu.message);
                 setContextMenu(null);
-              }}>🗑 삭제</button>
+              }}>
+                <Trash2 size={13} />
+                삭제
+              </button>
             </>
           )}
         </div>

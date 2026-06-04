@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
+import { Home, LayoutDashboard, Search, Settings, UsersRound } from "lucide-react";
 import Header from "../components/Header";
 import JoinModal from "../components/JoinModal";
 import client from "../api/client";
@@ -113,13 +114,13 @@ export default function TemplatePage() {
         </div>
         <div className={`sidebar-submenu ${expandedId === ws.id ? "open" : ""}`}>
           <div className="sidebar-subitem" onClick={() => navigate("/workspace-board", { state: { workspace: ws, workspaces: allWorkspaces } })}>
-            <span className="subitem-icon">□</span> Board
+            <LayoutDashboard className="subitem-icon" size={14} /> Board
           </div>
           <div className="sidebar-subitem" onClick={() => navigate("/members", { state: navState(ws) })}>
-            <span className="subitem-icon">👥</span> Members
+            <UsersRound className="subitem-icon" size={14} /> Members
           </div>
           <div className="sidebar-subitem" onClick={() => navigate("/settings", { state: navState(ws) })}>
-            <span className="subitem-icon">⚙</span> Setting
+            <Settings className="subitem-icon" size={14} /> Setting
           </div>
         </div>
       </div>
@@ -148,11 +149,11 @@ export default function TemplatePage() {
           <div className="sidebar-bottom">
             <hr className="sidebar-divider" />
             <div className="sidebar-nav-item" onClick={() => navigate("/workspace")}>
-              <span className="nav-icon">🏠</span>
+              <Home size={15} />
               <span>Home</span>
             </div>
             <div className="sidebar-nav-item active">
-              <span className="nav-icon">🖥</span>
+              <LayoutDashboard className="nav-icon" size={15} />
               <span>Board</span>
             </div>
             <button className="join-btn" onClick={() => setJoinOpen(true)}>워크스페이스 참여 !</button>
@@ -181,7 +182,7 @@ export default function TemplatePage() {
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
               />
-              <span className="template-search-icon">🔍</span>
+              <Search className="template-search-icon" size={16} />
             </div>
           </div>
 

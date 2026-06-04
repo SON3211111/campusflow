@@ -6,6 +6,7 @@
  */
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { Bot, FileText, Plus, Rocket, Sparkles } from "lucide-react";
 import { setAppendBuffer } from "../store/aiTaskBuffer";
 import "./AITaskModal.css";
 
@@ -77,7 +78,7 @@ export default function AITaskModal({ onClose, workspaces = [], workspace }: Pro
 
               {hasSession && (
                 <div className="ai-option-card" onClick={() => setScreen("append-prompt")}>
-                  <div className="ai-option-icon green">➕</div>
+                  <div className="ai-option-icon green"><Plus size={20} /></div>
                   <div className="ai-option-info">
                     <span className="ai-option-name">작업 추가하기</span>
                     <span className="ai-option-desc">새 업무를 분해해서 기존 Pool에 추가합니다</span>
@@ -86,7 +87,7 @@ export default function AITaskModal({ onClose, workspaces = [], workspace }: Pro
               )}
 
               <div className="ai-option-card" onClick={() => setScreen("new-prompt")}>
-                <div className="ai-option-icon blue">📄</div>
+                <div className="ai-option-icon blue"><FileText size={20} /></div>
                 <div className="ai-option-info">
                   <span className="ai-option-name">새로 시작</span>
                   <span className="ai-option-desc">새 프롬프트로 처음부터 분해합니다</span>
@@ -97,7 +98,7 @@ export default function AITaskModal({ onClose, workspaces = [], workspace }: Pro
                 onClose();
                 navigate("/workspace-board", { state: { workspace: activeWs, workspaces } });
               }}>
-                <div className="ai-option-icon orange">🚀</div>
+                <div className="ai-option-icon orange"><Rocket size={20} /></div>
                 <div className="ai-option-info">
                   <span className="ai-option-name">보드로 이동</span>
                   <span className="ai-option-desc">워크스페이스 보드로 바로 이동합니다</span>
@@ -119,7 +120,8 @@ export default function AITaskModal({ onClose, workspaces = [], workspace }: Pro
               autoFocus
             />
             <button className="ai-generate-btn" disabled={!prompt.trim()} onClick={handleNewBreakdown}>
-              🤖 AI로 업무 분해하기
+              <Bot size={17} />
+              AI로 업무 분해하기
             </button>
             <button className="ai-modal-back" onClick={() => setScreen("home")}>← 뒤로</button>
           </>
@@ -137,7 +139,8 @@ export default function AITaskModal({ onClose, workspaces = [], workspace }: Pro
               autoFocus
             />
             <button className="ai-generate-btn" disabled={!prompt.trim()} onClick={handleAppendBreakdown}>
-              🤖 기존 Pool에 추가 분해하기
+              <Sparkles size={17} />
+              기존 Pool에 추가 분해하기
             </button>
             <button className="ai-modal-back" onClick={() => setScreen("home")}>← 뒤로</button>
           </>

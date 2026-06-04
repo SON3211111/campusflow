@@ -4,6 +4,7 @@
  */
 import { useState, useEffect } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
+import { Crown, Home, LayoutDashboard, Settings, UserPlus, UsersRound } from "lucide-react";
 import client from "../api/client";
 import Header from "../components/Header";
 import JoinModal from "../components/JoinModal";
@@ -94,20 +95,23 @@ export default function MemberPage() {
             className="sidebar-subitem"
             onClick={() => navigate("/workspace-board", { state: { workspace: ws, workspaces: allWorkspaces } })}
           >
-            <span className="subitem-icon">□</span> Board
+            <LayoutDashboard className="subitem-icon" size={14} /> Board
           </div>
           <div
             className={`sidebar-subitem ${ws.id === workspace.id ? "active-subitem" : ""}`}
             onClick={() => navTo("/members", { workspace: ws, teamWorkspaces: teamWs, personalWorkspaces: personalWs })}
           >
-            <span className="subitem-icon">👥</span> Members
+            <UsersRound className="subitem-icon" size={14} /> Members
           </div>
           <div className="sidebar-subitem" onClick={() => navTo("/settings", { workspace: ws, teamWorkspaces: teamWs, personalWorkspaces: personalWs })}>
-            <span className="subitem-icon">⚙</span> Setting
+            <Settings className="subitem-icon" size={14} /> Setting
           </div>
         </div>
       </div>
     ));
+
+  const owner = members.find((m) => m.role === "OWNER");
+  const memberSlotsLeft = Math.max(20 - members.length, 0);
 
   return (
     <div className="workspace-page">
@@ -132,11 +136,11 @@ export default function MemberPage() {
           <div className="sidebar-bottom">
             <hr className="sidebar-divider" />
             <div className="sidebar-nav-item" onClick={() => navTo("/workspace")}>
-              <span className="nav-icon">🏠</span>
+              <Home size={15} />
               <span>Home</span>
             </div>
             <div className="sidebar-nav-item active">
-              <span className="nav-icon">👥</span>
+              <UsersRound className="nav-icon" size={15} />
               <span>Members</span>
             </div>
             <button className="join-btn" onClick={() => setJoinOpen(true)}>워크스페이스 참여 !</button>
@@ -144,6 +148,41 @@ export default function MemberPage() {
         </aside>
 
         <main className="member-main">
+          <section className="member-hero-panel">
+            <div>
+              <p className="member-hero-eyebrow">WORKSPACE MEMBERS</p>
+              <h1>{workspace.name}</h1>
+              <p>팀원이 어떤 역할로 참여하고 있는지 한눈에 확인하고 초대할 수 있습니다.</p>
+            </div>
+            <div className="member-hero-actions">
+              <button
+                className="invite-btn"
+                onClick={() => { setInviteOpen(true); setLinkCopied(false); setInviteEmail(""); setSearchResult(null); setSearchError(""); }}
+              >
+                <UserPlus size={16} />
+                초대하기
+              </button>
+            </div>
+          </section>
+
+          <div className="member-summary-grid">
+            <div className="member-summary-card">
+              <UsersRound size={19} />
+              <strong>{members.length}</strong>
+              <span>현재 멤버</span>
+            </div>
+            <div className="member-summary-card">
+              <Crown size={19} />
+              <strong>{owner?.name ?? "-"}</strong>
+              <span>워크스페이스 소유자</span>
+            </div>
+            <div className="member-summary-card">
+              <UserPlus size={19} />
+              <strong>{memberSlotsLeft}</strong>
+              <span>초대 가능 인원</span>
+            </div>
+          </div>
+
           <div className="member-header-row">
             <h2 className="member-title">
               멤버 <span className="member-count">{members.length} / 20</span>
@@ -153,7 +192,6 @@ export default function MemberPage() {
           <div className="member-section">
             <div className="member-section-top">
               <span className="member-section-label">멤버 목록</span>
-              <button className="invite-btn" onClick={() => { setInviteOpen(true); setLinkCopied(false); setInviteEmail(""); setSearchResult(null); setSearchError(""); }}>초대하기 👥</button>
             </div>
 
             <input
@@ -318,7 +356,7 @@ export default function MemberPage() {
                   setLinkCopied(true);
                 }}
               >
-                초대 링크 복사 🔗
+                초대 링크 복사
               </button>
               {linkCopied && <span className="invite-link-copied">복사 완료!</span>}
               <button className="invite-search-btn" onClick={handleInviteSearch}>
