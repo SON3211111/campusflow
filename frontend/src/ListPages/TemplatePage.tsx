@@ -95,9 +95,21 @@ const TEMPLATES = [
   { id: 70, name: "소 무늬",         category: "동물", bg: "radial-gradient(ellipse 24px 16px at 18% 28%,#111 92%,transparent 100%),radial-gradient(ellipse 16px 24px at 48% 74%,#111 92%,transparent 100%),radial-gradient(ellipse 26px 15px at 76% 22%,#111 92%,transparent 100%),radial-gradient(ellipse 18px 26px at 90% 68%,#111 92%,transparent 100%),radial-gradient(ellipse 20px 14px at 36% 90%,#111 92%,transparent 100%) white" },
   { id: 71, name: "공작",            category: "동물", bg: "repeating-radial-gradient(circle at 0 0,transparent 9px,#0e7490 9px,#0e7490 10px,transparent 10px),repeating-radial-gradient(circle at 15px 15px,transparent 9px,#0e7490 9px,#0e7490 10px,transparent 10px) #ecfeff" },
   { id: 72, name: "표범 핑크",       category: "동물", bg: "radial-gradient(ellipse 6px 8px at 10% 20%,#9d174d 88%,transparent 100%),radial-gradient(ellipse 8px 6px at 33% 65%,#9d174d 88%,transparent 100%),radial-gradient(ellipse 5px 7px at 58% 15%,#9d174d 88%,transparent 100%),radial-gradient(ellipse 7px 8px at 74% 50%,#9d174d 88%,transparent 100%),radial-gradient(ellipse 6px 5px at 88% 80%,#9d174d 88%,transparent 100%),radial-gradient(ellipse 5px 7px at 20% 85%,#9d174d 88%,transparent 100%),radial-gradient(ellipse 7px 5px at 45% 40%,#9d174d 88%,transparent 100%) #fbcfe8" },
+
+  // 공책 패턴
+  { id: 73, name: "클래식 공책",     category: "공책", bg: "repeating-linear-gradient(transparent,transparent 24px,#93c5fd 24px,#93c5fd 25px) #fffdf7" },
+  { id: 74, name: "빨간 줄 공책",   category: "공책", bg: "repeating-linear-gradient(transparent,transparent 24px,#fca5a5 24px,#fca5a5 25px) #fff" },
+  { id: 75, name: "그린 공책",       category: "공책", bg: "repeating-linear-gradient(transparent,transparent 24px,#6ee7b7 24px,#6ee7b7 25px) #f0fdf4" },
+  { id: 76, name: "모눈 공책",       category: "공책", bg: "repeating-linear-gradient(0deg,transparent,transparent 19px,#bfdbfe 19px,#bfdbfe 20px),repeating-linear-gradient(90deg,transparent,transparent 19px,#bfdbfe 19px,#bfdbfe 20px) #fff" },
+  { id: 77, name: "핑크 공책",       category: "공책", bg: "repeating-linear-gradient(transparent,transparent 24px,#f9a8d4 24px,#f9a8d4 25px) #fff0f5" },
+  { id: 78, name: "라벤더 공책",     category: "공책", bg: "repeating-linear-gradient(transparent,transparent 24px,#c4b5fd 24px,#c4b5fd 25px) #faf5ff" },
+  { id: 79, name: "옐로우 공책",     category: "공책", bg: "repeating-linear-gradient(transparent,transparent 24px,#fcd34d 24px,#fcd34d 25px) #fffbeb" },
+  { id: 80, name: "두꺼운 줄",       category: "공책", bg: "repeating-linear-gradient(transparent,transparent 28px,#94a3b8 28px,#94a3b8 30px) #f8fafc" },
+  { id: 81, name: "대학 노트",       category: "공책", bg: "repeating-linear-gradient(transparent,transparent 24px,#93c5fd 24px,#93c5fd 25px),linear-gradient(90deg,#fca5a5 0px,#fca5a5 2px,transparent 2px) #fffdf7" },
+  { id: 82, name: "미로 방안지",     category: "공책", bg: "repeating-linear-gradient(0deg,transparent,transparent 9px,#d1d5db 9px,#d1d5db 10px,transparent 10px,transparent 19px,#9ca3af 19px,#9ca3af 20px),repeating-linear-gradient(90deg,transparent,transparent 9px,#d1d5db 9px,#d1d5db 10px,transparent 10px,transparent 19px,#9ca3af 19px,#9ca3af 20px) #f9fafb" },
 ];
 
-const CATEGORIES = ["인기", "파스텔", "패턴", "동물", "풍경", "마케팅", "디자인"];
+const CATEGORIES = ["인기", "파스텔", "공책", "패턴", "동물", "풍경", "마케팅", "디자인"];
 
 export default function TemplatePage() {
   const { state } = useLocation() as {
