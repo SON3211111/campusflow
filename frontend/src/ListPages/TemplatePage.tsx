@@ -45,9 +45,26 @@ const TEMPLATES = [
   { id: 28, name: "라임 스파클",     category: "디자인", bg: "linear-gradient(135deg,#d9f99d 0%,#84cc16 50%,#22c55e 100%)" },
   { id: 29, name: "플럼 와인",       category: "마케팅", bg: "linear-gradient(135deg,#4c1d95 0%,#7e22ce 50%,#db2777 100%)" },
   { id: 30, name: "살구빛 오후",     category: "인기",   bg: "linear-gradient(135deg,#ffedd5 0%,#fdba74 52%,#fb7185 100%)" },
+
+  // 파스텔 카테고리
+  { id: 31, name: "아기 블루",       category: "파스텔", bg: "linear-gradient(135deg,#dbeafe 0%,#bfdbfe 50%,#e0f2fe 100%)" },
+  { id: 32, name: "연보라 안개",     category: "파스텔", bg: "linear-gradient(135deg,#ede9fe 0%,#ddd6fe 50%,#e9d5ff 100%)" },
+  { id: 33, name: "쑥 라떼",         category: "파스텔", bg: "linear-gradient(135deg,#d1fae5 0%,#bbf7d0 50%,#d1fae5 100%)" },
+  { id: 34, name: "샌드 베이지",     category: "파스텔", bg: "linear-gradient(135deg,#fef9ee 0%,#fef3c7 50%,#fde8c8 100%)" },
+  { id: 35, name: "코랄 블러쉬",     category: "파스텔", bg: "linear-gradient(135deg,#fce7f3 0%,#fecdd3 50%,#fee2e2 100%)" },
+  { id: 36, name: "카모마일",        category: "파스텔", bg: "linear-gradient(135deg,#fefce8 0%,#fef9c3 50%,#ecfccb 100%)" },
+  { id: 37, name: "실크 로즈",       category: "파스텔", bg: "linear-gradient(135deg,#fdf2f8 0%,#fce7f3 50%,#fdd5e5 100%)" },
+  { id: 38, name: "파우더 민트",     category: "파스텔", bg: "linear-gradient(135deg,#ecfdf5 0%,#d1fae5 50%,#e0f2fe 100%)" },
+  { id: 39, name: "버터 크림",       category: "파스텔", bg: "linear-gradient(135deg,#fffbeb 0%,#fef3c7 50%,#fde8d8 100%)" },
+  { id: 40, name: "모브 핑크",       category: "파스텔", bg: "linear-gradient(135deg,#f5f3ff 0%,#ede9fe 48%,#fce7f3 100%)" },
+  { id: 41, name: "소프트 피치",     category: "파스텔", bg: "linear-gradient(135deg,#fff7ed 0%,#ffedd5 50%,#fce7f3 100%)" },
+  { id: 42, name: "블루밍 라일락",   category: "파스텔", bg: "linear-gradient(135deg,#f0f9ff 0%,#e0f2fe 45%,#ede9fe 100%)" },
+  { id: 43, name: "밀크티",          category: "파스텔", bg: "linear-gradient(135deg,#fafaf9 0%,#fef3c7 50%,#f5f0eb 100%)" },
+  { id: 44, name: "수채화 하늘",     category: "파스텔", bg: "linear-gradient(135deg,#e0f7fa 0%,#b3e5fc 45%,#e8eaf6 100%)" },
+  { id: 45, name: "봄 안개",         category: "파스텔", bg: "linear-gradient(135deg,#fce4ec 0%,#f8bbd9 45%,#e1bee7 100%)" },
 ];
 
-const CATEGORIES = ["인기", "풍경", "마케팅", "디자인"];
+const CATEGORIES = ["인기", "파스텔", "풍경", "마케팅", "디자인"];
 
 export default function TemplatePage() {
   const { state } = useLocation() as {
