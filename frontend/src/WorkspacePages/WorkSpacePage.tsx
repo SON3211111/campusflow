@@ -697,7 +697,10 @@ export default function WorkSpacePage() {
                             </span>
                           )}
                           {card.assigneeName && (
-                            <PixelAvatar userId={card.assigneeId} name={card.assigneeName} size="sm" className="wsp-card-pixel-avatar" />
+                            <div className="wsp-card-assignee">
+                              <PixelAvatar userId={card.assigneeId} name={card.assigneeName} size="sm" />
+                              <span className="wsp-card-assignee-name">{card.assigneeName}</span>
+                            </div>
                           )}
                         </div>
                       )}
