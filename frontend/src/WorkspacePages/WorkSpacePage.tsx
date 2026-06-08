@@ -599,13 +599,20 @@ export default function WorkSpacePage() {
               "상태 없음": "#aaa", "시작하지 않음": "#888",
               "진행 중": "#4f7cff", "보류 중": "#f59e0b", "완료": "#22c55e",
             };
-            // 날짜별 점 맵
+            // 날짜별 점 맵 — startDate~dueDate 전체 구간에 표시
             const dotMap: Record<string, string[]> = {};
             for (const c of allCards) {
               if (!c.dueDate) continue;
-              const ds = c.dueDate.slice(0, 10);
-              if (!dotMap[ds]) dotMap[ds] = [];
-              if (dotMap[ds].length < 3) dotMap[ds].push(STATUS_COLOR[c.col] ?? "#aaa");
+              const color = STATUS_COLOR[c.col] ?? "#aaa";
+              const start = new Date((c.startDate || c.dueDate).slice(0, 10) + "T00:00:00");
+              const end   = new Date(c.dueDate.slice(0, 10) + "T00:00:00");
+              const cur   = new Date(start);
+              while (cur <= end) {
+                const ds = `${cur.getFullYear()}-${String(cur.getMonth()+1).padStart(2,"0")}-${String(cur.getDate()).padStart(2,"0")}`;
+                if (!dotMap[ds]) dotMap[ds] = [];
+                if (dotMap[ds].length < 3) dotMap[ds].push(color);
+                cur.setDate(cur.getDate() + 1);
+              }
             }
             return (
               <>
