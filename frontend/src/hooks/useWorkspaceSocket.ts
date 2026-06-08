@@ -15,6 +15,7 @@ export interface WsTaskCreated {
   assigneeId: string;
   assigneeName: string;
   priority: string;
+  boardColumn?: string;
 }
 
 export interface WsTaskDeleted {
@@ -30,12 +31,13 @@ export interface WsTaskRestored {
   assigneeId: string;
   assigneeName: string;
   priority: string;
+  boardColumn?: string;
 }
 
 export interface WsTaskUpdated {
   type: "TASK_UPDATED";
   taskId: string;
-  field: "title" | "description" | "dueDate" | "assigneeName";
+  field: "title" | "description" | "startDate" | "dueDate" | "assigneeName" | "boardColumn";
   value: string;
 }
 

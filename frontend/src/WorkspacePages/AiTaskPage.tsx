@@ -92,6 +92,7 @@ export default function AiTaskPage() {
   const workspace = rawWorkspace ? withStoredGradient(rawWorkspace) : undefined;
   const themeStyle = createWorkspaceThemeStyle(workspace?.gradient);
   const sessionKey = `ai_task_session_${workspace?.id ?? "default"}`;
+  const currentUserId = localStorage.getItem("userId") ?? "me";
 
   const storedSession: AiTaskSession | null = (() => {
     try { return JSON.parse(localStorage.getItem(sessionKey) ?? "null"); }
@@ -190,6 +191,8 @@ export default function AiTaskPage() {
   const [editingTaskName, setEditingTaskName]       = useState("");
   const [addingToCat, setAddingToCat]               = useState<number | null>(null);
   const [newTaskName, setNewTaskName]               = useState("");
+  const [basketCooldownUntil, setBasketCooldownUntil] = useState(0);
+  const [basketCooldownLeft, setBasketCooldownLeft] = useState(0);
   // 삭제 undo — 최근 삭제된 태스크와 원래 위치(categoryIdx) 보관
   const [undoStack, setUndoStack]   = useState<Task[]>([]);
   const undoTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -222,6 +225,21 @@ export default function AiTaskPage() {
       title, categories, tasks, prompt: origPrompt, result: aiResult, memberBaskets, sessions,
     }));
   }, [categories, tasks, origPrompt, sessionKey, memberBaskets, sessions]);
+
+  useEffect(() => {
+    if (basketCooldownUntil <= Date.now()) {
+      setBasketCooldownLeft(0);
+      return;
+    }
+
+    const tick = () => {
+      setBasketCooldownLeft(Math.max(0, Math.ceil((basketCooldownUntil - Date.now()) / 1000)));
+    };
+
+    tick();
+    const timer = window.setInterval(tick, 250);
+    return () => window.clearInterval(timer);
+  }, [basketCooldownUntil]);
 
   const toggleSession = (id: string) =>
     setSessions((prev) => prev.map((s) => s.id === id ? { ...s, collapsed: !s.collapsed } : s));
@@ -313,10 +331,21 @@ export default function AiTaskPage() {
     }
   };
 
-  const handleDragStart = (id: string) => { setDraggingId(id); setDraggingFromUserId(null); };
+  const handleDragStart = (id: string) => {
+    if (basketCooldownLeft > 0) return;
+    setDraggingId(id);
+    setDraggingFromUserId(null);
+  };
+
+  const canDropToBasket = (userId: string) => userId === currentUserId;
 
   const handleDrop = (userId: string) => {
     if (!draggingId) return;
+    if (basketCooldownLeft > 0 || !canDropToBasket(userId)) {
+      setDraggingId(null);
+      setDragOverUserId(null);
+      return;
+    }
     const task = tasks.find((t) => t.id === draggingId);
     if (!task) return;
 
@@ -329,6 +358,7 @@ export default function AiTaskPage() {
     setTasks((prev) => prev.filter((t) => t.id !== draggingId));
     setDraggingId(null);
     setDragOverUserId(null);
+    setBasketCooldownUntil(Date.now() + 3000);
 
     // 즉시 보드에 생성
     if (workspace?.id) {
@@ -419,9 +449,9 @@ export default function AiTaskPage() {
   const renderTaskCard = (task: Task, cat: Category) => (
     <div
       key={task.id}
-      className={`atp-task-card ${draggingId === task.id ? "dragging" : ""}`}
+      className={`atp-task-card ${draggingId === task.id ? "dragging" : ""} ${basketCooldownLeft > 0 ? "cooldown-locked" : ""}`}
       style={{ background: cat.taskColor }}
-      draggable={editingTaskId !== task.id}
+      draggable={editingTaskId !== task.id && basketCooldownLeft === 0}
       onDragStart={() => editingTaskId !== task.id && handleDragStart(task.id)}
       onDragEnd={() => setDraggingId(null)}
     >
@@ -543,19 +573,33 @@ export default function AiTaskPage() {
 
         {/* 팀원별 장바구니 슬롯 */}
         <div className="atp-basket-bar">
+          {basketCooldownLeft > 0 && (
+            <div className="atp-basket-toolbar">
+              <span className="atp-basket-cooldown">{basketCooldownLeft}초 후 추가 가능</span>
+            </div>
+          )}
           <div className="atp-basket-outer">
             {members.map((member) => {
               const basket = memberBaskets[member.userId] ?? [];
               const isOver = dragOverUserId === member.userId;
+              const isLocked = !canDropToBasket(member.userId);
               return (
                 <div key={member.userId} className="atp-user-slot">
                   <div
-                    className={`atp-basket-box ${isOver ? "drag-over" : ""}`}
-                    onDragOver={(e) => { e.preventDefault(); setDragOverUserId(member.userId); }}
+                    className={`atp-basket-box ${isOver ? "drag-over" : ""} ${isLocked ? "basket-locked" : ""}`}
+                    onDragOver={(e) => {
+                      if (basketCooldownLeft > 0 || isLocked) return;
+                      e.preventDefault();
+                      setDragOverUserId(member.userId);
+                    }}
                     onDragLeave={() => setDragOverUserId(null)}
                     onDrop={() => handleDrop(member.userId)}
                   >
-                    {basket.length === 0 && <span className="atp-drop-hint">여기에 놓기</span>}
+                    {basket.length === 0 && (
+                      <span className="atp-drop-hint">
+                        {isLocked ? "내 장바구니만 사용" : basketCooldownLeft > 0 ? "잠시 후 가능" : "여기에 놓기"}
+                      </span>
+                    )}
                     {basket.map((task) => {
                       const cat = categories[task.categoryIdx];
                       const sessionPrompt = sessions.find((s) => s.id === cat?.sessionId)?.prompt ?? "";

@@ -63,6 +63,9 @@ public class Task {
     @Column(name = "quick_signal", nullable = true)
     private String quickSignal; // HELP_NEEDED | FEEDBACK_NEEDED | null
 
+    @Column(name = "board_column", length = 100)
+    private String boardColumn;
+
     @Column(name = "start_date")
     private LocalDate startDate;
 

@@ -39,6 +39,7 @@ interface CardItem {
   assigneeName?: string;
   priority?: string;
   quickSignal?: string;
+  boardColumn?: string;
   comments: { user: string; text: string; time: string }[];
 }
 
@@ -204,11 +205,14 @@ export default function WorkSpacePage() {
           mergedCols.map((c) => [c, [] as CardItem[]])
         );
         for (const t of (tasksRes.data.data ?? [])) {
-          const col = STATUS_TO_COL[t.status] ?? "상태 없음";
+          const savedCol = typeof t.boardColumn === "string" ? t.boardColumn : "";
+          const col = savedCol && mergedCols.includes(savedCol)
+            ? savedCol
+            : STATUS_TO_COL[t.status] ?? "상태 없음";
           if (!newCards[col]) {
             newCards[col] = [];
           }
-          newCards[col].push({ id: t.taskId, title: t.title, desc: t.description ?? "", startDate: t.startDate ?? "", dueDate: t.dueDate ?? "", assigneeId: t.assigneeId ?? "", assigneeName: t.assigneeName ?? "", priority: t.priority ?? "", quickSignal: t.quickSignal ?? "", comments: [] });
+          newCards[col].push({ id: t.taskId, title: t.title, desc: t.description ?? "", startDate: t.startDate ?? "", dueDate: t.dueDate ?? "", assigneeId: t.assigneeId ?? "", assigneeName: t.assigneeName ?? "", priority: t.priority ?? "", quickSignal: t.quickSignal ?? "", boardColumn: savedCol || col, comments: [] });
         }
         setCards(newCards);
         const hasTasks = Object.values(newCards).flat().length > 0 || basketTasks.length > 0;
@@ -245,8 +249,8 @@ export default function WorkSpacePage() {
         return next;
       });
     },
-    onTaskCreated: ({ taskId, title, status, assigneeId, assigneeName, priority }) => {
-      const col = STATUS_TO_COL[status] ?? "상태 없음";
+    onTaskCreated: ({ taskId, title, status, assigneeId, assigneeName, priority, boardColumn }) => {
+      const col = boardColumn && cols.includes(boardColumn) ? boardColumn : STATUS_TO_COL[status] ?? "상태 없음";
       const newCard: CardItem = {
         id: taskId,
         title,
@@ -254,11 +258,14 @@ export default function WorkSpacePage() {
         assigneeId: assigneeId || undefined,
         assigneeName: assigneeName || undefined,
         priority: priority || undefined,
+        boardColumn: boardColumn || col,
         comments: [],
       };
       setCards((prev) => ({
         ...prev,
-        [col]: [...(prev[col] ?? []), newCard],
+        [col]: (prev[col] ?? []).some((card) => card.id === taskId)
+          ? (prev[col] ?? [])
+          : [...(prev[col] ?? []), newCard],
       }));
     },
     onTaskDeleted: ({ taskId }) => {
@@ -270,8 +277,8 @@ export default function WorkSpacePage() {
         return next;
       });
     },
-    onTaskRestored: ({ taskId, title, status, assigneeId, assigneeName, priority }) => {
-      const col = STATUS_TO_COL[status] ?? "상태 없음";
+    onTaskRestored: ({ taskId, title, status, assigneeId, assigneeName, priority, boardColumn }) => {
+      const col = boardColumn && cols.includes(boardColumn) ? boardColumn : STATUS_TO_COL[status] ?? "상태 없음";
       const restoredCard: CardItem = {
         id: taskId,
         title,
@@ -279,21 +286,40 @@ export default function WorkSpacePage() {
         assigneeId: assigneeId || undefined,
         assigneeName: assigneeName || undefined,
         priority: priority || undefined,
+        boardColumn: boardColumn || col,
         comments: [],
       };
       setCards((prev) => ({
         ...prev,
-        [col]: [...(prev[col] ?? []), restoredCard],
+        [col]: (prev[col] ?? []).some((card) => card.id === taskId)
+          ? (prev[col] ?? [])
+          : [...(prev[col] ?? []), restoredCard],
       }));
     },
     onTaskUpdated: ({ taskId, field, value }) => {
       setCards((prev) => {
         const next = { ...prev };
+        if (field === "boardColumn") {
+          let movedCard: CardItem | undefined;
+          for (const col of Object.keys(next)) {
+            const found = next[col].find((c) => c.id === taskId);
+            if (found) {
+              movedCard = { ...found, boardColumn: value };
+              next[col] = next[col].filter((c) => c.id !== taskId);
+              break;
+            }
+          }
+          if (movedCard && value) {
+            next[value] = [...(next[value] ?? []), movedCard];
+          }
+          return next;
+        }
         for (const col of Object.keys(next)) {
           next[col] = next[col].map((c) => {
             if (c.id !== taskId) return c;
             if (field === "title")       return { ...c, title: value };
             if (field === "description") return { ...c, desc: value };
+            if (field === "startDate")   return { ...c, startDate: value };
             if (field === "dueDate")     return { ...c, dueDate: value };
             return c;
           });
@@ -370,16 +396,19 @@ export default function WorkSpacePage() {
     setCards((prev) => ({
       ...prev,
       [sourceCol]: prev[sourceCol].filter((c) => c.id !== card.id),
-      [targetCol]: [...(prev[targetCol] ?? []), card],
+      [targetCol]: [...(prev[targetCol] ?? []), { ...card, boardColumn: targetCol }],
     }));
     setDraggingCard(null);
     setDragOverCol(null);
 
     const newStatus = COL_TO_STATUS[targetCol];
-    if (newStatus && workspace?.id) {
+    if (workspace?.id) {
       const userId = localStorage.getItem("userId") ?? "";
       try {
-        await client.patch(`/workspaces/${workspace.id}/tasks/${card.id}/status?status=${newStatus}&userId=${userId}`);
+        if (newStatus) {
+          await client.patch(`/workspaces/${workspace.id}/tasks/${card.id}/status?status=${newStatus}&userId=${userId}`);
+        }
+        await client.patch(`/workspaces/${workspace.id}/tasks/${card.id}/board-column`, { boardColumn: targetCol });
       } catch (err) {
         console.error("상태 변경 실패:", err);
       }
@@ -402,6 +431,7 @@ export default function WorkSpacePage() {
           description: "",
           status,
           assigneeId: currentUserId,
+          boardColumn: col,
         });
         const d = res.data.data;
         const newCard: CardItem = {
@@ -413,14 +443,20 @@ export default function WorkSpacePage() {
           assigneeName: d.assigneeName ?? currentUserName,
           priority: d.priority ?? "",
           quickSignal: d.quickSignal ?? "",
+          boardColumn: d.boardColumn ?? col,
           comments: [],
         };
-        setCards((prev) => ({ ...prev, [col]: [...(prev[col] ?? []), newCard] }));
+        setCards((prev) => ({
+          ...prev,
+          [col]: (prev[col] ?? []).some((card) => card.id === newCard.id)
+            ? (prev[col] ?? [])
+            : [...(prev[col] ?? []), newCard],
+        }));
       } catch (err: any) {
         alert(`태스크 저장에 실패했습니다: ${err?.response?.data?.message ?? err?.message ?? "알 수 없는 오류"}`);
       }
     } else {
-      const newCard: CardItem = { id: Date.now().toString(), title, desc: "", dueDate: "", comments: [] };
+      const newCard: CardItem = { id: Date.now().toString(), title, desc: "", dueDate: "", boardColumn: col, comments: [] };
       setCards((prev) => ({ ...prev, [col]: [...(prev[col] ?? []), newCard] }));
     }
     setInputVal("");
@@ -447,10 +483,17 @@ export default function WorkSpacePage() {
         title: res.data.data.title,
         desc: res.data.data.description ?? "",
         dueDate: res.data.data.dueDate ?? "",
+        boardColumn: res.data.data.boardColumn ?? "",
         comments: [],
       };
-      const col = STATUS_TO_COL[res.data.data.status] ?? "상태 없음";
-      setCards((prev) => ({ ...prev, [col]: [...(prev[col] ?? []), restored] }));
+      const savedCol = res.data.data.boardColumn ?? "";
+      const col = savedCol && cols.includes(savedCol) ? savedCol : STATUS_TO_COL[res.data.data.status] ?? "상태 없음";
+      setCards((prev) => ({
+        ...prev,
+        [col]: (prev[col] ?? []).some((item) => item.id === restored.id)
+          ? (prev[col] ?? [])
+          : [...(prev[col] ?? []), restored],
+      }));
       setDeletedCards((prev) => prev.filter((c) => c.id !== card.id));
       setShowLanding(false);
     } catch {}
@@ -561,16 +604,19 @@ export default function WorkSpacePage() {
 
   const handleStatusChangeFromModal = async (col: string, id: string, newColName: string) => {
     const newStatus = COL_TO_STATUS[newColName];
-    if (!newStatus || !workspace?.id) return;
+    if (!workspace?.id) return;
     const userId = localStorage.getItem("userId") ?? "";
     try {
-      await client.patch(`/workspaces/${workspace.id}/tasks/${id}/status?status=${newStatus}&userId=${userId}`);
+      if (newStatus) {
+        await client.patch(`/workspaces/${workspace.id}/tasks/${id}/status?status=${newStatus}&userId=${userId}`);
+      }
+      await client.patch(`/workspaces/${workspace.id}/tasks/${id}/board-column`, { boardColumn: newColName });
       setCards((prev) => {
         const next = { ...prev };
         const card = next[col]?.find((c) => c.id === id);
         if (!card) return next;
         next[col] = next[col].filter((c) => c.id !== id);
-        next[newColName] = [...(next[newColName] ?? []), card];
+        next[newColName] = [...(next[newColName] ?? []), { ...card, boardColumn: newColName }];
         return next;
       });
       setSelectedCard((prev) => prev ? { ...prev, col: newColName } : null);

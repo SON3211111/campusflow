@@ -107,6 +107,14 @@ public class WorkspaceTaskController {
         return ResponseEntity.ok(ApiResponse.success(200, "제목 수정 완료"));
     }
 
+    @PatchMapping("/{taskId}/board-column")
+    public ResponseEntity<ApiResponse<Void>> updateBoardColumn(
+            @PathVariable String taskId,
+            @RequestBody Map<String, String> body) {
+        taskService.updateBoardColumn(taskId, body.getOrDefault("boardColumn", ""));
+        return ResponseEntity.ok(ApiResponse.success(200, "컬럼 위치 저장 완료"));
+    }
+
     @PatchMapping("/{taskId}/quick-signal")
     public ResponseEntity<ApiResponse<Void>> sendQuickSignal(
             @PathVariable String taskId,

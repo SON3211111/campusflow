@@ -105,6 +105,7 @@ public class TaskService {
                 .assignee(assignee)
                 .priority(priority)
                 .startDate(startDate)
+                .boardColumn(req.boardColumn())
                 .deleted(false)
                 .build();
 
@@ -113,16 +114,25 @@ public class TaskService {
         String assigneeId   = saved.getAssignee() != null ? saved.getAssignee().getUserId() : "";
         String assigneeName = saved.getAssignee() != null ? saved.getAssignee().getName()   : "";
         String createJson = String.format(
-            "{\"type\":\"TASK_CREATED\",\"taskId\":\"%s\",\"title\":\"%s\",\"status\":\"%s\",\"assigneeId\":\"%s\",\"assigneeName\":\"%s\",\"priority\":\"%s\"}",
-            saved.getTaskId(),
-            saved.getTitle().replace("\"", "\\\""),
-            saved.getStatus().name(),
-            assigneeId,
-            assigneeName.replace("\"", "\\\""),
-            saved.getPriority() != null ? saved.getPriority().name() : ""
+            "{\"type\":\"TASK_CREATED\",\"taskId\":\"%s\",\"title\":\"%s\",\"status\":\"%s\",\"assigneeId\":\"%s\",\"assigneeName\":\"%s\",\"priority\":\"%s\",\"boardColumn\":\"%s\"}",
+            escapeJson(saved.getTaskId()),
+            escapeJson(saved.getTitle()),
+            escapeJson(saved.getStatus().name()),
+            escapeJson(assigneeId),
+            escapeJson(assigneeName),
+            saved.getPriority() != null ? saved.getPriority().name() : "",
+            escapeJson(saved.getBoardColumn())
         );
         taskWebSocketHandler.broadcast(workspaceId, createJson);
         return TaskResponse.from(saved);
+    }
+
+    @Transactional
+    public void updateBoardColumn(String taskId, String boardColumn) {
+        Task task = taskRepository.findById(taskId)
+                .orElseThrow(() -> new IllegalArgumentException("태스크를 찾을 수 없습니다. ID: " + taskId));
+        task.setBoardColumn(boardColumn == null || boardColumn.isBlank() ? null : boardColumn);
+        broadcastTaskUpdated(task, "boardColumn", task.getBoardColumn());
     }
 
     /** 태스크 상태 변경 (칸반 드래그앤드롭) — 히스토리 기록 + DONE 시 기여도 업데이트 */
@@ -331,13 +341,14 @@ public class TaskService {
             String assigneeId   = task.getAssignee() != null ? task.getAssignee().getUserId() : "";
             String assigneeName = task.getAssignee() != null ? task.getAssignee().getName()   : "";
             String json = String.format(
-                "{\"type\":\"TASK_RESTORED\",\"taskId\":\"%s\",\"title\":\"%s\",\"status\":\"%s\",\"assigneeId\":\"%s\",\"assigneeName\":\"%s\",\"priority\":\"%s\"}",
-                task.getTaskId(),
-                task.getTitle().replace("\"", "\\\""),
-                task.getStatus().name(),
-                assigneeId,
-                assigneeName.replace("\"", "\\\""),
-                task.getPriority() != null ? task.getPriority().name() : ""
+                "{\"type\":\"TASK_RESTORED\",\"taskId\":\"%s\",\"title\":\"%s\",\"status\":\"%s\",\"assigneeId\":\"%s\",\"assigneeName\":\"%s\",\"priority\":\"%s\",\"boardColumn\":\"%s\"}",
+                escapeJson(task.getTaskId()),
+                escapeJson(task.getTitle()),
+                escapeJson(task.getStatus().name()),
+                escapeJson(assigneeId),
+                escapeJson(assigneeName),
+                task.getPriority() != null ? task.getPriority().name() : "",
+                escapeJson(task.getBoardColumn())
             );
             taskWebSocketHandler.broadcast(task.getWorkspace().getWorkspaceId(), json);
         }
@@ -376,7 +387,7 @@ public class TaskService {
         }
         Task saved = taskRepository.save(task);
         String newAssigneeName = saved.getAssignee() != null ? saved.getAssignee().getName() : "";
-        broadcastTaskUpdated(task, "assigneeName", newAssigneeName.replace("\"", "\\\""));
+        broadcastTaskUpdated(task, "assigneeName", newAssigneeName);
         return TaskResponse.from(saved);
     }
 
@@ -386,7 +397,7 @@ public class TaskService {
         Task task = taskRepository.findById(taskId)
                 .orElseThrow(() -> new IllegalArgumentException("태스크를 찾을 수 없습니다. ID: " + taskId));
         task.setDescription(description);
-        broadcastTaskUpdated(task, "description", description.replace("\"", "\\\""));
+        broadcastTaskUpdated(task, "description", description);
     }
 
     /** 태스크 제목 업데이트 */
@@ -395,7 +406,7 @@ public class TaskService {
         Task task = taskRepository.findById(taskId)
                 .orElseThrow(() -> new IllegalArgumentException("태스크를 찾을 수 없습니다. ID: " + taskId));
         task.setTitle(title);
-        broadcastTaskUpdated(task, "title", title.replace("\"", "\\\""));
+        broadcastTaskUpdated(task, "title", title);
     }
 
     /** 공통 TASK_UPDATED 브로드캐스트 헬퍼 */
@@ -403,9 +414,18 @@ public class TaskService {
         if (task.getWorkspace() == null) return;
         String json = String.format(
             "{\"type\":\"TASK_UPDATED\",\"taskId\":\"%s\",\"field\":\"%s\",\"value\":\"%s\"}",
-            task.getTaskId(), field, value
+            escapeJson(task.getTaskId()), escapeJson(field), escapeJson(value)
         );
         taskWebSocketHandler.broadcast(task.getWorkspace().getWorkspaceId(), json);
+    }
+
+    private String escapeJson(String value) {
+        if (value == null) return "";
+        return value
+                .replace("\\", "\\\\")
+                .replace("\"", "\\\"")
+                .replace("\n", "\\n")
+                .replace("\r", "\\r");
     }
 
     /** 퀵 시그널 — 도움/피드백 요청 → 팀원 알림 */
