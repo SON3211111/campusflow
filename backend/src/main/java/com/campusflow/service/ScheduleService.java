@@ -1,7 +1,7 @@
 package com.campusflow.service;
 
-import com.campusflow.dto.FreeTimeRequest;
-import com.campusflow.dto.FreeTimeResponse;
+import com.campusflow.dto.ScheduleBlockRequest;
+import com.campusflow.dto.ScheduleBlockResponse;
 import com.campusflow.entity.ScheduleBlock;
 import com.campusflow.entity.ScheduleCategory;
 import com.campusflow.entity.User;
@@ -13,6 +13,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.LocalTime;
 import java.util.List;
 
 @Service
@@ -24,36 +25,40 @@ public class ScheduleService {
     private final UserScheduleRepository userScheduleRepository;
     private final UserRepository userRepository;
 
+    /** 유저의 전체 시간표 블록 조회 */
     @Transactional(readOnly = true)
-    public List<FreeTimeResponse> getUserFreeTimes(String userId) {
-        return scheduleBlockRepository.findFreeTimesByUserId(userId, ScheduleCategory.FREE).stream()
-                .map(block -> new FreeTimeResponse(
-                        block.getDayOfWeek(),
-                        block.getStartTime(),
-                        block.getEndTime(),
-                        block.getTitle() != null ? block.getTitle() : "공강 시간"
-                ))
-                .toList();
+    public List<ScheduleBlockResponse> getUserSchedule(String userId) {
+        return userScheduleRepository.findByUser_UserId(userId)
+                .map(us -> us.getBlocks().stream().map(ScheduleBlockResponse::from).toList())
+                .orElse(List.of());
     }
 
-    public void saveFreeTime(FreeTimeRequest request) {
-        // UserSchedule이 없으면 자동 생성 (기존 유저 대응)
-        UserSchedule userSchedule = userScheduleRepository.findByUser_UserId(request.getUserId())
+    /** 시간표 블록 추가 (수업/개인/공강 등 모든 카테고리) */
+    public ScheduleBlockResponse addBlock(ScheduleBlockRequest req) {
+        UserSchedule userSchedule = userScheduleRepository.findByUser_UserId(req.userId())
                 .orElseGet(() -> {
-                    User user = userRepository.findById(request.getUserId())
+                    User user = userRepository.findById(req.userId())
                             .orElseThrow(() -> new IllegalArgumentException("유저를 찾을 수 없습니다."));
                     return userScheduleRepository.save(UserSchedule.builder().user(user).build());
                 });
 
-        ScheduleBlock freeBlock = ScheduleBlock.builder()
+        ScheduleCategory category = ScheduleCategory.CLASS;
+        try { category = ScheduleCategory.valueOf(req.category()); } catch (Exception ignored) {}
+
+        ScheduleBlock block = ScheduleBlock.builder()
                 .userSchedule(userSchedule)
-                .category(ScheduleCategory.FREE)
-                .title(request.getTitle())
-                .dayOfWeek(request.getDayOfWeek())
-                .startTime(request.getStartTime())
-                .endTime(request.getEndTime())
+                .category(category)
+                .title(req.title())
+                .dayOfWeek(req.dayOfWeek())
+                .startTime(LocalTime.parse(req.startTime()))
+                .endTime(LocalTime.parse(req.endTime()))
                 .build();
 
-        scheduleBlockRepository.save(freeBlock);
+        return ScheduleBlockResponse.from(scheduleBlockRepository.save(block));
+    }
+
+    /** 시간표 블록 삭제 */
+    public void deleteBlock(String blockId) {
+        scheduleBlockRepository.deleteById(blockId);
     }
 }

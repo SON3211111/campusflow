@@ -1,7 +1,7 @@
 package com.campusflow.controller;
 
-import com.campusflow.dto.FreeTimeRequest;
-import com.campusflow.dto.FreeTimeResponse;
+import com.campusflow.dto.ScheduleBlockRequest;
+import com.campusflow.dto.ScheduleBlockResponse;
 import com.campusflow.service.ScheduleService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
@@ -16,14 +16,22 @@ public class ScheduleController {
 
     private final ScheduleService scheduleService;
 
-    @GetMapping("/free/{userId}")
-    public ResponseEntity<List<FreeTimeResponse>> getUserFreeTimes(@PathVariable String userId) {
-        return ResponseEntity.ok(scheduleService.getUserFreeTimes(userId));
+    /** 유저의 전체 시간표 블록 조회 */
+    @GetMapping("/{userId}")
+    public ResponseEntity<List<ScheduleBlockResponse>> getUserSchedule(@PathVariable String userId) {
+        return ResponseEntity.ok(scheduleService.getUserSchedule(userId));
     }
 
-    @PostMapping("/free")
-    public ResponseEntity<Void> registerFreeTime(@RequestBody FreeTimeRequest request) {
-        scheduleService.saveFreeTime(request);
+    /** 시간표 블록 추가 */
+    @PostMapping
+    public ResponseEntity<ScheduleBlockResponse> addBlock(@RequestBody ScheduleBlockRequest request) {
+        return ResponseEntity.ok(scheduleService.addBlock(request));
+    }
+
+    /** 시간표 블록 삭제 */
+    @DeleteMapping("/blocks/{blockId}")
+    public ResponseEntity<Void> deleteBlock(@PathVariable String blockId) {
+        scheduleService.deleteBlock(blockId);
         return ResponseEntity.ok().build();
     }
 }
