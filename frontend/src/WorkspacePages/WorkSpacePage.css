@@ -569,18 +569,40 @@
 
 .wsp-upcoming-item {
   display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 6px 8px;
+  align-items: stretch;
+  padding: 7px 8px;
   background: #f8f9fc;
-  border-left: 3px solid #6ab4f8;
+  border-left: 3px solid #aaa;
   border-radius: 4px;
   font-size: 12px;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.05);
 }
 
 .wsp-upcoming-item.urgent {
   border-left-color: #f87171;
   background: #fff5f5;
+}
+
+.wsp-upcoming-info {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  width: 100%;
+  gap: 6px;
+}
+
+.planner-dots {
+  display: flex;
+  justify-content: center;
+  gap: 2px;
+  margin-top: 1px;
+}
+
+.planner-dot {
+  width: 5px;
+  height: 3px;
+  border-radius: 1.5px;
+  flex-shrink: 0;
 }
 
 .wsp-upcoming-title {

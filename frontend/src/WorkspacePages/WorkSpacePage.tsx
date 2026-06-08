@@ -593,45 +593,74 @@ export default function WorkSpacePage() {
             <span className="wsp-cal-title">{calYear}년 {calMonth + 1}월</span>
             <button className="wsp-cal-nav" onClick={nextMonth}>›</button>
           </div>
-          <div className="wsp-cal-grid">
-            {DAYS.map((d) => (
-              <div key={d} className={`wsp-cal-day-label ${d === "일" ? "sun" : d === "토" ? "sat" : ""}`}>{d}</div>
-            ))}
-            {calDays.map((d, i) => {
-              const isToday = d === TODAY.getDate() && calMonth === TODAY.getMonth() && calYear === TODAY.getFullYear();
-              return (
-                <div key={i} className={`wsp-cal-day ${!d ? "empty" : ""} ${isToday ? "today" : ""}`}>
-                  {d}
-                </div>
-              );
-            })}
-          </div>
-          <div className="wsp-upcoming-label">다가오는 마감일</div>
           {(() => {
-            const today = new Date(); today.setHours(0,0,0,0);
-            const upcoming = Object.values(cards).flat()
-              .filter((c) => c.dueDate)
-              .map((c) => {
-                const due = new Date(c.dueDate!); due.setHours(0,0,0,0);
-                const daysLeft = Math.ceil((due.getTime() - today.getTime()) / 86400000);
-                return { ...c, daysLeft };
-              })
-              .filter((c) => c.daysLeft >= 0)
-              .sort((a, b) => a.daysLeft - b.daysLeft)
-              .slice(0, 5);
-            if (upcoming.length === 0)
-              return <div className="wsp-upcoming-empty">마감일이 없습니다.</div>;
+            const allCards = Object.entries(cards).flatMap(([col, cs]) => cs.map(c => ({ ...c, col })));
+            const STATUS_COLOR: Record<string, string> = {
+              "상태 없음": "#aaa", "시작하지 않음": "#888",
+              "진행 중": "#4f7cff", "보류 중": "#f59e0b", "완료": "#22c55e",
+            };
+            // 날짜별 점 맵
+            const dotMap: Record<string, string[]> = {};
+            for (const c of allCards) {
+              if (!c.dueDate) continue;
+              const ds = c.dueDate.slice(0, 10);
+              if (!dotMap[ds]) dotMap[ds] = [];
+              if (dotMap[ds].length < 3) dotMap[ds].push(STATUS_COLOR[c.col] ?? "#aaa");
+            }
             return (
-              <div className="wsp-upcoming-list">
-                {upcoming.map((c) => (
-                  <div key={c.id} className={`wsp-upcoming-item ${c.daysLeft <= 3 ? "urgent" : ""}`}>
-                    <span className="wsp-upcoming-title">{c.title}</span>
-                    <span className="wsp-upcoming-days">
-                      {c.daysLeft === 0 ? "오늘" : `D-${c.daysLeft}`}
-                    </span>
-                  </div>
-                ))}
-              </div>
+              <>
+                <div className="wsp-cal-grid">
+                  {DAYS.map((d) => (
+                    <div key={d} className={`wsp-cal-day-label ${d === "일" ? "sun" : d === "토" ? "sat" : ""}`}>{d}</div>
+                  ))}
+                  {calDays.map((d, i) => {
+                    const isToday = d === TODAY.getDate() && calMonth === TODAY.getMonth() && calYear === TODAY.getFullYear();
+                    const ds = d ? `${calYear}-${String(calMonth + 1).padStart(2, "0")}-${String(d).padStart(2, "0")}` : "";
+                    const dots = ds ? (dotMap[ds] ?? []) : [];
+                    return (
+                      <div key={i} className={`wsp-cal-day ${!d ? "empty" : ""} ${isToday ? "today" : ""}`}>
+                        {d}
+                        {dots.length > 0 && (
+                          <div className="planner-dots">
+                            {dots.map((color, j) => (
+                              <span key={j} className="planner-dot" style={{ background: color }} />
+                            ))}
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })}
+                </div>
+                <div className="wsp-upcoming-label">다가오는 마감일</div>
+                {(() => {
+                  const now = new Date(); now.setHours(0, 0, 0, 0);
+                  const upcoming = allCards
+                    .filter((c) => c.dueDate && c.col !== "완료")
+                    .map((c) => {
+                      const due = new Date(c.dueDate!); due.setHours(0, 0, 0, 0);
+                      return { ...c, daysLeft: Math.ceil((due.getTime() - now.getTime()) / 86400000) };
+                    })
+                    .filter((c) => c.daysLeft >= 0)
+                    .sort((a, b) => a.daysLeft - b.daysLeft)
+                    .slice(0, 5);
+                  if (upcoming.length === 0)
+                    return <div className="wsp-upcoming-empty">마감일이 없습니다.</div>;
+                  return (
+                    <div className="wsp-upcoming-list">
+                      {upcoming.map((c) => (
+                        <div key={c.id} className="wsp-upcoming-item" style={{ borderLeftColor: STATUS_COLOR[c.col] ?? "#aaa" }}>
+                          <div className="wsp-upcoming-info">
+                            <span className="wsp-upcoming-title">{c.title}</span>
+                            <span className="wsp-upcoming-days">
+                              {c.daysLeft === 0 ? "오늘" : `D-${c.daysLeft}`}
+                            </span>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  );
+                })()}
+              </>
             );
           })()}
         </aside>
