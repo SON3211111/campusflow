@@ -62,9 +62,23 @@ const TEMPLATES = [
   { id: 43, name: "밀크티",          category: "파스텔", bg: "linear-gradient(135deg,#fafaf9 0%,#fef3c7 50%,#f5f0eb 100%)" },
   { id: 44, name: "수채화 하늘",     category: "파스텔", bg: "linear-gradient(135deg,#e0f7fa 0%,#b3e5fc 45%,#e8eaf6 100%)" },
   { id: 45, name: "봄 안개",         category: "파스텔", bg: "linear-gradient(135deg,#fce4ec 0%,#f8bbd9 45%,#e1bee7 100%)" },
+
+  // 패턴 카테고리
+  { id: 46, name: "줄 공책",         category: "패턴", bg: "repeating-linear-gradient(transparent,transparent 23px,#93c5fd 23px,#93c5fd 24px) #fefce8" },
+  { id: 47, name: "도트 노트",       category: "패턴", bg: "radial-gradient(circle,#94a3b8 1.5px,transparent 1.5px) 0 0/22px 22px #f8fafc" },
+  { id: 48, name: "방안지",          category: "패턴", bg: "repeating-linear-gradient(0deg,transparent,transparent 28px,#bfdbfe 28px,#bfdbfe 29px),repeating-linear-gradient(90deg,transparent,transparent 28px,#bfdbfe 28px,#bfdbfe 29px) #f0f9ff" },
+  { id: 49, name: "핑크 도트",       category: "패턴", bg: "radial-gradient(circle,#f9a8d4 2px,transparent 2px) 0 0/22px 22px #fff0f5" },
+  { id: 50, name: "대각 줄무늬",     category: "패턴", bg: "repeating-linear-gradient(45deg,transparent,transparent 8px,#e2e8f0 8px,#e2e8f0 9px) #f8fafc" },
+  { id: 51, name: "체크무늬",        category: "패턴", bg: "repeating-conic-gradient(#e2e8f0 0% 25%,#f8fafc 0% 50%) 0 0/28px 28px" },
+  { id: 52, name: "크로스해치",      category: "패턴", bg: "repeating-linear-gradient(45deg,transparent,transparent 5px,#ddd6fe 5px,#ddd6fe 6px),repeating-linear-gradient(-45deg,transparent,transparent 5px,#ddd6fe 5px,#ddd6fe 6px) #f8fafc" },
+  { id: 53, name: "민트 도트",       category: "패턴", bg: "radial-gradient(circle,#6ee7b7 2px,transparent 2px) 0 0/22px 22px #ecfdf5" },
+  { id: 54, name: "세로 줄",         category: "패턴", bg: "repeating-linear-gradient(90deg,transparent,transparent 14px,#e9d5ff 14px,#e9d5ff 15px) #faf5ff" },
+  { id: 55, name: "오프셋 도트",     category: "패턴", bg: "radial-gradient(circle,#fbbf24 1.5px,transparent 1.5px) 0 0/20px 20px,radial-gradient(circle,#fbbf24 1.5px,transparent 1.5px) 10px 10px/20px 20px #fffbeb" },
+  { id: 56, name: "빨간 공책",       category: "패턴", bg: "repeating-linear-gradient(transparent,transparent 23px,#fca5a5 23px,#fca5a5 24px) #fff5f5" },
+  { id: 57, name: "모눈 민트",       category: "패턴", bg: "repeating-linear-gradient(0deg,transparent,transparent 18px,#a7f3d0 18px,#a7f3d0 19px),repeating-linear-gradient(90deg,transparent,transparent 18px,#a7f3d0 18px,#a7f3d0 19px) #f0fdf4" },
 ];
 
-const CATEGORIES = ["인기", "파스텔", "풍경", "마케팅", "디자인"];
+const CATEGORIES = ["인기", "파스텔", "패턴", "풍경", "마케팅", "디자인"];
 
 export default function TemplatePage() {
   const { state } = useLocation() as {
