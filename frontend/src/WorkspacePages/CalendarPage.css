@@ -919,7 +919,96 @@
 .cal-task-chip:hover { background: #e0e8ff; }
 .cal-task-more { font-size: 10px; color: #999; padding-left: 4px; }
 
-/* ===== 팀원 시간표 아바타 row ===== */
+/* ── 내용 행 (시간표 + 사이드바) ── */
+.cs-content-row {
+  display: flex;
+  gap: 10px;
+  align-items: flex-start;
+}
+
+/* ── 아바타 사이드바 ── */
+.cs-avatar-sidebar {
+  width: 64px;
+  flex-shrink: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  padding-top: 32px;
+}
+.cs-sidebar-me {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 3px;
+  padding: 6px 4px;
+  border-radius: 10px;
+  background: #eef2ff;
+  border: 2px solid #4f7cff;
+  width: 54px;
+  box-sizing: border-box;
+}
+.cs-sidebar-divider { width: 32px; height: 1px; background: #e0e0e0; margin: 2px 0; }
+.cs-sidebar-avatar {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  padding: 5px 4px;
+  border-radius: 10px;
+  border: 2px solid transparent;
+  background: none;
+  cursor: pointer;
+  width: 54px;
+  box-sizing: border-box;
+  transition: border-color 0.15s, background 0.15s;
+}
+.cs-sidebar-avatar:hover { background: #f0f4ff; border-color: #c5d3ff; }
+.cs-sidebar-avatar.active { background: #eef2ff; border-color: #4f7cff; }
+.cs-sidebar-label {
+  font-size: 9px; font-weight: 700; color: #555;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  max-width: 50px; text-align: center;
+}
+.cs-sidebar-arrow { font-size: 8px; color: #4f7cff; line-height: 1; }
+.cs-sidebar-combined {
+  display: flex; flex-direction: column; align-items: center; gap: 2px;
+  padding: 6px 4px; border-radius: 10px; border: 2px solid #7c3aed;
+  background: none; cursor: pointer; width: 54px; box-sizing: border-box;
+  transition: background 0.15s;
+}
+.cs-sidebar-combined:hover { background: #f5f3ff; }
+.cs-sidebar-combined.active { background: #7c3aed; }
+.cs-sidebar-combined.active .cs-sidebar-label { color: #fff; }
+
+/* ── 슬라이드 팀원 패널 ── */
+.cs-member-panel {
+  overflow: hidden;
+  max-height: 0;
+  transition: max-height 0.38s cubic-bezier(0.4,0,0.2,1), margin-top 0.3s ease, opacity 0.25s ease;
+  margin-top: 0;
+  opacity: 0;
+}
+.cs-member-panel--open { max-height: 860px; margin-top: 10px; opacity: 1; }
+.cs-member-panel-header {
+  display: flex; align-items: center; gap: 8px;
+  padding: 10px 14px;
+  background: #f4f6ff; border-radius: 10px 10px 0 0;
+  border: 1px solid #dde5ff; border-bottom: none;
+  font-size: 13px; font-weight: 700; color: #222;
+}
+.cs-member-panel--combined .cs-member-panel-header {
+  background: rgba(124,58,237,0.07); border-color: rgba(124,58,237,0.2);
+}
+.cs-member-panel-readonly { font-size: 10px; font-weight: 500; color: #aaa; margin-left: 4px; }
+.cs-member-panel-close {
+  margin-left: auto; background: none; border: none;
+  font-size: 14px; color: #aaa; cursor: pointer; padding: 0; line-height: 1; flex-shrink: 0;
+}
+.cs-member-panel-close:hover { color: #555; }
+.cs-member-panel-body { border: 1px solid #dde5ff; border-radius: 0 0 10px 10px; overflow: hidden; }
+
+/* ===== 팀원 시간표 아바타 row (기존 미사용 클래스) ===== */
 .cs-member-row {
   display: flex;
   align-items: center;
@@ -978,6 +1067,81 @@
   font-weight: 600;
   color: #4f7cff;
   margin-bottom: 8px;
+}
+
+/* ── 가로 아바타 row ── */
+.cs-avatar-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 12px 0 14px;
+  border-bottom: 1px solid #f0f0f0;
+  margin-bottom: 14px;
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+.cs-avatar-row::-webkit-scrollbar { display: none; }
+
+.cs-avatar-tab {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  padding: 6px 10px;
+  border-radius: 14px;
+  border: 2px solid transparent;
+  background: none;
+  cursor: pointer;
+  flex-shrink: 0;
+  transition: border-color 0.15s, background 0.15s, transform 0.12s;
+}
+.cs-avatar-tab:hover {
+  background: #f0f4ff;
+  border-color: #c5d3ff;
+  transform: translateY(-2px);
+}
+.cs-avatar-tab--active {
+  background: #eef2ff;
+  border-color: #4f7cff;
+}
+.cs-avatar-tab--active .cs-avatar-tab-name { color: #4f7cff; }
+.cs-avatar-tab-name {
+  font-size: 11px;
+  font-weight: 700;
+  color: #666;
+  white-space: nowrap;
+}
+
+.cs-combined-tab {
+  margin-left: auto;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  padding: 8px 16px;
+  border: 2px solid #7c3aed;
+  border-radius: 20px;
+  background: none;
+  cursor: pointer;
+  font-size: 12px;
+  font-weight: 700;
+  color: #7c3aed;
+  transition: background 0.15s, color 0.15s;
+  white-space: nowrap;
+}
+.cs-combined-tab:hover { background: #f5f3ff; }
+.cs-combined-tab--active { background: #7c3aed; color: #fff; }
+
+/* 현재 보는 사람 바 */
+.cs-viewing-bar {
+  font-size: 12px;
+  font-weight: 600;
+  color: #555;
+  padding: 7px 12px;
+  background: #f8f9ff;
+  border-radius: 8px;
+  margin-bottom: 14px;
+  border-left: 3px solid #4f7cff;
 }
 
 /* ── 시간표 헤더 ── */
