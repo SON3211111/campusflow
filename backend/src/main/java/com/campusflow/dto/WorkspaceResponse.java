@@ -20,9 +20,15 @@ public class WorkspaceResponse {
     private String type;
     private String gradient;
     private String ownerId;
+    private java.util.List<String> customColumns;
 
     public static WorkspaceResponse from(Workspace workspace) {
         if (workspace == null) return null;
+
+        java.util.List<String> cols = java.util.Collections.emptyList();
+        if (workspace.getCustomColumns() != null && !workspace.getCustomColumns().isBlank()) {
+            cols = java.util.Arrays.asList(workspace.getCustomColumns().split(",", -1));
+        }
 
         return WorkspaceResponse.builder()
                 .workspaceId(workspace.getWorkspaceId())
@@ -30,6 +36,7 @@ public class WorkspaceResponse {
                 .type(workspace.getType() != null ? workspace.getType().name() : null)
                 .gradient(workspace.getGradient())
                 .ownerId(workspace.getOwner() != null ? workspace.getOwner().getUserId() : null)
+                .customColumns(cols)
                 .build();
     }
 }

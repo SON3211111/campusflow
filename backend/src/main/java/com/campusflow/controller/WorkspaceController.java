@@ -60,6 +60,13 @@ public class WorkspaceController {
                 .body(ApiResponse.success(201, "워크스페이스 생성 성공", WorkspaceResponse.from(newWorkspace)));
     }
 
+    @Operation(summary = "워크스페이스 단건 조회")
+    @GetMapping("/{workspaceId}")
+    public ResponseEntity<ApiResponse<WorkspaceResponse>> getWorkspace(@PathVariable String workspaceId) {
+        return ResponseEntity.ok(ApiResponse.success(200, "조회 성공",
+                WorkspaceResponse.from(workspaceService.getWorkspace(workspaceId))));
+    }
+
     @Operation(summary = "워크스페이스 수정")
     @PatchMapping("/{workspaceId}")
     public ResponseEntity<ApiResponse<WorkspaceResponse>> updateWorkspace(
@@ -69,6 +76,16 @@ public class WorkspaceController {
         Workspace updated = workspaceService.updateWorkspace(workspaceId, request.getName(), request.getGradient());
 
         return ResponseEntity.ok(ApiResponse.success(200, "수정 성공", WorkspaceResponse.from(updated)));
+    }
+
+    @Operation(summary = "커스텀 컬럼 목록 저장")
+    @PatchMapping("/{workspaceId}/columns")
+    public ResponseEntity<ApiResponse<WorkspaceResponse>> updateColumns(
+            @PathVariable String workspaceId,
+            @RequestBody java.util.Map<String, java.util.List<String>> body) {
+        java.util.List<String> columns = body.get("columns");
+        return ResponseEntity.ok(ApiResponse.success(200, "저장 성공",
+                WorkspaceResponse.from(workspaceService.updateCustomColumns(workspaceId, columns))));
     }
 
     @Operation(summary = "워크스페이스 삭제 (OWNER 전용)")

@@ -24,6 +24,11 @@ interface BarSegment {
   assigneeName?: string; assigneeId?: string;
   rawStart: string; rawEnd: string;
 }
+interface CalendarBar {
+  taskId: string; title: string; color: string;
+  assigneeName?: string; assigneeId?: string;
+  rawStart: string; rawEnd: string; visStart: string; visEnd: string;
+}
 
 // ── 상수 ─────────────────────────────────────────────────────────────
 const DAYS_KO   = ["일","월","화","수","목","금","토"];
@@ -74,11 +79,11 @@ function hexToRgba(hex:string,a:number){
 
 function computeBarMap(tasks:Task[],year:number,month:number):Record<string,BarSegment[]>{
   const firstDay=toDateStr(year,month,1),lastDay=toDateStr(year,month,new Date(year,month+1,0).getDate());
-  const bars=tasks.filter(t=>t.dueDate).map(t=>{
+  const bars: CalendarBar[]=tasks.filter(t=>t.dueDate).map((t): CalendarBar|null=>{
     const rawStart=(t.startDate||t.dueDate!).slice(0,10),rawEnd=t.dueDate!.slice(0,10);
     if(rawEnd<firstDay||rawStart>lastDay)return null;
     return{taskId:t.taskId,title:t.title,color:STATUS_COLOR[t.status]??"#bbb",assigneeName:t.assigneeName,assigneeId:t.assigneeId,rawStart,rawEnd,visStart:rawStart<firstDay?firstDay:rawStart,visEnd:rawEnd>lastDay?lastDay:rawEnd};
-  }).filter(Boolean) as NonNullable<ReturnType<typeof bars[0]>>[];
+  }).filter((bar): bar is CalendarBar => bar !== null);
   bars.sort((a,b)=>a.rawStart.localeCompare(b.rawStart)||a.taskId.localeCompare(b.taskId));
   const slotEnds:string[]=[];
   const placed=bars.map(bar=>{let slot=slotEnds.findIndex(e=>e<bar.visStart);if(slot===-1)slot=slotEnds.length;slotEnds[slot]=bar.visEnd;return{...bar,slot};});

@@ -183,18 +183,38 @@ export default function WorkSpacePage() {
       }
 
       try {
-        const res = await client.get(`/workspaces/${workspace.id}/tasks`);
-        const newCards = emptyCards();
-        for (const t of (res.data.data ?? [])) {
+        const tasksRes = await client.get(`/workspaces/${workspace.id}/tasks`);
+
+        let savedCustomCols: string[] = [];
+        try {
+          const wsRes = await client.get(`/workspaces/${workspace.id}`);
+          savedCustomCols = wsRes.data.data?.customColumns ?? [];
+        } catch (err) {
+          console.warn("워크스페이스 컬럼 조회 실패, 기본 컬럼으로 계속 진행합니다.", err);
+        }
+
+        // 커스텀 컬럼 복원
+        const mergedCols = [...INITIAL_COLS];
+        for (const c of savedCustomCols) {
+          if (!mergedCols.includes(c)) mergedCols.push(c);
+        }
+        setCols(mergedCols);
+
+        const newCards: { [col: string]: CardItem[] } = Object.fromEntries(
+          mergedCols.map((c) => [c, [] as CardItem[]])
+        );
+        for (const t of (tasksRes.data.data ?? [])) {
           const col = STATUS_TO_COL[t.status] ?? "상태 없음";
-          if (newCards[col]) {
-            newCards[col].push({ id: t.taskId, title: t.title, desc: t.description ?? "", startDate: t.startDate ?? "", dueDate: t.dueDate ?? "", assigneeId: t.assigneeId ?? "", assigneeName: t.assigneeName ?? "", priority: t.priority ?? "", quickSignal: t.quickSignal ?? "", comments: [] });
+          if (!newCards[col]) {
+            newCards[col] = [];
           }
+          newCards[col].push({ id: t.taskId, title: t.title, desc: t.description ?? "", startDate: t.startDate ?? "", dueDate: t.dueDate ?? "", assigneeId: t.assigneeId ?? "", assigneeName: t.assigneeName ?? "", priority: t.priority ?? "", quickSignal: t.quickSignal ?? "", comments: [] });
         }
         setCards(newCards);
         const hasTasks = Object.values(newCards).flat().length > 0 || basketTasks.length > 0;
         setShowLanding(!hasTasks);
-      } catch {
+      } catch (err) {
+        console.error("태스크 로드 실패:", err);
         setShowLanding(basketTasks.length === 0);
       } finally {
         setLoading(false);
@@ -318,13 +338,23 @@ export default function WorkSpacePage() {
     }
   };
 
-  const handleAddList = () => {
+  const handleAddList = async () => {
     if (!listName.trim()) return;
     const name = listName.trim();
-    setCols((prev) => [...prev, name]);
+    const newCols = [...cols, name];
+    setCols(newCols);
     setCards((prev) => ({ ...prev, [name]: [] }));
     setListName("");
     setAddingList(false);
+
+    if (workspace?.id) {
+      const customCols = newCols.filter((c) => !INITIAL_COLS.includes(c));
+      try {
+        await client.patch(`/workspaces/${workspace.id}/columns`, { columns: customCols });
+      } catch (err) {
+        console.error("컬럼 저장 실패:", err);
+      }
+    }
   };
 
   const [addingCol, setAddingCol]         = useState<string | null>(null);
@@ -363,18 +393,26 @@ export default function WorkSpacePage() {
 
     if (workspace?.id) {
       try {
-        const currentUserId = localStorage.getItem("userId");
+        const currentUserId = localStorage.getItem("userId") ?? "";
+        const currentUserName = wsMembers.find((m) => m.userId === currentUserId)?.name
+          ?? localStorage.getItem("userName")
+          ?? "";
         const res = await client.post(`/workspaces/${workspace.id}/tasks`, {
           title,
           description: "",
           status,
           assigneeId: currentUserId,
         });
+        const d = res.data.data;
         const newCard: CardItem = {
-          id: res.data.data.taskId,
-          title: res.data.data.title,
-          desc: res.data.data.description ?? "",
-          dueDate: res.data.data.dueDate ?? "",
+          id: d.taskId,
+          title: d.title,
+          desc: d.description ?? "",
+          dueDate: d.dueDate ?? "",
+          assigneeId: d.assigneeId ?? currentUserId,
+          assigneeName: d.assigneeName ?? currentUserName,
+          priority: d.priority ?? "",
+          quickSignal: d.quickSignal ?? "",
           comments: [],
         };
         setCards((prev) => ({ ...prev, [col]: [...(prev[col] ?? []), newCard] }));

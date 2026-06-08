@@ -79,10 +79,24 @@ public class WorkspaceService {
 
     @Transactional
     public Workspace updateWorkspace(String workspaceId, String newName, String newGradient) {
-        Workspace workspace = workspaceRepository.findById(workspaceId)
+        Workspace workspace = workspaceRepository.findByWorkspaceId(workspaceId)
                 .orElseThrow(() -> new IllegalArgumentException("존재하지 않는 워크스페이스입니다."));
         if (newName != null && !newName.isBlank()) workspace.setName(newName);
         if (newGradient != null && !newGradient.isBlank()) workspace.setGradient(newGradient);
+        return workspace;
+    }
+
+    @Transactional(readOnly = true)
+    public Workspace getWorkspace(String workspaceId) {
+        return workspaceRepository.findByWorkspaceId(workspaceId)
+                .orElseThrow(() -> new IllegalArgumentException("존재하지 않는 워크스페이스입니다."));
+    }
+
+    @Transactional
+    public Workspace updateCustomColumns(String workspaceId, List<String> columns) {
+        Workspace workspace = workspaceRepository.findByWorkspaceId(workspaceId)
+                .orElseThrow(() -> new IllegalArgumentException("존재하지 않는 워크스페이스입니다."));
+        workspace.setCustomColumns(columns == null || columns.isEmpty() ? null : String.join(",", columns));
         return workspace;
     }
 

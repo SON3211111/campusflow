@@ -29,4 +29,29 @@ export const WORKSPACE_TEMPLATES = [
   { id: 28, name: "라임 스파클",     category: "디자인", bg: "linear-gradient(135deg,#d9f99d 0%,#84cc16 50%,#22c55e 100%)" },
   { id: 29, name: "플럼 와인",       category: "마케팅", bg: "linear-gradient(135deg,#4c1d95 0%,#7e22ce 50%,#db2777 100%)" },
   { id: 30, name: "살구빛 오후",     category: "인기",   bg: "linear-gradient(135deg,#ffedd5 0%,#fdba74 52%,#fb7185 100%)" },
+
+  // 우주 카테고리
+  { id: 83, name: "별밭",           category: "우주",   bg: "radial-gradient(circle,#ffffffdd 1.5px,transparent 1.5px) 0 0/28px 28px,radial-gradient(circle,#aaaaff99 1px,transparent 1px) 14px 14px/22px 22px,radial-gradient(circle,#ffffff66 1px,transparent 1px) 7px 20px/18px 18px #030418" },
+  { id: 84, name: "성운",           category: "우주",   bg: "radial-gradient(ellipse 60% 50% at 25% 40%,rgba(124,58,237,0.75) 0%,transparent 60%),radial-gradient(ellipse 55% 60% at 75% 60%,rgba(29,78,216,0.7) 0%,transparent 60%),radial-gradient(ellipse 40% 45% at 55% 18%,rgba(190,24,93,0.65) 0%,transparent 55%) #050518" },
+  { id: 85, name: "딥 스페이스",    category: "우주",   bg: "radial-gradient(ellipse 80% 60% at 50% 50%,#0f0c3a 0%,#050312 100%)" },
+  { id: 86, name: "화성",           category: "우주",   bg: "linear-gradient(180deg,#1a0a00 0%,#5c1a00 28%,#c2410c 52%,#ea580c 72%,#fed7aa 100%)" },
+  { id: 87, name: "코스믹 오로라",  category: "우주",   bg: "linear-gradient(180deg,#020c1a 0%,#0d1f3c 30%,#0a4a3a 55%,#0d6b50 75%,#64d9b5 100%)" },
+  { id: 88, name: "은하 코어",      category: "우주",   bg: "radial-gradient(ellipse 40% 60% at 50% 50%,#fbbf24 0%,#f97316 15%,#7c3aed 40%,#1e0a4e 65%,#050315 100%)" },
+  { id: 89, name: "우주 먼지",      category: "우주",   bg: "radial-gradient(ellipse 70% 40% at 30% 30%,rgba(56,189,248,0.4) 0%,transparent 60%),radial-gradient(ellipse 50% 60% at 70% 70%,rgba(168,85,247,0.4) 0%,transparent 60%),radial-gradient(circle,#ffffffcc 1px,transparent 1px) 0 0/30px 30px,radial-gradient(circle,#ffffff66 1px,transparent 1px) 15px 15px/25px 25px #060215" },
+
+  // 초원 확장 (풍경)
+  { id: 90, name: "봄 초원",        category: "풍경",   bg: "linear-gradient(180deg,#87ceeb 0%,#b8e4f7 22%,#d4f0a0 45%,#78c850 68%,#3d8a30 100%)" },
+  { id: 91, name: "안개 초원",      category: "풍경",   bg: "linear-gradient(180deg,#e8f0e8 0%,#c8d8c8 30%,#a0c0a0 52%,#508050 72%,#2d5a2d 100%)" },
+  { id: 92, name: "달빛 초원",      category: "풍경",   bg: "linear-gradient(180deg,#080e1c 0%,#1a2744 28%,#2a3a5a 48%,#2a5530 65%,#163820 100%)" },
+  { id: 93, name: "여름 들판",      category: "풍경",   bg: "linear-gradient(180deg,#38b6e8 0%,#7dd8f0 18%,#fef9c3 42%,#90d840 60%,#3a8a18 80%,#1e5010 100%)" },
+  { id: 94, name: "초원 노을",      category: "풍경",   bg: "linear-gradient(180deg,#ff8c42 0%,#ff6b6b 25%,#c4546e 45%,#6b4a7a 60%,#2d5a30 75%,#163820 100%)" },
+
+  // 산리오 카테고리
+  { id: 95,  name: "핑크 리본",      category: "팝 무드", bg: "radial-gradient(circle 10px at 30% 50%,#ffb3d1 0%,#ff8ab5 60%,transparent 100%) 0 0/44px 36px,radial-gradient(circle 10px at 70% 50%,#ffb3d1 0%,#ff8ab5 60%,transparent 100%) 0 0/44px 36px,radial-gradient(circle 4px at 50% 52%,#e91e8c 0%,transparent 100%) 0 0/44px 36px #ffe4f0" },
+  { id: 96,  name: "퍼플 나이트",    category: "팝 무드", bg: "radial-gradient(ellipse 11px 9px at 50% 38%,#5b21b6 0%,transparent 100%) 0 0/30px 30px,radial-gradient(circle 2.5px at 43% 62%,#f0abfc 0%,transparent 100%) 0 0/30px 30px,radial-gradient(circle 2.5px at 57% 62%,#f0abfc 0%,transparent 100%) 0 0/30px 30px #09000f" },
+  { id: 97,  name: "솜구름",         category: "팝 무드", bg: "radial-gradient(circle 14px at 20% 52%,rgba(255,255,255,0.95) 0%,transparent 70%) 0 0/72px 54px,radial-gradient(circle 10px at 36% 42%,rgba(255,255,255,0.95) 0%,transparent 70%) 0 0/72px 54px,radial-gradient(circle 10px at 50% 52%,rgba(255,255,255,0.95) 0%,transparent 70%) 0 0/72px 54px #bfdbfe" },
+  { id: 98,  name: "레드 리본",      category: "팝 무드", bg: "radial-gradient(circle 9px at 34% 52%,#ef4444 0%,transparent 100%) 0 0/44px 36px,radial-gradient(circle 9px at 66% 52%,#ef4444 0%,transparent 100%) 0 0/44px 36px,radial-gradient(circle 3.5px at 50% 54%,#dc2626 0%,transparent 100%) 0 0/44px 36px #fff5f5" },
+  { id: 99,  name: "황금 베레모",    category: "팝 무드", bg: "radial-gradient(circle 14px at 50% 46%,#fbbf24 0%,#f59e0b 80%,transparent 100%) 0 0/46px 46px,radial-gradient(circle 7px at 50% 36%,#92400e 0%,transparent 100%) 0 0/46px 46px #fffbeb" },
+  { id: 100, name: "별빛 가루",      category: "팝 무드", bg: "radial-gradient(circle 3px at 20% 20%,#f472b6 0%,transparent 100%) 0 0/30px 30px,radial-gradient(circle 3px at 70% 70%,#93c5fd 0%,transparent 100%) 0 0/30px 30px,radial-gradient(circle 2px at 50% 50%,#fbbf24 0%,transparent 100%) 0 0/30px 30px,linear-gradient(135deg,#fce7f3 0%,#ede9fe 50%,#dbeafe 100%)" },
+  { id: 101, name: "블랙 팝",        category: "팝 무드", bg: "radial-gradient(circle 12px at 50% 42%,#111 0%,transparent 100%) 0 0/36px 36px,radial-gradient(ellipse 8px 4px at 50% 56%,#fbbf24 0%,transparent 100%) 0 0/36px 36px #f0f0f0" },
 ];

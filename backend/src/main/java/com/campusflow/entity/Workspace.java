@@ -35,9 +35,11 @@ public class Workspace {
     @Column(name = "created_at", updatable = false)
     private LocalDateTime createdAt;
 
-    // UI 디자인을 위한 필드 (DB에 추가 필수)
     @Column(name = "gradient", length = 512)
     private String gradient;
+
+    @Column(name = "custom_columns", length = 1000)
+    private String customColumns;
 
     @PrePersist
     public void prePersist() {
