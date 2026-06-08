@@ -20,6 +20,15 @@ interface Attachment {
   createdAt: string;
 }
 
+const COL_OPTIONS = ["상태 없음", "시작하지 않음", "진행 중", "보류 중", "완료"] as const;
+const COL_COLOR: Record<string, string> = {
+  "상태 없음": "#aaa",
+  "시작하지 않음": "#888",
+  "진행 중": "#4f7cff",
+  "보류 중": "#f59e0b",
+  "완료": "#22c55e",
+};
+
 interface Props {
   title: string;
   colName: string;
@@ -38,6 +47,7 @@ interface Props {
   onSaveDueDate?: (dueDate: string) => void;
   onSaveComments?: (comments: Comment[]) => void;
   onSendSignal?: (signal: string | null) => void;
+  onStatusChange?: (newColName: string) => void;
   onClose: () => void;
 }
 
@@ -67,11 +77,14 @@ function formatSize(bytes: number) {
   return `${(bytes / (1024 * 1024)).toFixed(1)}MB`;
 }
 
-export default function CardDetailModal({ title, colName, taskId, workspaceId, initialDesc = "", initialStartDate = "", initialDueDate = "", initialComments = [], initialQuickSignal, assigneeId, assigneeName, onSaveTitle, onSaveDesc, onSaveStartDate, onSaveDueDate, onSaveComments, onSendSignal, onClose }: Props) {
+export default function CardDetailModal({ title, colName, taskId, workspaceId, initialDesc = "", initialStartDate = "", initialDueDate = "", initialComments = [], initialQuickSignal, assigneeId, assigneeName, onSaveTitle, onSaveDesc, onSaveStartDate, onSaveDueDate, onSaveComments, onSendSignal, onStatusChange, onClose }: Props) {
   const userName  = localStorage.getItem("userName") ?? "나";
   const userId    = localStorage.getItem("userId") ?? "";
   const [cardTitle, setCardTitle] = useState(title);
   const [editingTitle, setEditingTitle] = useState(false);
+  const [currentCol, setCurrentCol] = useState(colName);
+  const [statusDropOpen, setStatusDropOpen] = useState(false);
+  const statusDropRef = useRef<HTMLDivElement>(null);
   const [quickSignal, setQuickSignal] = useState(initialQuickSignal ?? null);
   const [desc, setDesc]         = useState(initialDesc);
   const [editingDesc, setEditingDesc] = useState(false);
@@ -86,6 +99,17 @@ export default function CardDetailModal({ title, colName, taskId, workspaceId, i
   const [uploading, setUploading] = useState(false);
   const [dragging, setDragging] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    if (!statusDropOpen) return;
+    const handler = (e: MouseEvent) => {
+      if (statusDropRef.current && !statusDropRef.current.contains(e.target as Node)) {
+        setStatusDropOpen(false);
+      }
+    };
+    document.addEventListener("mousedown", handler);
+    return () => document.removeEventListener("mousedown", handler);
+  }, [statusDropOpen]);
 
   useEffect(() => {
     if (!taskId || !workspaceId) return;
@@ -174,7 +198,37 @@ export default function CardDetailModal({ title, colName, taskId, workspaceId, i
     <div className="cdm-overlay" onClick={onClose}>
       <div className="cdm-modal" onClick={(e) => e.stopPropagation()}>
         <div className="cdm-header">
-          <span className="cdm-col-badge">{colName} ▾</span>
+          {/* 상태 변경 드롭다운 */}
+          <div className="cdm-status-wrap" ref={statusDropRef}>
+            <button
+              className="cdm-col-badge"
+              style={{ borderColor: COL_COLOR[currentCol], color: COL_COLOR[currentCol] }}
+              onClick={() => setStatusDropOpen((v) => !v)}
+            >
+              {currentCol} ▾
+            </button>
+            {statusDropOpen && (
+              <div className="cdm-status-dropdown">
+                {COL_OPTIONS.map((opt) => (
+                  <button
+                    key={opt}
+                    className={`cdm-status-option ${opt === currentCol ? "active" : ""}`}
+                    style={{ "--opt-color": COL_COLOR[opt] } as React.CSSProperties}
+                    onClick={() => {
+                      if (opt !== currentCol) {
+                        setCurrentCol(opt);
+                        onStatusChange?.(opt);
+                      }
+                      setStatusDropOpen(false);
+                    }}
+                  >
+                    <span className="cdm-status-dot" style={{ background: COL_COLOR[opt] }} />
+                    {opt}
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
           <div className="cdm-header-actions">
             <button className="cdm-icon-btn">⤢</button>
             <button className="cdm-icon-btn">···</button>

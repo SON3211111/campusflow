@@ -507,6 +507,27 @@ export default function WorkSpacePage() {
     setCards((prev) => ({ ...prev, [col]: prev[col].map((c) => c.id === id ? { ...c, comments } : c) }));
   };
 
+  const handleStatusChangeFromModal = async (col: string, id: string, newColName: string) => {
+    const newStatus = COL_TO_STATUS[newColName];
+    if (!newStatus || !workspace?.id) return;
+    const userId = localStorage.getItem("userId") ?? "";
+    try {
+      await client.patch(`/workspaces/${workspace.id}/tasks/${id}/status?status=${newStatus}&userId=${userId}`);
+      setCards((prev) => {
+        const next = { ...prev };
+        const card = next[col]?.find((c) => c.id === id);
+        if (!card) return next;
+        next[col] = next[col].filter((c) => c.id !== id);
+        next[newColName] = [...(next[newColName] ?? []), card];
+        return next;
+      });
+      setSelectedCard((prev) => prev ? { ...prev, col: newColName } : null);
+    } catch (err) {
+      console.error("상태 변경 실패:", err);
+      alert("상태 변경에 실패했습니다.");
+    }
+  };
+
   const handleBoardStatusChange = async (taskId: string, newColKey: string) => {
     const newStatus = BSV_KEY_TO_STATUS[newColKey];
     if (newStatus && workspace?.id) {
@@ -808,6 +829,7 @@ export default function WorkSpacePage() {
           onSaveDueDate={(dueDate) => handleSaveDueDate(selectedCard.col, selectedCard.card.id, dueDate)}
           onSaveComments={(comments) => handleSaveComments(selectedCard.col, selectedCard.card.id, comments)}
           onSendSignal={(signal) => handleSendSignal(selectedCard.col, selectedCard.card.id, signal)}
+          onStatusChange={(newColName) => handleStatusChangeFromModal(selectedCard.col, selectedCard.card.id, newColName)}
           onClose={() => setSelectedCard(null)}
         />
       )}
