@@ -76,9 +76,28 @@ const TEMPLATES = [
   { id: 55, name: "오프셋 도트",     category: "패턴", bg: "radial-gradient(circle,#fbbf24 1.5px,transparent 1.5px) 0 0/20px 20px,radial-gradient(circle,#fbbf24 1.5px,transparent 1.5px) 10px 10px/20px 20px #fffbeb" },
   { id: 56, name: "빨간 공책",       category: "패턴", bg: "repeating-linear-gradient(transparent,transparent 23px,#fca5a5 23px,#fca5a5 24px) #fff5f5" },
   { id: 57, name: "모눈 민트",       category: "패턴", bg: "repeating-linear-gradient(0deg,transparent,transparent 18px,#a7f3d0 18px,#a7f3d0 19px),repeating-linear-gradient(90deg,transparent,transparent 18px,#a7f3d0 18px,#a7f3d0 19px) #f0fdf4" },
+
+  // 새 풍경 배경
+  { id: 58, name: "사막 황혼",       category: "풍경", bg: "linear-gradient(180deg,#ff7043 0%,#e64a19 35%,#bf360c 62%,#7b1f0e 100%)" },
+  { id: 59, name: "황금 들판",       category: "풍경", bg: "linear-gradient(180deg,#81d4fa 0%,#29b6f6 28%,#fdd835 52%,#f57f17 66%,#388e3c 80%,#1b5e20 100%)" },
+  { id: 60, name: "알프스 빙하",     category: "풍경", bg: "linear-gradient(180deg,#b3e5fc 0%,#81d4fa 22%,#eceff1 42%,#e0e0e0 55%,#a5d6a7 72%,#388e3c 100%)" },
+  { id: 61, name: "가을 단풍",       category: "풍경", bg: "linear-gradient(135deg,#bf360c 0%,#e64a19 22%,#f57c00 45%,#ffa000 68%,#fdd835 100%)" },
+  { id: 62, name: "열대 해변",       category: "풍경", bg: "linear-gradient(180deg,#00b0ff 0%,#0091ea 28%,#80d8ff 44%,#fff176 52%,#ffe082 60%,#69f0ae 72%,#00897b 100%)" },
+  { id: 63, name: "설산",            category: "풍경", bg: "linear-gradient(180deg,#e3f2fd 0%,#bbdefb 18%,#90caf9 38%,#78909c 55%,#546e7a 72%,#37474f 100%)" },
+
+  // 동물 패턴
+  { id: 64, name: "얼룩말",          category: "동물", bg: "repeating-linear-gradient(105deg,#111 0px,#111 18px,#f2f2f2 18px,#f2f2f2 34px)" },
+  { id: 65, name: "호랑이",          category: "동물", bg: "repeating-linear-gradient(85deg,#d97706 0,#d97706 13px,#7c2d12 13px,#7c2d12 20px,#d97706 20px,#d97706 30px,#7c2d12 30px,#7c2d12 35px)" },
+  { id: 66, name: "치타",            category: "동물", bg: "radial-gradient(ellipse 6px 8px at 12% 18%,#78350f 90%,transparent 100%),radial-gradient(ellipse 8px 5px at 32% 68%,#78350f 90%,transparent 100%),radial-gradient(ellipse 5px 7px at 55% 12%,#78350f 90%,transparent 100%),radial-gradient(ellipse 7px 8px at 72% 48%,#78350f 90%,transparent 100%),radial-gradient(ellipse 5px 6px at 88% 78%,#78350f 90%,transparent 100%),radial-gradient(ellipse 6px 5px at 22% 82%,#78350f 90%,transparent 100%),radial-gradient(ellipse 7px 5px at 46% 38%,#78350f 90%,transparent 100%),radial-gradient(ellipse 5px 8px at 92% 22%,#78350f 90%,transparent 100%) #d97706" },
+  { id: 67, name: "달마시안",        category: "동물", bg: "radial-gradient(ellipse 20px 13px at 14% 22%,#111 93%,transparent 100%),radial-gradient(ellipse 13px 20px at 40% 72%,#111 93%,transparent 100%),radial-gradient(ellipse 22px 15px at 65% 18%,#111 93%,transparent 100%),radial-gradient(ellipse 15px 22px at 82% 62%,#111 93%,transparent 100%),radial-gradient(ellipse 18px 11px at 50% 88%,#111 93%,transparent 100%),radial-gradient(ellipse 11px 16px at 6% 68%,#111 93%,transparent 100%),radial-gradient(ellipse 15px 13px at 93% 14%,#111 93%,transparent 100%) white" },
+  { id: 68, name: "뱀 비늘",         category: "동물", bg: "repeating-linear-gradient(60deg,transparent,transparent 9px,rgba(0,0,0,0.18) 9px,rgba(0,0,0,0.18) 10px),repeating-linear-gradient(-60deg,transparent,transparent 9px,rgba(0,0,0,0.18) 9px,rgba(0,0,0,0.18) 10px) #2d6a4f" },
+  { id: 69, name: "기린",            category: "동물", bg: "repeating-linear-gradient(0deg,transparent,transparent 20px,#92400e 20px,#92400e 22px),repeating-linear-gradient(60deg,transparent,transparent 20px,#92400e 20px,#92400e 22px),repeating-linear-gradient(120deg,transparent,transparent 20px,#92400e 20px,#92400e 22px) #fef3c7" },
+  { id: 70, name: "소 무늬",         category: "동물", bg: "radial-gradient(ellipse 24px 16px at 18% 28%,#111 92%,transparent 100%),radial-gradient(ellipse 16px 24px at 48% 74%,#111 92%,transparent 100%),radial-gradient(ellipse 26px 15px at 76% 22%,#111 92%,transparent 100%),radial-gradient(ellipse 18px 26px at 90% 68%,#111 92%,transparent 100%),radial-gradient(ellipse 20px 14px at 36% 90%,#111 92%,transparent 100%) white" },
+  { id: 71, name: "공작",            category: "동물", bg: "repeating-radial-gradient(circle at 0 0,transparent 9px,#0e7490 9px,#0e7490 10px,transparent 10px),repeating-radial-gradient(circle at 15px 15px,transparent 9px,#0e7490 9px,#0e7490 10px,transparent 10px) #ecfeff" },
+  { id: 72, name: "표범 핑크",       category: "동물", bg: "radial-gradient(ellipse 6px 8px at 10% 20%,#9d174d 88%,transparent 100%),radial-gradient(ellipse 8px 6px at 33% 65%,#9d174d 88%,transparent 100%),radial-gradient(ellipse 5px 7px at 58% 15%,#9d174d 88%,transparent 100%),radial-gradient(ellipse 7px 8px at 74% 50%,#9d174d 88%,transparent 100%),radial-gradient(ellipse 6px 5px at 88% 80%,#9d174d 88%,transparent 100%),radial-gradient(ellipse 5px 7px at 20% 85%,#9d174d 88%,transparent 100%),radial-gradient(ellipse 7px 5px at 45% 40%,#9d174d 88%,transparent 100%) #fbcfe8" },
 ];
 
-const CATEGORIES = ["인기", "파스텔", "패턴", "풍경", "마케팅", "디자인"];
+const CATEGORIES = ["인기", "파스텔", "패턴", "동물", "풍경", "마케팅", "디자인"];
 
 export default function TemplatePage() {
   const { state } = useLocation() as {
