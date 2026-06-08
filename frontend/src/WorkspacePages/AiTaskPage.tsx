@@ -7,6 +7,7 @@
 import { useState, useEffect, useRef } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import Header from "../components/Header";
+import PixelAvatar from "../components/PixelAvatar";
 import client from "../api/client";
 import { getAppendBuffer, clearAppendBuffer, hasAppendBuffer } from "../store/aiTaskBuffer";
 import { createWorkspaceThemeStyle, withStoredGradient, withStoredGradients } from "../utils/workspaceTheme";
@@ -50,11 +51,6 @@ interface WorkspaceItem {
   id: string;
   name: string;
   gradient: string;
-}
-
-interface AiTask {
-  name: string;
-  priority?: string;
 }
 
 interface AiResult {
@@ -582,7 +578,7 @@ export default function AiTaskPage() {
                       );
                     })}
                   </div>
-                  <div className="atp-avatar">{member.name[0]}</div>
+                  <PixelAvatar userId={member.userId} name={member.name} size="sm" className="atp-pixel-avatar" />
                   <span className="atp-user-name">{member.name}</span>
                 </div>
               );

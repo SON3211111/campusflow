@@ -28,9 +28,54 @@
   animation: authRise 0.7s ease-out both;
 }
 
+.auth-logo-brand {
+  gap: 10px;
+  border-radius: 16px;
+  background: rgba(255, 255, 255, 0.64);
+  padding: 8px 13px 8px 8px;
+  color: #2f3970;
+  box-shadow: 0 12px 28px rgba(52, 62, 117, 0.1);
+  backdrop-filter: blur(14px);
+  transition: transform 0.16s ease, box-shadow 0.16s ease, background 0.16s ease;
+}
+
+.auth-logo-brand:hover {
+  transform: translateY(-2px);
+  background: rgba(255, 255, 255, 0.86);
+  box-shadow: 0 16px 34px rgba(52, 62, 117, 0.15);
+}
+
+.auth-logo-brand:focus-visible {
+  outline: 3px solid rgba(96, 124, 255, 0.28);
+  outline-offset: 3px;
+}
+
 .auth-logo-button img {
   width: 174px;
   height: auto;
+}
+
+.auth-logo-mark {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 34px;
+  height: 34px;
+  flex: 0 0 34px;
+  border-radius: 12px;
+  color: #fff;
+  background: linear-gradient(135deg, #607cff, #4ed3c2);
+  box-shadow: 0 8px 18px rgba(96, 124, 255, 0.24);
+  font-size: 16px;
+  font-weight: 950;
+}
+
+.auth-logo-text {
+  color: #222b55;
+  font-size: 16px;
+  font-weight: 950;
+  line-height: 1;
+  letter-spacing: 0;
 }
 
 .auth-hero-copy {
@@ -507,6 +552,24 @@
 
   .auth-logo-button img {
     width: 138px;
+  }
+
+  .auth-logo-brand {
+    gap: 8px;
+    padding: 7px 11px 7px 7px;
+    border-radius: 14px;
+  }
+
+  .auth-logo-mark {
+    width: 31px;
+    height: 31px;
+    flex-basis: 31px;
+    border-radius: 11px;
+    font-size: 15px;
+  }
+
+  .auth-logo-text {
+    font-size: 14px;
   }
 
   .auth-hero-copy {

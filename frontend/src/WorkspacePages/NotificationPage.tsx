@@ -138,7 +138,6 @@ export default function NotificationPage() {
   };
 
   const unreadCount = notis.filter((n) => !n.read).length;
-  const bottleneckCount = notis.filter((n) => n.type === "BOTTLENECK").length;
   const dueDateCount    = notis.filter((n) => n.type === "DUE_DATE").length;
   const requestCount    = notis.filter((n) => ["QUICK_SIGNAL", "COMMENT", "MENTION"].includes(n.type)).length;
 

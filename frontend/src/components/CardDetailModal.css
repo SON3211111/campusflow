@@ -323,6 +323,10 @@
   flex-shrink: 0;
 }
 
+.cdm-pixel-avatar {
+  flex-shrink: 0;
+}
+
 .cdm-activity-content {
   display: flex;
   flex-direction: column;

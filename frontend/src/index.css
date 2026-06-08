@@ -34,24 +34,22 @@
   }
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --text: #9ca3af;
-    --text-h: #f3f4f6;
-    --bg: #16171d;
-    --border: #2e303a;
-    --code-bg: #1f2028;
-    --accent: #c084fc;
-    --accent-bg: rgba(192, 132, 252, 0.15);
-    --accent-border: rgba(192, 132, 252, 0.5);
-    --social-bg: rgba(47, 48, 58, 0.5);
-    --shadow:
-      rgba(0, 0, 0, 0.4) 0 10px 15px -3px, rgba(0, 0, 0, 0.25) 0 4px 6px -2px;
-  }
+:root[data-theme="dark"] {
+  --text: #aeb7cc;
+  --text-h: #f5f7fb;
+  --bg: #11131a;
+  --border: #2a2f3f;
+  --code-bg: #1b1e29;
+  --accent: #9ba8ff;
+  --accent-bg: rgba(155, 168, 255, 0.14);
+  --accent-border: rgba(155, 168, 255, 0.45);
+  --social-bg: rgba(33, 37, 50, 0.72);
+  --shadow:
+    rgba(0, 0, 0, 0.46) 0 14px 30px -8px, rgba(0, 0, 0, 0.32) 0 6px 12px -6px;
+}
 
-  #social .button-icon {
-    filter: invert(1) brightness(2);
-  }
+:root[data-theme="dark"] #social .button-icon {
+  filter: invert(1) brightness(2);
 }
 
 #root {
@@ -68,12 +66,417 @@
 
 body {
   margin: 0;
+  background: var(--bg);
   font-family: var(--sans);
   font-size: 14px;
   font-weight: 400;
   line-height: 1.5;
   letter-spacing: -0.012em;
   word-break: keep-all;
+}
+
+:root[data-theme="dark"] body,
+:root[data-theme="dark"] #root {
+  background: #11131a;
+  color: var(--text);
+}
+
+:root[data-theme="dark"] .header,
+:root[data-theme="dark"] .profile-page,
+:root[data-theme="dark"] .workspace-list-page,
+:root[data-theme="dark"] .board-page,
+:root[data-theme="dark"] .member-page,
+:root[data-theme="dark"] .setting-page,
+:root[data-theme="dark"] .template-page,
+:root[data-theme="dark"] .dashboard-page,
+:root[data-theme="dark"] .ai-task-page,
+:root[data-theme="dark"] .notification-page {
+  background: #11131a;
+  color: var(--text);
+}
+
+:root[data-theme="dark"] .header {
+  background: rgba(18, 21, 31, 0.92);
+  border-bottom-color: #252b3b;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.2);
+}
+
+:root[data-theme="dark"] .header-user,
+:root[data-theme="dark"] .search-input,
+:root[data-theme="dark"] .search-dropdown,
+:root[data-theme="dark"] .noti-dropdown,
+:root[data-theme="dark"] .user-dropdown,
+:root[data-theme="dark"] .profile-hero,
+:root[data-theme="dark"] .profile-summary-item,
+:root[data-theme="dark"] .profile-panel,
+:root[data-theme="dark"] .profile-input-shell,
+:root[data-theme="dark"] .profile-plain-input,
+:root[data-theme="dark"] .profile-theme-toggle,
+:root[data-theme="dark"] .profile-language-option,
+:root[data-theme="dark"] .workspace-list-toolbar,
+:root[data-theme="dark"] .workspace-list-empty,
+:root[data-theme="dark"] .workspace-card,
+:root[data-theme="dark"] .member-panel,
+:root[data-theme="dark"] .member-card,
+:root[data-theme="dark"] .setting-panel,
+:root[data-theme="dark"] .template-card,
+:root[data-theme="dark"] .dbp-card,
+:root[data-theme="dark"] .atp-card,
+:root[data-theme="dark"] .ntp-panel,
+:root[data-theme="dark"] .ntp-summary-card,
+:root[data-theme="dark"] .cdm-modal,
+:root[data-theme="dark"] .join-modal,
+:root[data-theme="dark"] .ai-modal,
+:root[data-theme="dark"] .board-creator,
+:root[data-theme="dark"] .workspace-switcher-popover {
+  background-color: #181c27;
+  border-color: #2b3142;
+  color: var(--text);
+}
+
+:root[data-theme="dark"] .profile-theme-option.active,
+:root[data-theme="dark"] .profile-language-option.active,
+:root[data-theme="dark"] .user-dropdown-profile,
+:root[data-theme="dark"] .noti-title,
+:root[data-theme="dark"] .search-result-item:hover,
+:root[data-theme="dark"] .user-dropdown-item:hover,
+:root[data-theme="dark"] .header-user:hover,
+:root[data-theme="dark"] .header-icon-btn,
+:root[data-theme="dark"] .header-myprojects:hover,
+:root[data-theme="dark"] .profile-input-shell.readonly {
+  background: #202637;
+}
+
+:root[data-theme="dark"] input,
+:root[data-theme="dark"] textarea,
+:root[data-theme="dark"] select {
+  color: #eef2ff;
+}
+
+:root[data-theme="dark"] input::placeholder,
+:root[data-theme="dark"] textarea::placeholder {
+  color: #737d98;
+}
+
+:root[data-theme="dark"] h1,
+:root[data-theme="dark"] h2,
+:root[data-theme="dark"] h3,
+:root[data-theme="dark"] h4,
+:root[data-theme="dark"] .profile-hero h1,
+:root[data-theme="dark"] .profile-panel-head h2,
+:root[data-theme="dark"] .profile-summary-item strong,
+:root[data-theme="dark"] .profile-field span,
+:root[data-theme="dark"] .profile-language-native,
+:root[data-theme="dark"] .user-dropdown-name,
+:root[data-theme="dark"] .search-result-name {
+  color: #f5f7fb;
+}
+
+:root[data-theme="dark"] .profile-hero p:last-child,
+:root[data-theme="dark"] .profile-panel-head p,
+:root[data-theme="dark"] .profile-summary-item span,
+:root[data-theme="dark"] .profile-language-label,
+:root[data-theme="dark"] .profile-language-current,
+:root[data-theme="dark"] .user-dropdown-caption,
+:root[data-theme="dark"] .profile-theme-option,
+:root[data-theme="dark"] .header-user,
+:root[data-theme="dark"] .header-myprojects,
+:root[data-theme="dark"] .search-input {
+  color: #aeb7cc;
+}
+
+:root[data-theme="dark"] .main-page-wrapper,
+:root[data-theme="dark"] .auth-page,
+:root[data-theme="dark"] .workspace-page,
+:root[data-theme="dark"] .workspace-body,
+:root[data-theme="dark"] .wsp-page,
+:root[data-theme="dark"] .wsp-body,
+:root[data-theme="dark"] .wsp-panel-layout,
+:root[data-theme="dark"] .dbp-page,
+:root[data-theme="dark"] .dbp-body,
+:root[data-theme="dark"] .atp-page,
+:root[data-theme="dark"] .atp-body,
+:root[data-theme="dark"] .ntp-page {
+  background: #11131a !important;
+  color: var(--text);
+}
+
+:root[data-theme="dark"] .auth-card,
+:root[data-theme="dark"] .auth-center-stat,
+:root[data-theme="dark"] .auth-floating-chip,
+:root[data-theme="dark"] .auth-logo-brand,
+:root[data-theme="dark"] .main-secondary-btn,
+:root[data-theme="dark"] .motion-center,
+:root[data-theme="dark"] .motion-bubble,
+:root[data-theme="dark"] .stress-float,
+:root[data-theme="dark"] .wave-lane span,
+:root[data-theme="dark"] .ai-result-stack div,
+:root[data-theme="dark"] .workspace-hero,
+:root[data-theme="dark"] .workspace-empty-state,
+:root[data-theme="dark"] .sidebar,
+:root[data-theme="dark"] .modal-box,
+:root[data-theme="dark"] .wsp-community,
+:root[data-theme="dark"] .wsp-planner,
+:root[data-theme="dark"] .wsp-context-menu,
+:root[data-theme="dark"] .wsp-mention-dropdown,
+:root[data-theme="dark"] .wsp-reply-quote,
+:root[data-theme="dark"] .wsp-channel-create,
+:root[data-theme="dark"] .wsp-workspace-panel,
+:root[data-theme="dark"] .wsp-workspace-panel-empty,
+:root[data-theme="dark"] .wsp-workspace-switch-card,
+:root[data-theme="dark"] .member-hero-panel,
+:root[data-theme="dark"] .member-summary-card,
+:root[data-theme="dark"] .member-section,
+:root[data-theme="dark"] .invite-modal,
+:root[data-theme="dark"] .invite-search-result,
+:root[data-theme="dark"] .role-dropdown,
+:root[data-theme="dark"] .setting-hero-panel,
+:root[data-theme="dark"] .setting-summary-card,
+:root[data-theme="dark"] .setting-ws-header,
+:root[data-theme="dark"] .setting-section,
+:root[data-theme="dark"] .template-cat-dropdown,
+:root[data-theme="dark"] .template-thumb-full.empty,
+:root[data-theme="dark"] .dbp-card,
+:root[data-theme="dark"] .dbp-stat-row,
+:root[data-theme="dark"] .dbp-timeline-icon,
+:root[data-theme="dark"] .dbp-graph-track,
+:root[data-theme="dark"] .dbp-bar-track,
+:root[data-theme="dark"] .dbp-dl-bar,
+:root[data-theme="dark"] .dbp-upcoming-item,
+:root[data-theme="dark"] .ntp-hero,
+:root[data-theme="dark"] .ntp-summary-card,
+:root[data-theme="dark"] .ntp-bottleneck-card,
+:root[data-theme="dark"] .ntp-affected-list,
+:root[data-theme="dark"] .ntp-filters,
+:root[data-theme="dark"] .ntp-filter-btn.active,
+:root[data-theme="dark"] .ntp-read-all-btn,
+:root[data-theme="dark"] .ntp-empty,
+:root[data-theme="dark"] .ntp-item,
+:root[data-theme="dark"] .ai-modal-box,
+:root[data-theme="dark"] .ai-option-card,
+:root[data-theme="dark"] .atp-topbar,
+:root[data-theme="dark"] .atp-new-prompt-bar,
+:root[data-theme="dark"] .atp-reset-modal,
+:root[data-theme="dark"] .atp-confirm-modal,
+:root[data-theme="dark"] .atp-session,
+:root[data-theme="dark"] .atp-session-header,
+:root[data-theme="dark"] .atp-category-col,
+:root[data-theme="dark"] .atp-task-card,
+:root[data-theme="dark"] .atp-add-task-form,
+:root[data-theme="dark"] .atp-basket-bar,
+:root[data-theme="dark"] .atp-basket-box,
+:root[data-theme="dark"] .atp-basket-card,
+:root[data-theme="dark"] .cdm-modal {
+  background: #181c27 !important;
+  border-color: #2b3142 !important;
+  color: var(--text);
+}
+
+:root[data-theme="dark"] .danger-zone {
+  background: #251922 !important;
+  border-color: #5a2936 !important;
+}
+
+:root[data-theme="dark"] .ntp-delay-banner,
+:root[data-theme="dark"] .ntp-summary-card--bottleneck:hover,
+:root[data-theme="dark"] .ntp-summary-card--delay:hover,
+:root[data-theme="dark"] .dbp-upcoming-item:has(.dbp-upcoming-days.today),
+:root[data-theme="dark"] .dbp-upcoming-item:has(.dbp-upcoming-days.urgent) {
+  background: #261d21 !important;
+  border-color: #713642 !important;
+}
+
+:root[data-theme="dark"] .workspace-hero-summary,
+:root[data-theme="dark"] .section-count,
+:root[data-theme="dark"] .sidebar-nav-item.active,
+:root[data-theme="dark"] .active-subitem,
+:root[data-theme="dark"] .member-owner-badge,
+:root[data-theme="dark"] .setting-summary-card,
+:root[data-theme="dark"] .vis-btn.active,
+:root[data-theme="dark"] .wsp-channel-active,
+:root[data-theme="dark"] .wsp-cal-day.today,
+:root[data-theme="dark"] .wsp-workspace-switch-card.active {
+  background: #202a44 !important;
+  color: #cbd6ff !important;
+}
+
+:root[data-theme="dark"] .sidebar-item:hover,
+:root[data-theme="dark"] .sidebar-subitem:hover,
+:root[data-theme="dark"] .sidebar-nav-item:hover,
+:root[data-theme="dark"] .role-dropdown-item:hover,
+:root[data-theme="dark"] .template-cat-item:hover,
+:root[data-theme="dark"] .wsp-channel-item:hover,
+:root[data-theme="dark"] .wsp-context-menu button:hover,
+:root[data-theme="dark"] .wsp-new-msg-btn:hover,
+:root[data-theme="dark"] .ntp-bottleneck-header:hover,
+:root[data-theme="dark"] .atp-back-btn:hover,
+:root[data-theme="dark"] .atp-workspace-btn:hover,
+:root[data-theme="dark"] .atp-save-btn:hover,
+:root[data-theme="dark"] .atp-new-prompt-cancel:hover {
+  background: #222838 !important;
+  color: #eef2ff !important;
+}
+
+:root[data-theme="dark"] .auth-input-shell,
+:root[data-theme="dark"] .member-search,
+:root[data-theme="dark"] .invite-email-input,
+:root[data-theme="dark"] .setting-input,
+:root[data-theme="dark"] .template-search,
+:root[data-theme="dark"] .wsp-search,
+:root[data-theme="dark"] .wsp-msg-input,
+:root[data-theme="dark"] .wsp-edit-input,
+:root[data-theme="dark"] .wsp-channel-input,
+:root[data-theme="dark"] .ai-prompt-textarea,
+:root[data-theme="dark"] .ai-select,
+:root[data-theme="dark"] .ai-input,
+:root[data-theme="dark"] .atp-new-prompt-input,
+:root[data-theme="dark"] .atp-reset-textarea,
+:root[data-theme="dark"] .atp-task-edit-input,
+:root[data-theme="dark"] .atp-add-task-input,
+:root[data-theme="dark"] .cdm-input,
+:root[data-theme="dark"] .cdm-textarea {
+  background: #111827 !important;
+  border-color: #374151 !important;
+  color: #eef2ff !important;
+}
+
+:root[data-theme="dark"] .auth-logo-text,
+:root[data-theme="dark"] .auth-hero-copy h1,
+:root[data-theme="dark"] .auth-card h2,
+:root[data-theme="dark"] .auth-center-stat strong,
+:root[data-theme="dark"] .main-section-heading h2,
+:root[data-theme="dark"] .hero-copy h1,
+:root[data-theme="dark"] .stress-giant-copy h2,
+:root[data-theme="dark"] .rhythm-line strong,
+:root[data-theme="dark"] .motion-center strong,
+:root[data-theme="dark"] .workspace-hero h1,
+:root[data-theme="dark"] .section-title,
+:root[data-theme="dark"] .modal-title,
+:root[data-theme="dark"] .wsp-panel-title,
+:root[data-theme="dark"] .wsp-channel-item,
+:root[data-theme="dark"] .wsp-context-menu button,
+:root[data-theme="dark"] .wsp-workspace-panel-title,
+:root[data-theme="dark"] .wsp-workspace-switch-name,
+:root[data-theme="dark"] .member-hero-panel h1,
+:root[data-theme="dark"] .member-summary-card strong,
+:root[data-theme="dark"] .member-title,
+:root[data-theme="dark"] .member-section-label,
+:root[data-theme="dark"] .member-name,
+:root[data-theme="dark"] .invite-modal-title,
+:root[data-theme="dark"] .invite-result-name,
+:root[data-theme="dark"] .setting-hero-panel h1,
+:root[data-theme="dark"] .setting-summary-card strong,
+:root[data-theme="dark"] .setting-ws-name,
+:root[data-theme="dark"] .setting-section-title,
+:root[data-theme="dark"] .template-page-title,
+:root[data-theme="dark"] .template-cat-item,
+:root[data-theme="dark"] .template-name-full,
+:root[data-theme="dark"] .dbp-card-title,
+:root[data-theme="dark"] .dbp-stat-val,
+:root[data-theme="dark"] .dbp-upcoming-title,
+:root[data-theme="dark"] .ntp-title,
+:root[data-theme="dark"] .ntp-summary-card strong,
+:root[data-theme="dark"] .ntp-bottleneck-title,
+:root[data-theme="dark"] .ntp-affected-name,
+:root[data-theme="dark"] .ntp-empty strong,
+:root[data-theme="dark"] .ai-modal-title,
+:root[data-theme="dark"] .ai-option-name,
+:root[data-theme="dark"] .atp-project-title,
+:root[data-theme="dark"] .atp-reset-modal-title,
+:root[data-theme="dark"] .atp-confirm-title,
+:root[data-theme="dark"] .atp-task-name,
+:root[data-theme="dark"] .atp-basket-card-name {
+  color: #f5f7fb !important;
+}
+
+:root[data-theme="dark"] .auth-hero-copy p:last-child,
+:root[data-theme="dark"] .auth-card-desc,
+:root[data-theme="dark"] .auth-field > span,
+:root[data-theme="dark"] .auth-social span,
+:root[data-theme="dark"] .auth-footer-link,
+:root[data-theme="dark"] .hero-desc,
+:root[data-theme="dark"] .rhythm-line p,
+:root[data-theme="dark"] .motion-center p,
+:root[data-theme="dark"] .workspace-hero-desc,
+:root[data-theme="dark"] .section-desc,
+:root[data-theme="dark"] .modal-desc,
+:root[data-theme="dark"] .sidebar-item,
+:root[data-theme="dark"] .sidebar-subitem,
+:root[data-theme="dark"] .sidebar-nav-item,
+:root[data-theme="dark"] .sidebar-label,
+:root[data-theme="dark"] .wsp-channel-label,
+:root[data-theme="dark"] .wsp-msg-text,
+:root[data-theme="dark"] .wsp-msg-time,
+:root[data-theme="dark"] .wsp-msg-empty,
+:root[data-theme="dark"] .wsp-new-msg-btn,
+:root[data-theme="dark"] .wsp-workspace-panel-desc,
+:root[data-theme="dark"] .wsp-workspace-switch-meta,
+:root[data-theme="dark"] .member-hero-panel p:last-child,
+:root[data-theme="dark"] .member-summary-card span,
+:root[data-theme="dark"] .member-count,
+:root[data-theme="dark"] .member-last,
+:root[data-theme="dark"] .invite-result-email,
+:root[data-theme="dark"] .setting-hero-panel p:last-child,
+:root[data-theme="dark"] .setting-summary-card span,
+:root[data-theme="dark"] .setting-ws-private,
+:root[data-theme="dark"] .setting-desc,
+:root[data-theme="dark"] .template-filter-label,
+:root[data-theme="dark"] .dbp-stat-label,
+:root[data-theme="dark"] .dbp-timeline-desc,
+:root[data-theme="dark"] .dbp-timeline-time,
+:root[data-theme="dark"] .dbp-graph-name,
+:root[data-theme="dark"] .dbp-graph-pct,
+:root[data-theme="dark"] .dbp-bar-name,
+:root[data-theme="dark"] .dbp-bar-legend,
+:root[data-theme="dark"] .dbp-dl-name,
+:root[data-theme="dark"] .dbp-request-label,
+:root[data-theme="dark"] .dbp-upcoming-date,
+:root[data-theme="dark"] .ntp-subtitle,
+:root[data-theme="dark"] .ntp-summary-card div span,
+:root[data-theme="dark"] .ntp-bottleneck-meta,
+:root[data-theme="dark"] .ntp-affected-meta,
+:root[data-theme="dark"] .ntp-filter-btn,
+:root[data-theme="dark"] .ntp-empty,
+:root[data-theme="dark"] .ai-option-desc,
+:root[data-theme="dark"] .ai-prompt-label,
+:root[data-theme="dark"] .atp-reset-label,
+:root[data-theme="dark"] .atp-session-prompt,
+:root[data-theme="dark"] .atp-empty-col,
+:root[data-theme="dark"] .atp-drop-hint,
+:root[data-theme="dark"] .atp-basket-card-session,
+:root[data-theme="dark"] .atp-basket-card-tag,
+:root[data-theme="dark"] .atp-user-name {
+  color: #aeb7cc !important;
+}
+
+:root[data-theme="dark"] .sidebar-divider,
+:root[data-theme="dark"] .setting-divider,
+:root[data-theme="dark"] .template-page-divider,
+:root[data-theme="dark"] .dbp-activity-divider,
+:root[data-theme="dark"] .dbp-dl-divider,
+:root[data-theme="dark"] .member-row,
+:root[data-theme="dark"] .wsp-msg-item,
+:root[data-theme="dark"] .ntp-affected-list,
+:root[data-theme="dark"] .ntp-affected-item {
+  border-color: #2b3142 !important;
+}
+
+:root[data-theme="dark"] .modal-btn.cancel,
+:root[data-theme="dark"] .modal-btn.discard,
+:root[data-theme="dark"] .role-btn,
+:root[data-theme="dark"] .leave-btn,
+:root[data-theme="dark"] .copy-id-btn,
+:root[data-theme="dark"] .invite-link-btn,
+:root[data-theme="dark"] .vis-btn,
+:root[data-theme="dark"] .template-cat-btn,
+:root[data-theme="dark"] .atp-back-btn,
+:root[data-theme="dark"] .atp-workspace-btn,
+:root[data-theme="dark"] .atp-save-btn,
+:root[data-theme="dark"] .atp-new-prompt-cancel,
+:root[data-theme="dark"] .wsp-msg-cancel {
+  background: #202637 !important;
+  border-color: #374151 !important;
+  color: #dbe4ff !important;
 }
 
 button,

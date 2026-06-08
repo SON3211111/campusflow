@@ -517,6 +517,10 @@
   color: #b45309;
 }
 
+.dbp-pixel-avatar {
+  margin-top: 2px;
+}
+
 /* ===== 반응형 ===== */
 @media (max-width: 1180px) {
   .dbp-body {

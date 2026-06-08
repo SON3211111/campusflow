@@ -2,7 +2,6 @@ import React, { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { ArrowRight, Eye, EyeOff, LockKeyhole, Mail, Sparkles } from "lucide-react";
 import { login } from "../api/auth";
-import logoImg from "../assets/Logo.png";
 import "./Login.css";
 
 const Login: React.FC = () => {
@@ -54,8 +53,9 @@ const Login: React.FC = () => {
   return (
     <div className="auth-page login-auth-page">
       <section className="auth-visual">
-        <button className="auth-logo-button" onClick={() => navigate("/")}>
-          <img src={logoImg} alt="CampusFlow" />
+        <button className="auth-logo-button auth-logo-brand" onClick={() => navigate("/")} aria-label="C'FLOW 랜딩페이지로 이동">
+          <span className="auth-logo-mark">C</span>
+          <span className="auth-logo-text">C'FLOW</span>
         </button>
         <div className="auth-hero-copy">
           <p className="auth-eyebrow">

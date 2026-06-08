@@ -134,6 +134,9 @@ public class WorkspaceService {
         boolean alreadyMember = workspaceMemberRepository
                 .existsByWorkspace_WorkspaceIdAndUser_UserId(workspaceId, userId);
         if (!alreadyMember) {
+            if (workspace.getType() == WorkspaceType.PERSONAL) {
+                workspace.setType(WorkspaceType.TEAM);
+            }
             WorkspaceMember member = WorkspaceMember.builder()
                     .workspace(workspace)
                     .user(user)

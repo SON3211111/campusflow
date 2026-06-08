@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef } from "react";
 import { Pencil, Trash2 } from "lucide-react";
+import PixelAvatar from "./PixelAvatar";
 import client from "../api/client";
 
 interface Props {
@@ -279,7 +280,7 @@ export default function WorkspaceCommunityPanel({ visible, workspaceId }: Props)
             <div className="wsp-mention-dropdown">
               {filteredMembers.map((m) => (
                 <div key={m.userId} className="wsp-mention-item" onClick={() => insertMention(m)}>
-                  <span className="wsp-mention-avatar">{m.name[0]}</span>{m.name}
+                  <PixelAvatar userId={m.userId} name={m.name} size="sm" className="wsp-mention-pixel-avatar" />{m.name}
                 </div>
               ))}
             </div>

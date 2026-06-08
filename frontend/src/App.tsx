@@ -7,6 +7,7 @@ import Login from './pages/Login';
 import Signup from './pages/Signup';
 import MailCode from './pages/Mailcode';
 import UserSetup from './pages/UserSetup';
+import ProfileSettings from './pages/ProfileSettings';
 import WorkspaceList from './ListPages/WorkspaceList';
 import TaskBreakdownPage from './WorkspacePages/TaskBreakdownPage';
 import AiTaskPage from './WorkspacePages/AiTaskPage';
@@ -33,6 +34,7 @@ function App() {
         <Route path="/signup" element={<Signup />} />
         <Route path="/mailcode" element={<MailCode />} />
         <Route path="/usersetup" element={<UserSetup />} />
+        <Route path="/profile-settings" element={<PrivateRoute><ProfileSettings /></PrivateRoute>} />
         <Route path="/workspace" element={<PrivateRoute><WorkspaceList /></PrivateRoute>} />
         <Route path="/board" element={<PrivateRoute><BoardPage /></PrivateRoute>} />
         <Route path="/members" element={<PrivateRoute><MemberPage /></PrivateRoute>} />

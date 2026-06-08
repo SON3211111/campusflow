@@ -4,12 +4,10 @@ import com.campusflow.dto.ApiResponse;
 import com.campusflow.entity.Invitation;
 import com.campusflow.entity.User;
 import com.campusflow.entity.Workspace;
-import com.campusflow.entity.WorkspaceMember;
-import com.campusflow.entity.enums.WorkspaceRole;
 import com.campusflow.repository.InvitationRepository;
 import com.campusflow.repository.UserRepository;
-import com.campusflow.repository.WorkspaceMemberRepository;
 import com.campusflow.repository.WorkspaceRepository;
+import com.campusflow.service.WorkspaceService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -26,7 +24,7 @@ public class InvitationController {
     private final InvitationRepository invitationRepository;
     private final UserRepository userRepository;
     private final WorkspaceRepository workspaceRepository;
-    private final WorkspaceMemberRepository workspaceMemberRepository;
+    private final WorkspaceService workspaceService;
 
     // 초대 보내기
     @PostMapping
@@ -72,16 +70,7 @@ public class InvitationController {
         Invitation inv = invitationRepository.findById(invitationId)
                 .orElseThrow(() -> new IllegalArgumentException("초대를 찾을 수 없습니다."));
 
-        boolean alreadyMember = workspaceMemberRepository
-                .existsByWorkspace_WorkspaceIdAndUser_UserId(inv.getWorkspace().getWorkspaceId(), inv.getInvitee().getUserId());
-        if (!alreadyMember) {
-            WorkspaceMember member = WorkspaceMember.builder()
-                    .workspace(inv.getWorkspace())
-                    .user(inv.getInvitee())
-                    .role(WorkspaceRole.MEMBER)
-                    .build();
-            workspaceMemberRepository.save(member);
-        }
+        workspaceService.joinWorkspace(inv.getWorkspace().getWorkspaceId(), inv.getInvitee().getUserId());
 
         inv.setStatus("ACCEPTED");
         invitationRepository.save(inv);

@@ -14,6 +14,7 @@ import BoardSubHeader from "../components/BoardSubHeader";
 import WorkspaceTabBar from "../components/WorkspaceTabBar";
 import CardDetailModal from "../components/CardDetailModal";
 import BoardSlideView from "../components/BoardSlideView";
+import PixelAvatar from "../components/PixelAvatar";
 import client from "../api/client";
 import { useWorkspaceSocket } from "../hooks/useWorkspaceSocket";
 import AITaskModal from "../components/AITaskModal";
@@ -684,9 +685,7 @@ export default function WorkSpacePage() {
                             </span>
                           )}
                           {card.assigneeName && (
-                            <span className="wsp-card-avatar" title={card.assigneeName}>
-                              {card.assigneeName[0].toUpperCase()}
-                            </span>
+                            <PixelAvatar userId={card.assigneeId} name={card.assigneeName} size="sm" className="wsp-card-pixel-avatar" />
                           )}
                         </div>
                       )}

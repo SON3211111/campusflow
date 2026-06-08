@@ -6,6 +6,7 @@
 import { useState, useRef, useEffect, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import { Bell, ChevronDown, LayoutGrid, LogOut, Search, Settings, UserRound } from "lucide-react";
+import PixelAvatar from "./PixelAvatar";
 import client from "../api/client";
 import "./Header.css";
 
@@ -269,14 +270,14 @@ export default function Header({ workspaces = [], showSearch = true, onLogout }:
             onClick={() => setUserMenuOpen((v) => !v)}
             style={{ position: 'relative' }}
           >
-            <div className="user-avatar">{userName[0]?.toUpperCase()}</div>
+            <PixelAvatar userId={userId} name={userName} size="sm" className="header-pixel-avatar" />
             <span className="user-name">{userName}님</span>
             <ChevronDown className={`dropdown-arrow ${userMenuOpen ? "open" : ""}`} size={15} />
 
             {userMenuOpen && (
               <div className="user-dropdown" onClick={(e) => e.stopPropagation()}>
                 <div className="user-dropdown-profile">
-                  <div className="user-dropdown-avatar">{userName[0]?.toUpperCase()}</div>
+                  <PixelAvatar userId={userId} name={userName} size="md" />
                   <div>
                     <p className="user-dropdown-name">{userName}님</p>
                     <p className="user-dropdown-caption">오늘도 좋은 하루 보내세요</p>
@@ -292,7 +293,7 @@ export default function Header({ workspaces = [], showSearch = true, onLogout }:
                 </div>
                 <div
                   className="user-dropdown-item"
-                  onClick={() => setUserMenuOpen(false)}
+                  onClick={() => { setUserMenuOpen(false); navigate('/profile-settings'); }}
                 >
                   <Settings size={16} />
                   개인정보 설정

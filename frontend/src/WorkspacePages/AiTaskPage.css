@@ -843,6 +843,10 @@
   flex-shrink: 0;
 }
 
+.atp-pixel-avatar {
+  flex-shrink: 0;
+}
+
 .atp-user-name {
   font-size: 13px;
   color: #444;

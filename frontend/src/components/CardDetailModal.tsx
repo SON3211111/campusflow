@@ -5,6 +5,7 @@
  */
 import { useState, useEffect } from "react";
 import { CalendarDays, MessageSquare } from "lucide-react";
+import PixelAvatar from "./PixelAvatar";
 import client from "../api/client";
 import "./CardDetailModal.css";
 
@@ -213,7 +214,7 @@ export default function CardDetailModal({ title, colName, taskId, workspaceId, i
             <div className="cdm-activity-list">
               {comments.map((c, i) => (
                 <div key={i} className="cdm-activity-item">
-                  <div className="cdm-activity-avatar">{c.user[0]}</div>
+                  <PixelAvatar name={c.user} size="sm" className="cdm-pixel-avatar" />
                   <div className="cdm-activity-content">
                     <span className="cdm-activity-user">{c.user}</span>
                     <span className="cdm-activity-text">{c.text}</span>
@@ -222,7 +223,7 @@ export default function CardDetailModal({ title, colName, taskId, workspaceId, i
                 </div>
               ))}
               <div className="cdm-activity-item">
-                <div className="cdm-activity-avatar">{userName[0]}</div>
+                <PixelAvatar userId={userId} name={userName} size="sm" className="cdm-pixel-avatar" />
                 <div className="cdm-activity-content">
                   <span className="cdm-activity-user">{userName}</span>
                   <span className="cdm-activity-text">이 카드를 {colName} 목록에 추가했습니다.</span>

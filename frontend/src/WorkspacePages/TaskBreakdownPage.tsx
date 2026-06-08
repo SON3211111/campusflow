@@ -7,6 +7,7 @@ import { useEffect, useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import client from "../api/client";
 import Header from "../components/Header";
+import PixelAvatar from "../components/PixelAvatar";
 import "./TaskBreakdownPage.css";
 
 const THEMES = [
@@ -184,6 +185,7 @@ export default function TaskBreakdownPage() {
   const append     = state?.append ?? false;
 
   const userName = localStorage.getItem("userName") ?? "나";
+  const userId = localStorage.getItem("userId") ?? "";
 
   const [loading, setLoading]   = useState(true);
   const [error, setError]       = useState("");
@@ -302,7 +304,7 @@ export default function TaskBreakdownPage() {
                 onDragLeave={() => setDragOver(false)}
                 onDrop={handleDrop}
               >
-                <div className="tbp-user-avatar">{userName[0]}</div>
+                <PixelAvatar userId={userId} name={userName} size="md" className="tbp-pixel-avatar" />
                 <span className="tbp-user-name">{userName}</span>
                 <div className="tbp-assigned-tasks">
                   {assigned.map((t, i) => (

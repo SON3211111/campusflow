@@ -372,6 +372,10 @@
   transition: transform 0.18s ease;
 }
 
+.header-pixel-avatar {
+  margin-right: 1px;
+}
+
 .dropdown-arrow.open {
   transform: rotate(180deg);
 }

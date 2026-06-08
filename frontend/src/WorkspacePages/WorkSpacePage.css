@@ -872,6 +872,10 @@
   margin-bottom: 4px;
 }
 
+.wsp-mention-pixel-avatar {
+  flex-shrink: 0;
+}
+
 .wsp-card-avatar {
   width: 22px;
   height: 22px;
@@ -899,6 +903,10 @@
   position: absolute;
   top: 10px;
   right: 12px;
+}
+
+.wsp-card-pixel-avatar {
+  margin-left: auto;
 }
 
 .wsp-card-item:hover .wsp-card-delete {

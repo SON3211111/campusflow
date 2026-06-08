@@ -4,6 +4,7 @@ import { AlertTriangle } from "lucide-react";
 import Header from "../components/Header";
 import BoardSubHeader from "../components/BoardSubHeader";
 import WorkspaceTabBar from "../components/WorkspaceTabBar";
+import PixelAvatar from "../components/PixelAvatar";
 import client from "../api/client";
 import WorkspacePlannerPanel from "../components/WorkspacePlannerPanel";
 import WorkspaceCommunityPanel from "../components/WorkspaceCommunityPanel";
@@ -48,6 +49,7 @@ export default function DashboardPage() {
   const themeStyle = createWorkspaceThemeStyle(workspace?.gradient);
   const wsName    = workspace?.name ?? "워크스페이스";
   const userName  = localStorage.getItem("userName") ?? "나";
+  const userId    = localStorage.getItem("userId") ?? "";
 
   const [showPlanner,   setShowPlanner]   = useState(false);
   const [showCommunity, setShowCommunity] = useState(false);
@@ -185,9 +187,9 @@ export default function DashboardPage() {
   const TEAM_BARS = wsMembers.length > 0
     ? wsMembers.map((m) => {
         const s = memberStats[m.userId] ?? { done: 0, progress: 0, hold: 0, total: 0 };
-        return { name: m.name, done: s.done, progress: s.progress, hold: s.hold };
+        return { userId: m.userId, name: m.name, done: s.done, progress: s.progress, hold: s.hold };
       })
-    : [{ name: userName, done: donut.done, progress: donut.progress, hold: donut.hold }];
+    : [{ userId, name: userName, done: donut.done, progress: donut.progress, hold: donut.hold }];
 
   const doneDash       = arc(donut.done,       0,                                                                    TOTAL);
   const progressDash   = arc(donut.progress,   (donut.done / TOTAL) * CIRC,                                         TOTAL);
@@ -319,7 +321,7 @@ export default function DashboardPage() {
                         <div className="dbp-bar-seg progress" style={{ height: `${(m.progress / total) * 100}%` }} />
                         <div className="dbp-bar-seg done"     style={{ height: `${(m.done / total) * 100}%` }} />
                       </div>
-                      <div className="dbp-bar-avatar">{m.name[0]}</div>
+                      <PixelAvatar userId={m.userId} name={m.name} size="sm" className="dbp-pixel-avatar" />
                       <span className="dbp-bar-name">{m.name}</span>
                     </div>
                   );

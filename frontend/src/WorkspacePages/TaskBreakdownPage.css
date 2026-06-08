@@ -375,6 +375,10 @@
   flex-shrink: 0;
 }
 
+.tbp-pixel-avatar {
+  flex-shrink: 0;
+}
+
 .tbp-user-name {
   font-size: 12px;
   color: #aaa;

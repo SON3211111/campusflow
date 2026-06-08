@@ -8,6 +8,7 @@ import { Crown, Home, LayoutDashboard, Settings, UserPlus, UsersRound } from "lu
 import client from "../api/client";
 import Header from "../components/Header";
 import JoinModal from "../components/JoinModal";
+import PixelAvatar from "../components/PixelAvatar";
 import "./WorkspaceList.css";
 import "./MemberPage.css";
 
@@ -210,7 +211,7 @@ export default function MemberPage() {
                   const isMe = m.userId === userId;
                   return (
                     <div key={m.userId} className="member-row">
-                      <div className="member-avatar" />
+                      <PixelAvatar userId={m.userId} name={m.name} size="md" className="member-pixel-avatar" />
                       <div className="member-info">
                         <span className="member-name">
                           {m.name}

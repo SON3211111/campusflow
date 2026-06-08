@@ -5,6 +5,7 @@
 import { useState, useRef, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { LayoutDashboard } from "lucide-react";
+import PixelAvatar from "./PixelAvatar";
 import "./BoardSubHeader.css";
 
 interface Member { userId: string; name: string; }
@@ -21,10 +22,9 @@ interface Props {
 
 const MENU_ITEMS = ["Board", "AI Task", "Dash Board", "Calender", "Notification", "Task Board", "Setting"];
 
-const AVATAR_COLORS = ["#a89cf8", "#6ab4f8", "#7de89a", "#f8b4b4", "#f8d08a"];
-
 export default function BoardSubHeader({ wsName = "워크스페이스", members = [], workspace, workspaces = [], initialSelected = "Board", onAiTaskClick }: Props) {
   const userName = localStorage.getItem("userName") ?? "나";
+  const userId = localStorage.getItem("userId") ?? "";
   const MAX_SHOW = 3;
   const navigate = useNavigate();
   const [dropOpen, setDropOpen] = useState(false);
@@ -80,22 +80,15 @@ export default function BoardSubHeader({ wsName = "워크스페이스", members 
         <div className="bsh-avatars">
           {members.length > 0 ? (
             <>
-              {members.slice(0, MAX_SHOW).map((m, i) => (
-                <div
-                  key={m.userId}
-                  className="bsh-avatar"
-                  title={m.name}
-                  style={{ background: AVATAR_COLORS[i % AVATAR_COLORS.length] }}
-                >
-                  {m.name[0]}
-                </div>
+              {members.slice(0, MAX_SHOW).map((m) => (
+                <PixelAvatar key={m.userId} userId={m.userId} name={m.name} size="sm" className="bsh-pixel-avatar" />
               ))}
               {members.length > MAX_SHOW && (
                 <div className="bsh-avatar-more">+{members.length - MAX_SHOW}</div>
               )}
             </>
           ) : (
-            <div className="bsh-avatar" title={userName}>{userName[0]}</div>
+            <PixelAvatar userId={userId} name={userName} size="sm" className="bsh-pixel-avatar" />
           )}
         </div>
         <button className="bsh-menu-btn">···</button>
