@@ -26,11 +26,13 @@ interface Props {
   taskId?: string;
   workspaceId?: string;
   initialDesc?: string;
+  initialStartDate?: string;
   initialDueDate?: string;
   initialComments?: Comment[];
   initialQuickSignal?: string;
   onSaveTitle?: (title: string) => void;
   onSaveDesc?: (desc: string) => void;
+  onSaveStartDate?: (startDate: string) => void;
   onSaveDueDate?: (dueDate: string) => void;
   onSaveComments?: (comments: Comment[]) => void;
   onSendSignal?: (signal: string | null) => void;
@@ -63,7 +65,7 @@ function formatSize(bytes: number) {
   return `${(bytes / (1024 * 1024)).toFixed(1)}MB`;
 }
 
-export default function CardDetailModal({ title, colName, taskId, workspaceId, initialDesc = "", initialDueDate = "", initialComments = [], initialQuickSignal, onSaveTitle, onSaveDesc, onSaveDueDate, onSaveComments, onSendSignal, onClose }: Props) {
+export default function CardDetailModal({ title, colName, taskId, workspaceId, initialDesc = "", initialStartDate = "", initialDueDate = "", initialComments = [], initialQuickSignal, onSaveTitle, onSaveDesc, onSaveStartDate, onSaveDueDate, onSaveComments, onSendSignal, onClose }: Props) {
   const userName  = localStorage.getItem("userName") ?? "나";
   const userId    = localStorage.getItem("userId") ?? "";
   const [cardTitle, setCardTitle] = useState(title);
@@ -71,6 +73,8 @@ export default function CardDetailModal({ title, colName, taskId, workspaceId, i
   const [quickSignal, setQuickSignal] = useState(initialQuickSignal ?? null);
   const [desc, setDesc]         = useState(initialDesc);
   const [editingDesc, setEditingDesc] = useState(false);
+  const [startDate, setStartDate] = useState(initialStartDate);
+  const [editingStartDate, setEditingStartDate] = useState(false);
   const [dueDate, setDueDate]   = useState(initialDueDate);
   const [editingDueDate, setEditingDueDate] = useState(false);
   const [comment, setComment]   = useState("");
@@ -253,6 +257,32 @@ export default function CardDetailModal({ title, colName, taskId, workspaceId, i
                   피드백 요청
                 </button>
               </div>
+            </div>
+
+            <div className="cdm-section">
+              <div className="cdm-section-title">
+                <CalendarDays size={15} />
+                시작일
+                {!editingStartDate && <button className="cdm-edit-btn" onClick={() => setEditingStartDate(true)}>수정</button>}
+              </div>
+              {editingStartDate ? (
+                <div className="cdm-desc-editor">
+                  <input
+                    type="date"
+                    className="cdm-desc-textarea"
+                    value={startDate}
+                    onChange={(e) => setStartDate(e.target.value)}
+                  />
+                  <div className="cdm-desc-actions">
+                    <button className="cdm-save-btn" onClick={() => { onSaveStartDate?.(startDate); setEditingStartDate(false); }}>저장</button>
+                    <button className="cdm-cancel-btn" onClick={() => setEditingStartDate(false)}>취소</button>
+                  </div>
+                </div>
+              ) : (
+                <div className="cdm-desc-placeholder" onClick={() => setEditingStartDate(true)}>
+                  {startDate || "시작일을 설정하세요..."}
+                </div>
+              )}
             </div>
 
             <div className="cdm-section">

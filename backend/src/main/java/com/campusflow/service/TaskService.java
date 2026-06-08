@@ -92,6 +92,11 @@ public class TaskService {
             try { priority = TaskPriority.valueOf(req.priority()); } catch (IllegalArgumentException ignored) {}
         }
 
+        LocalDate startDate = null;
+        if (req.startDate() != null && !req.startDate().isBlank()) {
+            try { startDate = LocalDate.parse(req.startDate()); } catch (Exception ignored) {}
+        }
+
         Task task = Task.builder()
                 .workspace(workspace)
                 .title(req.title())
@@ -99,6 +104,7 @@ public class TaskService {
                 .status(status)
                 .assignee(assignee)
                 .priority(priority)
+                .startDate(startDate)
                 .deleted(false)
                 .build();
 
@@ -345,6 +351,15 @@ public class TaskService {
                 .orElseThrow(() -> new IllegalArgumentException("태스크를 찾을 수 없습니다. ID: " + taskId));
         task.setDueDate(LocalDate.parse(dueDate));
         broadcastTaskUpdated(task, "dueDate", dueDate);
+    }
+
+    /** 시작일 업데이트 (yyyy-MM-dd 형식 문자열, 빈 문자열이면 null로 초기화) */
+    @Transactional
+    public void updateStartDate(String taskId, String startDate) {
+        Task task = taskRepository.findById(taskId)
+                .orElseThrow(() -> new IllegalArgumentException("태스크를 찾을 수 없습니다. ID: " + taskId));
+        task.setStartDate(startDate == null || startDate.isBlank() ? null : LocalDate.parse(startDate));
+        broadcastTaskUpdated(task, "startDate", startDate);
     }
 
     /** 태스크 설명 업데이트 */

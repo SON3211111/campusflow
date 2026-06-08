@@ -33,6 +33,7 @@ interface CardItem {
   id: string;
   title: string;
   desc: string;
+  startDate?: string;
   dueDate?: string;
   assigneeId?: string;
   assigneeName?: string;
@@ -187,7 +188,7 @@ export default function WorkSpacePage() {
         for (const t of (res.data.data ?? [])) {
           const col = STATUS_TO_COL[t.status] ?? "상태 없음";
           if (newCards[col]) {
-            newCards[col].push({ id: t.taskId, title: t.title, desc: t.description ?? "", dueDate: t.dueDate ?? "", assigneeId: t.assigneeId ?? "", assigneeName: t.assigneeName ?? "", priority: t.priority ?? "", quickSignal: t.quickSignal ?? "", comments: [] });
+            newCards[col].push({ id: t.taskId, title: t.title, desc: t.description ?? "", startDate: t.startDate ?? "", dueDate: t.dueDate ?? "", assigneeId: t.assigneeId ?? "", assigneeName: t.assigneeName ?? "", priority: t.priority ?? "", quickSignal: t.quickSignal ?? "", comments: [] });
           }
         }
         setCards(newCards);
@@ -476,6 +477,17 @@ export default function WorkSpacePage() {
         await client.patch(`/workspaces/${workspace.id}/tasks/${id}/title`, { title });
       } catch (err) {
         console.error("제목 수정 실패:", err);
+      }
+    }
+  };
+
+  const handleSaveStartDate = async (col: string, id: string, startDate: string) => {
+    setCards((prev) => ({ ...prev, [col]: prev[col].map((c) => c.id === id ? { ...c, startDate } : c) }));
+    if (workspace?.id) {
+      try {
+        await client.patch(`/workspaces/${workspace.id}/tasks/${id}/start-date?startDate=${startDate}`);
+      } catch (err) {
+        console.error("시작일 수정 실패:", err);
       }
     }
   };
@@ -782,6 +794,7 @@ export default function WorkSpacePage() {
           title={selectedCard.card.title}
           colName={selectedCard.col}
           initialDesc={selectedCard.card.desc}
+          initialStartDate={selectedCard.card.startDate}
           initialDueDate={selectedCard.card.dueDate}
           initialComments={selectedCard.card.comments}
           taskId={selectedCard.card.id}
@@ -789,6 +802,7 @@ export default function WorkSpacePage() {
           initialQuickSignal={selectedCard.card.quickSignal}
           onSaveTitle={(t) => handleSaveTitle(selectedCard.col, selectedCard.card.id, t)}
           onSaveDesc={(desc) => handleSaveDesc(selectedCard.col, selectedCard.card.id, desc)}
+          onSaveStartDate={(startDate) => handleSaveStartDate(selectedCard.col, selectedCard.card.id, startDate)}
           onSaveDueDate={(dueDate) => handleSaveDueDate(selectedCard.col, selectedCard.card.id, dueDate)}
           onSaveComments={(comments) => handleSaveComments(selectedCard.col, selectedCard.card.id, comments)}
           onSendSignal={(signal) => handleSendSignal(selectedCard.col, selectedCard.card.id, signal)}

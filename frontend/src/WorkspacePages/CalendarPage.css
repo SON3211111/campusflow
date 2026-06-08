@@ -918,3 +918,64 @@
 
 .cal-task-chip:hover { background: #e0e8ff; }
 .cal-task-more { font-size: 10px; color: #999; padding-left: 4px; }
+
+/* ===== 팀원 시간표 아바타 row ===== */
+.cs-member-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 12px 0 8px;
+  border-bottom: 1px solid #f0f0f0;
+  margin-bottom: 12px;
+  flex-wrap: wrap;
+}
+.cs-member-label {
+  font-size: 11px;
+  font-weight: 700;
+  color: #999;
+  letter-spacing: 0.06em;
+  flex-shrink: 0;
+}
+.cs-member-avatars {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+  flex: 1;
+}
+.cs-member-btn {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 3px;
+  border: 2px solid transparent;
+  border-radius: 10px;
+  padding: 4px 6px;
+  background: none;
+  cursor: pointer;
+  transition: border-color 0.15s, background 0.15s;
+}
+.cs-member-btn:hover { background: #f0f4ff; border-color: #c5d3ff; }
+.cs-member-btn.active { background: #eef2ff; border-color: #4f7cff; }
+.cs-member-name { font-size: 10px; font-weight: 600; color: #555; white-space: nowrap; }
+.cs-combined-btn {
+  flex-shrink: 0;
+  height: 32px;
+  padding: 0 14px;
+  border: 1.5px solid #7c3aed;
+  border-radius: 8px;
+  font-size: 12px;
+  font-weight: 700;
+  color: #7c3aed;
+  background: #fff;
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s;
+  white-space: nowrap;
+}
+.cs-combined-btn:hover { background: #f5f3ff; }
+.cs-combined-btn.active { background: #7c3aed; color: #fff; }
+.cs-viewing-label {
+  font-size: 12px;
+  font-weight: 600;
+  color: #4f7cff;
+  margin-bottom: 8px;
+}

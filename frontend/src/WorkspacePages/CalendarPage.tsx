@@ -3,6 +3,7 @@ import { useLocation, useNavigate } from "react-router-dom";
 import Header from "../components/Header";
 import BoardSubHeader from "../components/BoardSubHeader";
 import WorkspaceTabBar from "../components/WorkspaceTabBar";
+import PixelAvatar from "../components/PixelAvatar";
 import client from "../api/client";
 import "./CalendarPage.css";
 
@@ -183,6 +184,40 @@ function hexToRgba(hex: string, alpha: number): string {
   return `rgba(${r},${g},${b},${alpha})`;
 }
 
+function timeToMins(time: string): number {
+  const [h, m] = time.split(":").map(Number);
+  return h * 60 + m;
+}
+function minsToTime(mins: number): string {
+  return `${String(Math.floor(mins / 60)).padStart(2, "0")}:${String(mins % 60).padStart(2, "0")}`;
+}
+
+// 여러 멤버의 공강 블록에서 공통 여유 시간 교집합 계산
+function computeCommonFree(memberFreeMap: Record<string, FreeTimeBlock[]>, memberIds: string[]): FreeTimeBlock[] {
+  if (memberIds.length === 0) return [];
+  const result: FreeTimeBlock[] = [];
+  const SLOT = 15; // 15분 단위
+  for (const day of DAYS_WEEK) {
+    let mergeStart: number | null = null;
+    for (let min = 8 * 60; min < 21 * 60; min += SLOT) {
+      const allFree = memberIds.every(uid => {
+        const blocks = memberFreeMap[uid] ?? [];
+        return blocks.some(b => b.dayOfWeek === day && timeToMins(b.startTime) <= min && min + SLOT <= timeToMins(b.endTime));
+      });
+      if (allFree) {
+        if (mergeStart === null) mergeStart = min;
+      } else if (mergeStart !== null) {
+        result.push({ dayOfWeek: day, startTime: minsToTime(mergeStart), endTime: minsToTime(min), title: `공강 종합 (${memberIds.length}명)` });
+        mergeStart = null;
+      }
+    }
+    if (mergeStart !== null) {
+      result.push({ dayOfWeek: day, startTime: minsToTime(mergeStart), endTime: "21:00", title: `공강 종합 (${memberIds.length}명)` });
+    }
+  }
+  return result;
+}
+
 export default function CalendarPage() {
   const { state } = useLocation() as { state: { workspace?: Workspace; workspaces?: Workspace[] } };
   const navigate = useNavigate();
@@ -218,6 +253,21 @@ export default function CalendarPage() {
   const [schedMonth,   setSchedMonth]   = useState(today.getMonth());
   const [showFreeDays, setShowFreeDays] = useState(false);
 
+  // 팀원 시간표
+  const myUserId = localStorage.getItem("userId") ?? "";
+  const [viewingUserId, setViewingUserId] = useState<string>(myUserId); // 현재 보는 멤버 (본인 or 팀원)
+  const [combinedMode, setCombinedMode] = useState(false); // 공강 종합 모드
+  const [memberFreeMap, setMemberFreeMap] = useState<Record<string, FreeTimeBlock[]>>({}); // 캐시
+
+  // 보여줄 공강 블록 (현재 선택된 모드에 따라)
+  const displayFreeBlocks = useMemo(() => {
+    if (combinedMode) {
+      const ids = [myUserId, ...wsMembers.map(m => m.userId)].filter(Boolean);
+      return computeCommonFree(memberFreeMap, ids);
+    }
+    return memberFreeMap[viewingUserId] ?? [];
+  }, [combinedMode, viewingUserId, memberFreeMap, myUserId, wsMembers]);
+
   const prevSchedMonth = () => { if (schedMonth === 0) { setSchedYear(y => y-1); setSchedMonth(11); } else setSchedMonth(m => m-1); };
   const nextSchedMonth = () => { if (schedMonth === 11) { setSchedYear(y => y+1); setSchedMonth(0); } else setSchedMonth(m => m+1); };
 
@@ -244,13 +294,33 @@ export default function CalendarPage() {
       .catch(err => console.error("멤버 조회 실패:", err));
   }, [workspace?.id]);
 
+  // 특정 유저의 공강 블록 fetch (캐시 있으면 skip)
+  const fetchMemberFree = async (userId: string) => {
+    if (memberFreeMap[userId]) return;
+    try {
+      const res = await client.get(`/schedules/free/${userId}`);
+      setMemberFreeMap(prev => ({ ...prev, [userId]: res.data ?? [] }));
+    } catch (err) {
+      console.error("공강 조회 실패:", err);
+    }
+  };
+
+  // 내 공강 초기 로드
   useEffect(() => {
-    const userId = localStorage.getItem("userId");
-    if (!userId) return;
-    client.get(`/schedules/free/${userId}`)
-      .then(res => setFreeBlocks(res.data ?? []))
-      .catch(err => console.error("공강 조회 실패:", err));
-  }, []);
+    if (!myUserId) return;
+    fetchMemberFree(myUserId);
+  }, [myUserId]);
+
+  // 팀원 목록 로드 후 모든 멤버 공강 프리페치
+  useEffect(() => {
+    if (wsMembers.length === 0) return;
+    wsMembers.forEach(m => fetchMemberFree(m.userId));
+  }, [wsMembers]);
+
+  // freeBlocks는 하위 호환(공강 추가 후 갱신)을 위해 유지
+  useEffect(() => {
+    setFreeBlocks(memberFreeMap[myUserId] ?? []);
+  }, [memberFreeMap, myUserId]);
 
   const handleAddFreeTime = async () => {
     const userId = localStorage.getItem("userId");
@@ -265,7 +335,7 @@ export default function CalendarPage() {
         endTime: freeForm.endTime + ":00",
       });
       const res = await client.get(`/schedules/free/${userId}`);
-      setFreeBlocks(res.data ?? []);
+      setMemberFreeMap(prev => ({ ...prev, [userId]: res.data ?? [] }));
       setAddingFree(false);
       setFreeForm({ title: "", dayOfWeek: "월", startTime: "09:00", endTime: "11:00" });
     } catch (err) {
@@ -504,10 +574,59 @@ export default function CalendarPage() {
 
           {/* 공강 시간표 섹션 */}
           <div className="cs-section">
+            {/* 팀원 아바타 row */}
+            <div className="cs-member-row">
+              <span className="cs-member-label">시간표</span>
+              <div className="cs-member-avatars">
+                {/* 내 아바타 */}
+                <button
+                  className={`cs-member-btn ${!combinedMode && viewingUserId === myUserId ? "active" : ""}`}
+                  onClick={() => { setCombinedMode(false); setViewingUserId(myUserId); }}
+                  title="내 시간표"
+                >
+                  <PixelAvatar userId={myUserId} name={localStorage.getItem("userName") ?? "나"} size="sm" />
+                  <span className="cs-member-name">나</span>
+                </button>
+                {/* 팀원 아바타 */}
+                {wsMembers.filter(m => m.userId !== myUserId).map(m => (
+                  <button
+                    key={m.userId}
+                    className={`cs-member-btn ${!combinedMode && viewingUserId === m.userId ? "active" : ""}`}
+                    onClick={() => { setCombinedMode(false); setViewingUserId(m.userId); }}
+                    title={`${m.name}의 시간표`}
+                  >
+                    <PixelAvatar userId={m.userId} name={m.name} size="sm" />
+                    <span className="cs-member-name">{m.name.slice(0, 3)}</span>
+                  </button>
+                ))}
+              </div>
+              {/* 공강 종합 버튼 */}
+              <button
+                className={`cs-combined-btn ${combinedMode ? "active" : ""}`}
+                onClick={() => {
+                  setCombinedMode(v => !v);
+                  setSchedView("week");
+                }}
+                title="팀원 전체 공강 교집합 보기"
+              >
+                🔗 공강 종합
+              </button>
+            </div>
+
+            {/* 현재 보는 사람 표시 */}
+            <div className="cs-viewing-label">
+              {combinedMode
+                ? `팀원 ${wsMembers.length + 1}명의 공통 여유 시간`
+                : viewingUserId === myUserId
+                  ? "내 공강 시간표"
+                  : `${wsMembers.find(m => m.userId === viewingUserId)?.name ?? "팀원"}의 공강 시간표`
+              }
+            </div>
+
             <div className="cs-header">
               <div className="cs-header-left">
                 <span className="cs-icon">📚</span>
-                <h3 className="cs-title">내 공강 시간표</h3>
+                <h3 className="cs-title">{combinedMode ? "공강 종합" : "공강 시간표"}</h3>
               </div>
               <div className="cs-header-right">
                 {schedView === "month" && (
@@ -521,15 +640,19 @@ export default function CalendarPage() {
                   <button className={`cs-view-btn ${schedView === "week" ? "active" : ""}`} onClick={() => setSchedView("week")}>주</button>
                   <button className={`cs-view-btn ${schedView === "month" ? "active" : ""}`} onClick={() => setSchedView("month")}>월</button>
                 </div>
-                <button
-                  className={`cs-rec-btn ${showFreeDays ? "active" : ""}`}
-                  onClick={() => { setShowFreeDays(v => !v); setSchedView("month"); }}
-                >
-                  ✨ 공강 추천
-                </button>
-                <button className="cs-add-btn" onClick={() => setAddingFree(v => !v)}>
-                  {addingFree ? "✕ 닫기" : "+ 공강 추가"}
-                </button>
+                {!combinedMode && (
+                  <button
+                    className={`cs-rec-btn ${showFreeDays ? "active" : ""}`}
+                    onClick={() => { setShowFreeDays(v => !v); setSchedView("month"); }}
+                  >
+                    ✨ 공강 추천
+                  </button>
+                )}
+                {!combinedMode && viewingUserId === myUserId && (
+                  <button className="cs-add-btn" onClick={() => setAddingFree(v => !v)}>
+                    {addingFree ? "✕ 닫기" : "+ 공강 추가"}
+                  </button>
+                )}
               </div>
             </div>
 
@@ -577,7 +700,7 @@ export default function CalendarPage() {
                       <div className="cs-day-header">{day}</div>
                       <div className="cs-day-body">
                         {SCHED_HOURS.map(h => <div key={h} className="cs-hour-cell" />)}
-                        {freeBlocks
+                        {displayFreeBlocks
                           .filter(b => b.dayOfWeek === day)
                           .map((b, i) => {
                             const top    = timeToTop(b.startTime);
@@ -609,7 +732,7 @@ export default function CalendarPage() {
                     const isToday  = day === today.getDate() && schedMonth === today.getMonth() && schedYear === today.getFullYear();
                     const colIdx   = i % 7;
                     const dow      = day ? ["일","월","화","수","목","금","토"][colIdx] : "";
-                    const blocks   = day ? freeBlocks.filter(b => b.dayOfWeek === dow) : [];
+                    const blocks   = day ? displayFreeBlocks.filter(b => b.dayOfWeek === dow) : [];
                     const ds       = day ? `${schedYear}-${String(schedMonth+1).padStart(2,"0")}-${String(day).padStart(2,"0")}` : "";
                     const isFreeDay = showFreeDays && !!day && !taskDaySet.has(ds);
                     return (
@@ -635,8 +758,14 @@ export default function CalendarPage() {
               </div>
             )}
 
-            {freeBlocks.length === 0 && !addingFree && (
-              <p className="cs-empty">등록된 공강 시간이 없습니다. 위 버튼으로 추가해보세요.</p>
+            {displayFreeBlocks.length === 0 && !addingFree && (
+              <p className="cs-empty">
+                {combinedMode
+                  ? "공통 여유 시간이 없습니다. 팀원들이 공강 시간을 등록하면 자동으로 표시됩니다."
+                  : viewingUserId === myUserId
+                    ? "등록된 공강 시간이 없습니다. 위 버튼으로 추가해보세요."
+                    : "이 팀원이 아직 공강 시간을 등록하지 않았습니다."}
+              </p>
             )}
           </div>
         </main>
