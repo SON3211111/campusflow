@@ -13,10 +13,10 @@ import "./TaskBreakdownPage.css";
 const THEMES = [
   {
     id: "space",
-    icon: "🚀",
+    icon: "",
     trail: true,
     bg: "tbp-bg-space",
-    messages: ["🚀 프롬프트를 분석하는 중...", "🌌 업무를 분류하는 중...", "⭐ 우선순위를 계산하는 중...", "🛸 태스크를 조립하는 중...", "✨ 거의 다 왔어요!"],
+    messages: ["프롬프트를 분석하는 중...", "업무를 분류하는 중...", "우선순위를 계산하는 중...", "태스크를 조립하는 중...", "거의 다 왔어요!"],
     sub: "보통 30~90초 정도 소요됩니다",
     particles: Array.from({ length: 30 }, (_, i) => ({
       key: i, className: "tbp-star",
@@ -25,11 +25,11 @@ const THEMES = [
   },
   {
     id: "cat",
-    icon: "🐱",
+    icon: "",
     trail: false,
     bg: "tbp-bg-cat",
-    messages: ["🐱 냥냥... 분석 중이에요", "📝 꼬리로 태스크 정리 중...", "😺 우선순위 고르는 중...", "🐾 거의 다 됐어요!", "😸 완성 직전!"],
-    sub: "고양이가 열심히 일하고 있어요 🐾",
+    messages: ["분석 중이에요", "태스크 정리 중...", "우선순위 고르는 중...", "거의 다 됐어요!", "완성 직전!"],
+    sub: "열심히 일하고 있어요",
     particles: Array.from({ length: 8 }, (_, i) => ({
       key: i, className: "tbp-paw",
       style: { left: `${10 + i * 12}%`, top: `${30 + (i % 3) * 20}%`, animationDelay: `${i * 0.4}s` }
@@ -37,11 +37,11 @@ const THEMES = [
   },
   {
     id: "ramen",
-    icon: "🍜",
+    icon: "",
     trail: false,
     bg: "tbp-bg-ramen",
-    messages: ["🍜 라면 물 끓이는 중...", "🥚 재료 분류하는 중...", "🌶️ 우선순위 양념 중...", "♨️ 거의 다 익었어요!", "🍽️ 완성 직전!"],
-    sub: "배고프죠? 조금만 기다려요 😋",
+    messages: ["분석 시작...", "재료 분류하는 중...", "우선순위 정리 중...", "거의 다 됐어요!", "완성 직전!"],
+    sub: "조금만 기다려요",
     particles: Array.from({ length: 8 }, (_, i) => ({
       key: i, className: "tbp-steam",
       style: { left: `${40 + (i % 3) * 8}%`, animationDelay: `${i * 0.3}s` }
@@ -49,10 +49,10 @@ const THEMES = [
   },
   {
     id: "game",
-    icon: "🎮",
+    icon: "",
     trail: false,
     bg: "tbp-bg-game",
-    messages: ["🎮 게임 로딩 중...", "⚔️ 태스크 던전 탐험 중...", "🏆 보상 계산 중...", "🌟 레벨업 준비 중...", "🎯 미션 거의 완료!"],
+    messages: ["로딩 중...", "태스크 분석 중...", "우선순위 계산 중...", "거의 완료!", "미션 완료 직전!"],
     sub: "Loading... Please wait",
     particles: Array.from({ length: 6 }, (_, i) => ({
       key: i, className: "tbp-pixel",

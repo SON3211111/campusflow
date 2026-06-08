@@ -21,15 +21,15 @@ interface Props {
 }
 
 const DOMAIN_OPTIONS = [
-  { value: "",                 label: "🤖 AI가 자동 판단" },
-  { value: "software_dev",    label: "💻 소프트웨어 개발" },
-  { value: "academic_report", label: "📄 팀 레포트 / 논문" },
-  { value: "presentation",    label: "🎤 발표 과제" },
-  { value: "design_ux",       label: "🎨 UI/UX 디자인" },
-  { value: "engineering",     label: "⚙️ 공학 설계·제작" },
-  { value: "marketing_biz",   label: "📊 마케팅 / 비즈니스" },
-  { value: "event_planning",  label: "🎉 행사 / 이벤트 기획" },
-  { value: "research_science",label: "🔬 실험 / 데이터 분석" },
+  { value: "",                 label: "AI가 자동 판단" },
+  { value: "software_dev",    label: "소프트웨어 개발" },
+  { value: "academic_report", label: "팀 레포트 / 논문" },
+  { value: "presentation",    label: "발표 과제" },
+  { value: "design_ux",       label: "UI/UX 디자인" },
+  { value: "engineering",     label: "공학 설계·제작" },
+  { value: "marketing_biz",   label: "마케팅 / 비즈니스" },
+  { value: "event_planning",  label: "행사 / 이벤트 기획" },
+  { value: "research_science",label: "실험 / 데이터 분석" },
 ];
 
 export default function AITaskModal({ onClose, workspaces = [], workspace }: Props) {
