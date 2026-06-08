@@ -591,6 +591,20 @@ body,
   background: rgba(30, 27, 75, 0.98);
 }
 
+:root[data-theme="dark"] .main-page-wrapper .stress-float,
+:root[data-theme="dark"] .main-page-wrapper .wave-lane span,
+:root[data-theme="dark"] .main-page-wrapper .lane-two span,
+:root[data-theme="dark"] .main-page-wrapper .lane-three span {
+  background: rgba(255, 255, 255, 0.94) !important;
+  color: #172033 !important;
+  border: 1px solid rgba(255, 255, 255, 0.72) !important;
+  box-shadow: 0 18px 42px rgba(0, 0, 0, 0.28) !important;
+}
+
+:root[data-theme="dark"] .main-page-wrapper .stress-float {
+  background: #ffffff !important;
+}
+
 .lang-select-area {
   position: relative;
 }
