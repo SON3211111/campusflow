@@ -67,6 +67,14 @@ public class WorkspaceTaskController {
         return ResponseEntity.ok(ApiResponse.success(200, "복원 완료", restored));
     }
 
+    @PatchMapping("/{taskId}/assignee")
+    public ResponseEntity<ApiResponse<TaskResponse>> updateAssignee(
+            @PathVariable String taskId,
+            @RequestParam(required = false) String assigneeId) {
+        TaskResponse updated = taskService.updateAssignee(taskId, assigneeId);
+        return ResponseEntity.ok(ApiResponse.success(200, "담당자 변경 완료", updated));
+    }
+
     @PatchMapping("/{taskId}/start-date")
     public ResponseEntity<ApiResponse<Void>> updateStartDate(
             @PathVariable String taskId,

@@ -4,7 +4,7 @@
  * 설명/마감일 인라인 편집, 댓글 작성, 파일 첨부 기능 포함
  */
 import { useState, useEffect, useRef } from "react";
-import { CalendarDays, MessageSquare, Paperclip, Trash2, Download } from "lucide-react";
+import { CalendarDays, Paperclip, Trash2, Download } from "lucide-react";
 import PixelAvatar from "./PixelAvatar";
 import client from "../api/client";
 import "./CardDetailModal.css";
@@ -41,6 +41,7 @@ interface Props {
   initialQuickSignal?: string;
   assigneeId?: string;
   assigneeName?: string;
+  members?: { userId: string; name: string }[];
   onSaveTitle?: (title: string) => void;
   onSaveDesc?: (desc: string) => void;
   onSaveStartDate?: (startDate: string) => void;
@@ -48,6 +49,7 @@ interface Props {
   onSaveComments?: (comments: Comment[]) => void;
   onSendSignal?: (signal: string | null) => void;
   onStatusChange?: (newColName: string) => void;
+  onChangeAssignee?: (userId: string, name: string) => void;
   onClose: () => void;
 }
 
@@ -77,7 +79,7 @@ function formatSize(bytes: number) {
   return `${(bytes / (1024 * 1024)).toFixed(1)}MB`;
 }
 
-export default function CardDetailModal({ title, colName, taskId, workspaceId, initialDesc = "", initialStartDate = "", initialDueDate = "", initialComments = [], initialQuickSignal, assigneeId, assigneeName, onSaveTitle, onSaveDesc, onSaveStartDate, onSaveDueDate, onSaveComments, onSendSignal, onStatusChange, onClose }: Props) {
+export default function CardDetailModal({ title, colName, taskId, workspaceId, initialDesc = "", initialStartDate = "", initialDueDate = "", initialComments = [], initialQuickSignal, assigneeId, assigneeName, members = [], onSaveTitle, onSaveDesc, onSaveStartDate, onSaveDueDate, onSaveComments, onSendSignal, onStatusChange, onChangeAssignee, onClose }: Props) {
   const userName  = localStorage.getItem("userName") ?? "나";
   const userId    = localStorage.getItem("userId") ?? "";
   const [cardTitle, setCardTitle] = useState(title);
@@ -85,6 +87,11 @@ export default function CardDetailModal({ title, colName, taskId, workspaceId, i
   const [currentCol, setCurrentCol] = useState(colName);
   const [statusDropOpen, setStatusDropOpen] = useState(false);
   const statusDropRef = useRef<HTMLDivElement>(null);
+  const [menuOpen, setMenuOpen] = useState(false);
+  const [assigneeView, setAssigneeView] = useState(false); // 담당자 변경 서브뷰
+  const [currentAssigneeId, setCurrentAssigneeId] = useState(assigneeId);
+  const [currentAssigneeName, setCurrentAssigneeName] = useState(assigneeName);
+  const menuRef = useRef<HTMLDivElement>(null);
   const [quickSignal, setQuickSignal] = useState(initialQuickSignal ?? null);
   const [desc, setDesc]         = useState(initialDesc);
   const [editingDesc, setEditingDesc] = useState(false);
@@ -110,6 +117,18 @@ export default function CardDetailModal({ title, colName, taskId, workspaceId, i
     document.addEventListener("mousedown", handler);
     return () => document.removeEventListener("mousedown", handler);
   }, [statusDropOpen]);
+
+  useEffect(() => {
+    if (!menuOpen) return;
+    const handler = (e: MouseEvent) => {
+      if (menuRef.current && !menuRef.current.contains(e.target as Node)) {
+        setMenuOpen(false);
+        setAssigneeView(false);
+      }
+    };
+    document.addEventListener("mousedown", handler);
+    return () => document.removeEventListener("mousedown", handler);
+  }, [menuOpen]);
 
   useEffect(() => {
     if (!taskId || !workspaceId) return;
@@ -231,7 +250,79 @@ export default function CardDetailModal({ title, colName, taskId, workspaceId, i
           </div>
           <div className="cdm-header-actions">
             <button className="cdm-icon-btn">⤢</button>
-            <button className="cdm-icon-btn">···</button>
+            {/* 점 세 개 메뉴 */}
+            <div className="cdm-menu-wrap" ref={menuRef}>
+              <button
+                className="cdm-icon-btn"
+                onClick={() => { setMenuOpen((v) => !v); setAssigneeView(false); }}
+              >···</button>
+              {menuOpen && (
+                <div className="cdm-menu-dropdown">
+                  {!assigneeView ? (
+                    <>
+                      <button
+                        className={`cdm-menu-item ${quickSignal === "HELP_NEEDED" ? "cdm-menu-item--active" : ""}`}
+                        onClick={() => {
+                          const next = quickSignal === "HELP_NEEDED" ? null : "HELP_NEEDED";
+                          setQuickSignal(next);
+                          onSendSignal?.(next);
+                        }}
+                      >
+                        <span className={`cdm-menu-dot ${quickSignal === "HELP_NEEDED" ? "active-help" : ""}`} />
+                        도움 요청
+                        {quickSignal === "HELP_NEEDED" && <span className="cdm-menu-check">✓</span>}
+                      </button>
+                      <button
+                        className={`cdm-menu-item ${quickSignal === "FEEDBACK_NEEDED" ? "cdm-menu-item--active" : ""}`}
+                        onClick={() => {
+                          const next = quickSignal === "FEEDBACK_NEEDED" ? null : "FEEDBACK_NEEDED";
+                          setQuickSignal(next);
+                          onSendSignal?.(next);
+                        }}
+                      >
+                        <span className={`cdm-menu-dot ${quickSignal === "FEEDBACK_NEEDED" ? "active-feedback" : ""}`} />
+                        피드백 요청
+                        {quickSignal === "FEEDBACK_NEEDED" && <span className="cdm-menu-check">✓</span>}
+                      </button>
+                      <div className="cdm-menu-divider" />
+                      <button
+                        className="cdm-menu-item"
+                        onClick={() => setAssigneeView(true)}
+                      >
+                        담당자 변경
+                      </button>
+                    </>
+                  ) : (
+                    <>
+                      <button className="cdm-menu-back" onClick={() => setAssigneeView(false)}>
+                        ← 담당자 변경
+                      </button>
+                      <div className="cdm-menu-divider" />
+                      {members.length === 0 && (
+                        <div className="cdm-menu-empty">멤버 없음</div>
+                      )}
+                      {members.map((m) => (
+                        <button
+                          key={m.userId}
+                          className={`cdm-menu-item ${m.userId === currentAssigneeId ? "cdm-menu-item--active" : ""}`}
+                          onClick={() => {
+                            setCurrentAssigneeId(m.userId);
+                            setCurrentAssigneeName(m.name);
+                            onChangeAssignee?.(m.userId, m.name);
+                            setMenuOpen(false);
+                            setAssigneeView(false);
+                          }}
+                        >
+                          <PixelAvatar userId={m.userId} name={m.name} size="sm" />
+                          {m.name}
+                          {m.userId === currentAssigneeId && <span className="cdm-menu-check">✓</span>}
+                        </button>
+                      ))}
+                    </>
+                  )}
+                </div>
+              )}
+            </div>
             <button className="cdm-icon-btn" onClick={onClose}>✕</button>
           </div>
         </div>
@@ -288,32 +379,14 @@ export default function CardDetailModal({ title, colName, taskId, workspaceId, i
               )}
             </div>
 
-            <div className="cdm-section">
-              <div className="cdm-section-title">🆘 도움 요청</div>
-              <div className="cdm-signal-btns">
-                <button
-                  className={`cdm-signal-btn ${quickSignal === "HELP_NEEDED" ? "active-help" : ""}`}
-                  onClick={() => {
-                    const next = quickSignal === "HELP_NEEDED" ? null : "HELP_NEEDED";
-                    setQuickSignal(next);
-                    onSendSignal?.(next);
-                  }}
-                >
-                  🆘 도움 요청
-                </button>
-                <button
-                  className={`cdm-signal-btn ${quickSignal === "FEEDBACK_NEEDED" ? "active-feedback" : ""}`}
-                  onClick={() => {
-                    const next = quickSignal === "FEEDBACK_NEEDED" ? null : "FEEDBACK_NEEDED";
-                    setQuickSignal(next);
-                    onSendSignal?.(next);
-                  }}
-                >
-                  <MessageSquare size={14} />
-                  피드백 요청
-                </button>
+            {/* 도움요청 상태 뱃지 (활성 시에만 표시) */}
+            {quickSignal && (
+              <div className="cdm-signal-badge-row">
+                <span className={`cdm-signal-badge ${quickSignal === "HELP_NEEDED" ? "help" : "feedback"}`}>
+                  {quickSignal === "HELP_NEEDED" ? "도움 요청 중" : "피드백 요청 중"}
+                </span>
               </div>
-            </div>
+            )}
 
             <div className="cdm-section">
               <div className="cdm-section-title">
@@ -454,10 +527,10 @@ export default function CardDetailModal({ title, colName, taskId, workspaceId, i
             {/* 담당자 */}
             <div className="cdm-section">
               <div className="cdm-section-title">담당자</div>
-              {assigneeName ? (
+              {currentAssigneeName ? (
                 <div className="cdm-assignee">
-                  <PixelAvatar userId={assigneeId} name={assigneeName} size="sm" />
-                  <span className="cdm-assignee-name">{assigneeName}</span>
+                  <PixelAvatar userId={currentAssigneeId} name={currentAssigneeName} size="sm" />
+                  <span className="cdm-assignee-name">{currentAssigneeName}</span>
                 </div>
               ) : (
                 <span className="cdm-assignee-empty">담당자 없음</span>

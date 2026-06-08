@@ -507,6 +507,20 @@ export default function WorkSpacePage() {
     setCards((prev) => ({ ...prev, [col]: prev[col].map((c) => c.id === id ? { ...c, comments } : c) }));
   };
 
+  const handleChangeAssignee = async (col: string, id: string, userId: string, name: string) => {
+    if (!workspace?.id) return;
+    try {
+      await client.patch(`/workspaces/${workspace.id}/tasks/${id}/assignee?assigneeId=${userId}`);
+      setCards((prev) => ({
+        ...prev,
+        [col]: prev[col].map((c) => c.id === id ? { ...c, assigneeId: userId, assigneeName: name } : c),
+      }));
+    } catch (err) {
+      console.error("담당자 변경 실패:", err);
+      alert("담당자 변경에 실패했습니다.");
+    }
+  };
+
   const handleStatusChangeFromModal = async (col: string, id: string, newColName: string) => {
     const newStatus = COL_TO_STATUS[newColName];
     if (!newStatus || !workspace?.id) return;
@@ -830,6 +844,8 @@ export default function WorkSpacePage() {
           onSaveComments={(comments) => handleSaveComments(selectedCard.col, selectedCard.card.id, comments)}
           onSendSignal={(signal) => handleSendSignal(selectedCard.col, selectedCard.card.id, signal)}
           onStatusChange={(newColName) => handleStatusChangeFromModal(selectedCard.col, selectedCard.card.id, newColName)}
+          members={wsMembers}
+          onChangeAssignee={(userId, name) => handleChangeAssignee(selectedCard.col, selectedCard.card.id, userId, name)}
           onClose={() => setSelectedCard(null)}
         />
       )}

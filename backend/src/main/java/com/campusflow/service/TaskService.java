@@ -362,6 +362,24 @@ public class TaskService {
         broadcastTaskUpdated(task, "startDate", startDate);
     }
 
+    /** 담당자 변경 */
+    @Transactional
+    public TaskResponse updateAssignee(String taskId, String assigneeId) {
+        Task task = taskRepository.findById(taskId)
+                .orElseThrow(() -> new IllegalArgumentException("태스크를 찾을 수 없습니다. ID: " + taskId));
+        if (assigneeId == null || assigneeId.isBlank()) {
+            task.setAssignee(null);
+        } else {
+            User user = userRepository.findById(assigneeId)
+                    .orElseThrow(() -> new IllegalArgumentException("유저를 찾을 수 없습니다."));
+            task.setAssignee(user);
+        }
+        Task saved = taskRepository.save(task);
+        String newAssigneeName = saved.getAssignee() != null ? saved.getAssignee().getName() : "";
+        broadcastTaskUpdated(task, "assigneeName", newAssigneeName.replace("\"", "\\\""));
+        return TaskResponse.from(saved);
+    }
+
     /** 태스크 설명 업데이트 */
     @Transactional
     public void updateDescription(String taskId, String description) {
