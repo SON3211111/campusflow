@@ -121,11 +121,16 @@ export function useWorkspaceSocket(
         timerRef.current = null;
       }
 
-      // WebSocket 닫기 — CONNECTING 상태에서 닫아도 경고만 뜨고 문제없음
       const ws = wsRef.current;
       wsRef.current = null;
-      if (ws && ws.readyState !== WebSocket.CLOSED) {
+      if (!ws) return;
+
+      if (ws.readyState === WebSocket.OPEN) {
         ws.close();
+      } else if (ws.readyState === WebSocket.CONNECTING) {
+        // CONNECTING 상태에서 close() 하면 브라우저 경고 발생 —
+        // open 이벤트를 기다렸다가 즉시 닫는 방식으로 우회
+        ws.addEventListener("open", () => ws.close());
       }
     };
   }, [workspaceId]); // workspaceId 바뀔 때만 재연결
