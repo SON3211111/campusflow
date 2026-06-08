@@ -95,16 +95,26 @@ function computeBarMap(tasks:Task[],year:number,month:number):Record<string,BarS
 }
 
 function computeCommonFree(blockMap:Record<string,ScheduleBlockItem[]>,ids:string[]):ScheduleBlockItem[]{
-  if(ids.length===0)return[];
+  const registeredIds=Array.from(new Set(ids));
+  if(registeredIds.length===0)return[];
   const result:ScheduleBlockItem[]=[];
   for(const day of DAYS_WEEK){
     let start:number|null=null;
     for(let m=HOUR_START*60;m<HOUR_END*60;m+=15){
-      const allFree=ids.every(uid=>(blockMap[uid]??[]).filter(b=>b.category==="FREE").some(b=>b.dayOfWeek===day&&timeToMins(b.startTime)<=m&&m+15<=timeToMins(b.endTime)));
+      const allFree=registeredIds.every(uid=>
+        !(blockMap[uid]??[])
+          .filter(b=>b.category!=="FREE")
+          .some(b=>b.dayOfWeek===day&&timeToMins(b.startTime)<m+15&&m<timeToMins(b.endTime))
+      );
       if(allFree){if(start===null)start=m;}
-      else if(start!==null){result.push({blockId:`cmb-${day}-${start}`,category:"FREE",title:`공통 공강 (${ids.length}명)`,dayOfWeek:day,startTime:minsToTime(start),endTime:minsToTime(m)});start=null;}
+      else if(start!==null){
+        if(m-start>=30){
+          result.push({blockId:`cmb-${day}-${start}`,category:"FREE",title:`공통 공강 (${registeredIds.length}명)`,dayOfWeek:day,startTime:minsToTime(start),endTime:minsToTime(m)});
+        }
+        start=null;
+      }
     }
-    if(start!==null)result.push({blockId:`cmb-${day}-${start}`,category:"FREE",title:`공통 공강 (${ids.length}명)`,dayOfWeek:day,startTime:minsToTime(start),endTime:minsToTime(HOUR_END*60)});
+    if(start!==null&&HOUR_END*60-start>=30)result.push({blockId:`cmb-${day}-${start}`,category:"FREE",title:`공통 공강 (${registeredIds.length}명)`,dayOfWeek:day,startTime:minsToTime(start),endTime:minsToTime(HOUR_END*60)});
   }
   return result;
 }
@@ -153,15 +163,20 @@ export default function CalendarPage() {
   const [dragHighlight,setDragHighlight]=useState<{day:string;startHour:number;endHour:number}|null>(null);
 
   const isMyView=!showCombined && viewingUserId===myUserId;
+  const combinedUserIds=useMemo(
+    ()=>Array.from(new Set(
+      [myUserId,...wsMembers.map(m=>m.userId)].filter((uid):uid is string=>Boolean(uid))
+    )).filter(uid=>blockMap[uid]!==undefined),
+    [myUserId,wsMembers,blockMap]
+  );
 
   // 화면에 표시할 블록
   const displayBlocks=useMemo(()=>{
     if(showCombined){
-      const ids=[myUserId,...wsMembers.map(m=>m.userId)].filter(Boolean);
-      return computeCommonFree(blockMap,ids);
+      return computeCommonFree(blockMap,combinedUserIds);
     }
     return blockMap[viewingUserId]??[];
-  },[showCombined,viewingUserId,blockMap,myUserId,wsMembers]);
+  },[showCombined,viewingUserId,blockMap,combinedUserIds]);
 
   // 팝업 외부 클릭 닫기
   useEffect(()=>{
@@ -187,7 +202,9 @@ export default function CalendarPage() {
     try{
       const res=await client.get(`/schedules/${userId}`);
       setBlockMap(p=>({...p,[userId]:res.data??[]}));
-    }catch(err){console.error("시간표 조회 실패:",err);}
+    }catch(err){
+      console.error("시간표 조회 실패:",err);
+    }
   },[blockMap]);
 
   useEffect(()=>{if(myUserId)fetchSchedule(myUserId);},[myUserId]);
@@ -431,7 +448,7 @@ export default function CalendarPage() {
             {/* 현재 보는 시간표 타이틀 */}
             <div className="cs-viewing-bar">
               {showCombined
-                ? `팀 전체 공강 종합 (${wsMembers.length+1}명의 공통 여유 시간)`
+                ? `팀 전체 공강 종합 (${combinedUserIds.length}명 시간표 기준)`
                 : viewingUserId===myUserId
                   ? `내 시간표 — 클릭 또는 드래그로 수업 추가`
                   : `${wsMembers.find(m=>m.userId===viewingUserId)?.name??"팀원"}의 시간표 (읽기 전용)`
@@ -444,7 +461,7 @@ export default function CalendarPage() {
             {displayBlocks.length===0&&(
               <p className="cs-empty">
                 {showCombined
-                  ? "공통 공강 시간이 없습니다. 팀원들이 공강 블록을 등록하면 자동으로 표시됩니다."
+                  ? "공통 공강 시간이 없습니다. 팀원들이 시간표를 등록하면 수업/개인/태스크 시간을 제외하고 자동으로 계산됩니다."
                   : isMyView
                     ? "클릭 또는 드래그해서 시간표를 채워보세요."
                     : "이 팀원이 아직 시간표를 등록하지 않았습니다."}
