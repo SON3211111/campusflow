@@ -219,7 +219,7 @@ export default function CalendarPage() {
   const handleSendMsg=()=>{if(!msgInput.trim())return;setMessages(p=>[...p,{user:myName,text:msgInput.trim(),time:"방금"}]);setMsgInput("");setWritingMsg(false);};
   const handleTabChange=(t:"planner"|"community"|"board"|"personal")=>{
     if(t==="community")setShowCommunity(v=>!v);
-    if(t==="planner") { /* 현재 플래너(캘린더) 페이지 */ }
+    if(t==="planner")setShowPlanner(v=>!v);
     if(t==="board")navigate("/workspace-board",{state:{workspace,workspaces}});
   };
 
@@ -499,7 +499,7 @@ export default function CalendarPage() {
         </div>
       )}
 
-      <WorkspaceTabBar active="planner" onTabChange={handleTabChange}/>
+      <WorkspaceTabBar active="board" onTabChange={handleTabChange}/>
     </div>
   );
 }

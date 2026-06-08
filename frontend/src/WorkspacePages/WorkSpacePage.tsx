@@ -788,7 +788,7 @@ export default function WorkSpacePage() {
         active={tab}
         onTabChange={(t) => {
           setTab(t);
-          if (t === "planner") navigate("/calendar", { state: { workspace, workspaces } });
+          if (t === "planner") setShowPlanner((v) => !v);
           if (t === "community") setShowCommunity((v) => !v);
           if (t === "board") setShowBoardView((v) => !v);
           if (t === "personal") setShowWorkspacePanel((v) => !v);
