@@ -1,4 +1,4 @@
-import { useEffect, useRef, useCallback } from "react";
+import { useEffect, useRef } from "react";
 
 export interface WsStatusChange {
   type: "STATUS_CHANGE";
@@ -35,7 +35,7 @@ export interface WsTaskRestored {
 export interface WsTaskUpdated {
   type: "TASK_UPDATED";
   taskId: string;
-  field: "title" | "description" | "dueDate";
+  field: "title" | "description" | "dueDate" | "assigneeName";
   value: string;
 }
 
@@ -53,65 +53,80 @@ export function useWorkspaceSocket(
   workspaceId: string | undefined,
   handlers: Handlers
 ) {
-  const wsRef      = useRef<WebSocket | null>(null);
-  const handlersRef = useRef(handlers);
+  const wsRef           = useRef<WebSocket | null>(null);
+  const handlersRef     = useRef(handlers);
+  const timerRef        = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const isMountedRef    = useRef(true);
+
+  // handlers는 매 렌더마다 새 객체지만 ref로 최신 유지
   handlersRef.current = handlers;
 
-  const connect = useCallback(() => {
+  useEffect(() => {
+    isMountedRef.current = true;
     if (!workspaceId) return;
 
-    const wsProtocol = window.location.protocol === "https:" ? "wss:" : "ws:";
-    const ws = new WebSocket(`${wsProtocol}//${window.location.host}/ws/tasks?workspaceId=${workspaceId}`);
+    const protocol = window.location.protocol === "https:" ? "wss:" : "ws:";
 
-    ws.onmessage = (event) => {
-      try {
-        const data: WsMessage = JSON.parse(event.data);
-        const myUserId = localStorage.getItem("userId") ?? "";
+    const connect = () => {
+      if (!isMountedRef.current) return;
 
-        switch (data.type) {
-          case "STATUS_CHANGE":
-            // 본인이 변경한 건 본인 화면엔 이미 반영됐으므로 제외
-            if (data.changedByUserId !== myUserId) {
-              handlersRef.current.onStatusChange?.(data);
-            }
-            break;
-          case "TASK_CREATED":
-            handlersRef.current.onTaskCreated?.(data);
-            break;
-          case "TASK_DELETED":
-            handlersRef.current.onTaskDeleted?.(data);
-            break;
-          case "TASK_RESTORED":
-            handlersRef.current.onTaskRestored?.(data);
-            break;
-          case "TASK_UPDATED":
-            handlersRef.current.onTaskUpdated?.(data);
-            break;
+      const ws = new WebSocket(`${protocol}//${window.location.host}/ws/tasks?workspaceId=${workspaceId}`);
+      wsRef.current = ws;
+
+      ws.onmessage = (event) => {
+        try {
+          const data: WsMessage = JSON.parse(event.data);
+          const myUserId = localStorage.getItem("userId") ?? "";
+
+          switch (data.type) {
+            case "STATUS_CHANGE":
+              if (data.changedByUserId !== myUserId) {
+                handlersRef.current.onStatusChange?.(data);
+              }
+              break;
+            case "TASK_CREATED":
+              handlersRef.current.onTaskCreated?.(data);
+              break;
+            case "TASK_DELETED":
+              handlersRef.current.onTaskDeleted?.(data);
+              break;
+            case "TASK_RESTORED":
+              handlersRef.current.onTaskRestored?.(data);
+              break;
+            case "TASK_UPDATED":
+              handlersRef.current.onTaskUpdated?.(data);
+              break;
+          }
+        } catch (e) {
+          console.error("WS 메시지 파싱 실패:", e);
         }
-      } catch (e) {
-        console.error("WS 메시지 파싱 실패:", e);
+      };
+
+      ws.onerror = () => { /* 연결 실패 시 조용히 처리 */ };
+
+      ws.onclose = () => {
+        if (!isMountedRef.current) return; // 언마운트 후 재연결 방지
+        timerRef.current = setTimeout(connect, 3000);
+      };
+    };
+
+    connect();
+
+    return () => {
+      isMountedRef.current = false;
+
+      // 재연결 타이머 취소
+      if (timerRef.current !== null) {
+        clearTimeout(timerRef.current);
+        timerRef.current = null;
+      }
+
+      // WebSocket 닫기 — CONNECTING 상태에서 닫아도 경고만 뜨고 문제없음
+      const ws = wsRef.current;
+      wsRef.current = null;
+      if (ws && ws.readyState !== WebSocket.CLOSED) {
+        ws.close();
       }
     };
-
-    ws.onerror = () => {
-      // 연결 실패 시 조용히 처리 (WebSocket 미지원 환경 대응)
-    };
-
-    ws.onclose = () => {
-      // 연결 끊기면 3초 후 재연결
-      setTimeout(() => {
-        if (wsRef.current?.readyState === WebSocket.CLOSED) connect();
-      }, 3000);
-    };
-
-    wsRef.current = ws;
-  }, [workspaceId]);
-
-  useEffect(() => {
-    connect();
-    return () => {
-      wsRef.current?.close();
-      wsRef.current = null;
-    };
-  }, [connect]);
+  }, [workspaceId]); // workspaceId 바뀔 때만 재연결
 }
