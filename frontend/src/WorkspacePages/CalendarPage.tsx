@@ -374,7 +374,7 @@ export default function CalendarPage() {
             {/* 헤더 */}
             <div className="cs-header">
               <div className="cs-header-left">
-                <h3 className="cs-title">📅 시간표</h3>
+                <h3 className="cs-title">시간표</h3>
               </div>
               <div className="cs-header-right">
                 <div className="cs-legend">
@@ -418,7 +418,7 @@ export default function CalendarPage() {
                   className={`cs-combined-tab ${showCombined?"cs-combined-tab--active":""}`}
                   onClick={()=>{setShowCombined(v=>!v);setAddPopup(null);setBlockPopup(null);}}
                 >
-                  🔗 공강 종합
+                  공강 종합
                 </button>
               )}
             </div>
@@ -426,10 +426,10 @@ export default function CalendarPage() {
             {/* 현재 보는 시간표 타이틀 */}
             <div className="cs-viewing-bar">
               {showCombined
-                ? `🔗 팀 전체 공강 종합 (${wsMembers.length+1}명의 공통 여유 시간)`
+                ? `팀 전체 공강 종합 (${wsMembers.length+1}명의 공통 여유 시간)`
                 : viewingUserId===myUserId
-                  ? `✏️ 내 시간표 — 클릭 또는 드래그로 수업 추가`
-                  : `👀 ${wsMembers.find(m=>m.userId===viewingUserId)?.name??"팀원"}의 시간표 (읽기 전용)`
+                  ? `내 시간표 — 클릭 또는 드래그로 수업 추가`
+                  : `${wsMembers.find(m=>m.userId===viewingUserId)?.name??"팀원"}의 시간표 (읽기 전용)`
               }
             </div>
 
@@ -463,10 +463,10 @@ export default function CalendarPage() {
           <div className="cs-popup-row">
             <label className="cs-popup-label">종류</label>
             <select className="cs-popup-select" value={addForm.category} onChange={e=>setAddForm(p=>({...p,category:e.target.value}))}>
-              <option value="CLASS">🎓 수업</option>
-              <option value="PRIVATE">👤 개인</option>
-              <option value="FREE">☀️ 공강</option>
-              <option value="TASK">📋 태스크</option>
+              <option value="CLASS">수업</option>
+              <option value="PRIVATE">개인</option>
+              <option value="FREE">공강</option>
+              <option value="TASK">태스크</option>
             </select>
           </div>
           <div className="cs-popup-row">
@@ -492,10 +492,10 @@ export default function CalendarPage() {
             <button className="cs-popup-close" onClick={()=>setBlockPopup(null)}>✕</button>
           </div>
           <div className="cs-popup-info">
-            <span>📅 {blockPopup.block.dayOfWeek}요일</span>
-            <span>🕐 {blockPopup.block.startTime.slice(0,5)} ~ {blockPopup.block.endTime.slice(0,5)}</span>
+            <span>{blockPopup.block.dayOfWeek}요일</span>
+            <span>{blockPopup.block.startTime.slice(0,5)} ~ {blockPopup.block.endTime.slice(0,5)}</span>
           </div>
-          <button className="cs-popup-delete-btn" onClick={()=>handleDeleteBlock(blockPopup.block.blockId)}>🗑 삭제</button>
+          <button className="cs-popup-delete-btn" onClick={()=>handleDeleteBlock(blockPopup.block.blockId)}>삭제</button>
         </div>
       )}
 
