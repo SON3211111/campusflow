@@ -14,6 +14,8 @@ import {
 import Header from "../components/Header";
 import stressImg from "../assets/stress.png";
 import { LANGUAGES, getLanguageMeta, getStoredLanguage, saveLanguage, type AppLanguage } from "../utils/appLanguage";
+import { getStoredTheme, saveTheme } from "../utils/appTheme";
+import { Moon, Sun } from "lucide-react";
 import "./MainPage.css";
 
 type MainCopy = {
@@ -273,6 +275,13 @@ const MainPage: React.FC = () => {
   const isLoggedIn = !!localStorage.getItem("accessToken");
   const [isLangMenuOpen, setIsLangMenuOpen] = useState(false);
   const [selectedLang, setSelectedLang] = useState<AppLanguage>(() => getStoredLanguage());
+  const [isDark, setIsDark] = useState(() => getStoredTheme() === "dark");
+
+  const toggleTheme = () => {
+    const next = isDark ? "light" : "dark";
+    setIsDark(!isDark);
+    saveTheme(next);
+  };
   const copy = mainCopy[selectedLang];
   const selectedMeta = getLanguageMeta(selectedLang);
 
@@ -421,6 +430,7 @@ const MainPage: React.FC = () => {
 
         <footer className="main-footer">
           <div className="main-footer-brand">CAMPUS_FLOW</div>
+          <div className="main-footer-right">
           <div className="lang-select-area">
             {isLangMenuOpen && (
               <div className="lang-dropdown">
@@ -447,6 +457,14 @@ const MainPage: React.FC = () => {
               <Globe2 size={16} />
               <span>{selectedMeta.native}</span>
             </button>
+          </div>
+          <button
+            className="main-footer-theme-btn"
+            onClick={toggleTheme}
+            aria-label={isDark ? "라이트 모드로 전환" : "다크 모드로 전환"}
+          >
+            {isDark ? <Sun size={16} /> : <Moon size={16} />}
+          </button>
           </div>
         </footer>
       </main>
