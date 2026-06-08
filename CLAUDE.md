@@ -1,6 +1,6 @@
 # CampusFlow
 
-캠퍼스 팀 프로젝트 관리 툴. AI 기반 태스크 분해 + 칸반 보드 + 대시보드.
+캠퍼스 팀 프로젝트 관리 툴. AI 기반 태스크 분해 + 칸반 보드 + 대시보드 + 알림/병목 리포트 + 개인화 설정.
 
 **플로우 A (메인)**: AI 분해 → 즉시 DB 저장(assignee_id=NULL) → AiTaskPage Picking → 보드 관리
 **플로우 B (보조)**: 팀원이 카드 직접 추가 → 본인 배정 → 보드 관리
@@ -17,10 +17,12 @@ campusflow/
 ## 핵심 도메인 개념
 
 - **Workspace**: 프로젝트 단위 공간. type = PERSONAL | TEAM
+- **개인 Workspace → 팀 Workspace 전환**: PERSONAL 워크스페이스라도 초대/참여로 멤버가 추가되면 TEAM으로 자동 전환
 - **Task**: 칸반 카드. status = TODO | REVIEW | DOING | ISSUE | DONE. 소프트 삭제(deleted 플래그)
 - **WorkspaceMember**: Workspace ↔ User 다대다 조인 엔티티. role = OWNER | MEMBER
 - **Project**: Workspace 안의 세부 프로젝트 (현재 AI 태스크와 연결)
-- **ContributionMetrics**: 팀원별 기여도 집계 (현재 업데이트 로직 미구현 — 주의)
+- **ContributionMetrics**: 팀원별 기여도 집계. DONE/ISSUE→DONE 흐름에서 일부 카운트 업데이트
+- **ProfileSettings**: 사용자 기본 정보/비밀번호, 픽셀 아바타, 다크모드, 언어 설정을 관리하는 개인 설정 화면
 
 ## 작업 규칙
 
@@ -84,6 +86,14 @@ await client.post("/api/messages", newMsg)
 setMessages(prev => [...prev, newMsg])
 ```
 localStorage는 캐시/폴백 용도로만 사용할 것. 유일한 저장소로 쓰지 말 것.
+
+**예외적으로 localStorage 저장이 허용되는 개인 UI 설정**
+- `app_theme`: 라이트/다크 모드
+- `app_language`: 표시 언어
+- `pixel_avatar_{userId}`: 개인 픽셀 아바타 꾸미기 값
+- `ws_gradient_{workspaceId}`: 워크스페이스 카드/테마 색상 보정값
+
+위 항목은 팀 공유 데이터가 아니라 개인 환경 설정이므로 DB 저장 없이 localStorage 사용 가능.
 
 ### Git 브랜치 규칙
 
@@ -154,6 +164,7 @@ style(범위): UI/CSS 변경
 | DONE 처리 시 활동 피드 즉시 기록 | ✅ 완료 — task_status_history 기록, 대시보드 활동 피드 API 연결 완료 |
 | ContributionMetrics 업데이트 | ✅ 완료 — DONE 시 task_completion_count 증가, ISSUE→DONE 시 issue_solving_count 증가 |
 | 병목 태스크 감지 | ✅ 완료 — GET /api/workspaces/{id}/tasks/bottleneck, 대시보드 "⚠️ 주의 필요 태스크" 섹션 |
+| 병목 지연 리포트 | ✅ 완료 — NotificationPage 병목 리포트 탭, 후속 태스크 영향/예상 지연일 표시 |
 | 활동 피드 UI | ✅ 완료 — 대시보드 활동 피드 localStorage → task_status_history API 교체 |
 | 알림 자동 생성 | ✅ 완료 — 상태 변경 시 본인 제외 워크스페이스 멤버 전체 알림 자동 저장 |
 | 알림 UI | ✅ 완료 — 헤더 벨 아이콘 숫자 뱃지, STATUS_CHANGE/QUICK_SIGNAL 알림 드롭다운 표시 |
@@ -176,6 +187,11 @@ style(범위): UI/CSS 변경
 | ProjectAnalyticsService | 더미 데이터 반환 중 |
 | 커스텀 컬럼 | 로컬 state만, 리로드 시 사라짐 |
 | Planner 마감일 연결 | ✅ 완료 — tasks dueDate 기반 "다가오는 마감일" 목록 표시, D-3 이내 빨간 강조 |
+| 개인정보 설정 페이지 | ✅ 완료 — `/profile-settings`, 이름/비밀번호 수정, 가입일 표시 |
+| 픽셀 학생 아바타 | ✅ 완료 — 공통 `PixelAvatar`, 헤더/보드/댓글/멤버/대시보드 등 프로필 아바타로 적용 |
+| 다크모드 | ✅ 완료 — 개인정보 설정에서 전환, `app_theme` 저장, 전역 다크 테마 보강 |
+| 언어 변경 | ✅ 완료 — 랜딩페이지/개인정보 설정에서 6개 언어 선택, `app_language` 저장 |
+| 로그인 로고 UI | ✅ 완료 — 로그인 화면 좌상단 C'FLOW 브랜드 버튼 개선 |
 
 ## 환경 변수
 

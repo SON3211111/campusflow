@@ -40,8 +40,9 @@ interface KickNotification {
 export default function Header({ workspaces = [], showSearch = true, onLogout }: HeaderProps) {
   const navigate = useNavigate();
   const isLoggedIn = !!localStorage.getItem('accessToken');
-  const userName = localStorage.getItem('userName') ?? '사용자';
   const userId = localStorage.getItem('userId') ?? '';
+  const [userName, setUserName] = useState(localStorage.getItem('userName') ?? '사용자');
+  const [avatarVersion, setAvatarVersion] = useState(0);
   const [query, setQuery] = useState('');
   const [searchOpen, setSearchOpen] = useState(false);
   const [userMenuOpen, setUserMenuOpen] = useState(false);
@@ -75,6 +76,22 @@ export default function Header({ workspaces = [], showSearch = true, onLogout }:
       clearInterval(timer);
     };
   }, [fetchNotifications]);
+
+  useEffect(() => {
+    const syncProfile = () => {
+      setUserName(localStorage.getItem('userName') ?? '사용자');
+      setAvatarVersion((version) => version + 1);
+    };
+
+    window.addEventListener("profile-name-change", syncProfile);
+    window.addEventListener("profile-avatar-change", syncProfile);
+    window.addEventListener("storage", syncProfile);
+    return () => {
+      window.removeEventListener("profile-name-change", syncProfile);
+      window.removeEventListener("profile-avatar-change", syncProfile);
+      window.removeEventListener("storage", syncProfile);
+    };
+  }, []);
 
   const addWorkspaceActivity = (workspaceId: string, message: string) => {
     const key = `workspace_activity_${workspaceId}`;
@@ -270,14 +287,14 @@ export default function Header({ workspaces = [], showSearch = true, onLogout }:
             onClick={() => setUserMenuOpen((v) => !v)}
             style={{ position: 'relative' }}
           >
-            <PixelAvatar userId={userId} name={userName} size="sm" className="header-pixel-avatar" />
+            <PixelAvatar key={`header-${avatarVersion}`} userId={userId} name={userName} size="sm" className="header-pixel-avatar" />
             <span className="user-name">{userName}님</span>
             <ChevronDown className={`dropdown-arrow ${userMenuOpen ? "open" : ""}`} size={15} />
 
             {userMenuOpen && (
               <div className="user-dropdown" onClick={(e) => e.stopPropagation()}>
                 <div className="user-dropdown-profile">
-                  <PixelAvatar userId={userId} name={userName} size="md" />
+                  <PixelAvatar key={`dropdown-${avatarVersion}`} userId={userId} name={userName} size="md" />
                   <div>
                     <p className="user-dropdown-name">{userName}님</p>
                     <p className="user-dropdown-caption">오늘도 좋은 하루 보내세요</p>

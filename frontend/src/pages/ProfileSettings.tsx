@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { ArrowLeft, Check, Globe2, GraduationCap, IdCard, LockKeyhole, Mail, Moon, Palette, Save, ShieldCheck, Sun, UserRound } from "lucide-react";
+import { ArrowLeft, Check, Globe2, GraduationCap, IdCard, LockKeyhole, Mail, Moon, Palette, ShieldCheck, Sun, UserRound } from "lucide-react";
 import Header from "../components/Header";
 import PixelAvatar, { AVATAR_OPTIONS, getStoredAvatar, type AvatarConfig } from "../components/PixelAvatar";
 import client from "../api/client";
@@ -381,6 +381,13 @@ export default function ProfileSettings() {
     saveLanguage(nextLanguage);
   };
 
+  const handleAvatarChange = (nextAvatar: AvatarConfig) => {
+    setAvatar(nextAvatar);
+    if (!userId) return;
+    localStorage.setItem(`pixel_avatar_${userId}`, JSON.stringify(nextAvatar));
+    window.dispatchEvent(new CustomEvent("profile-avatar-change", { detail: { userId, avatar: nextAvatar } }));
+  };
+
   const handleSave = async () => {
     setError("");
     setMessage("");
@@ -417,6 +424,7 @@ export default function ProfileSettings() {
       setProfile(updated);
       setName(updated.name);
       localStorage.setItem("userName", updated.name);
+      window.dispatchEvent(new CustomEvent("profile-name-change", { detail: { userId, name: updated.name } }));
       setCurrentPassword("");
       setNewPassword("");
       setConfirmPassword("");
@@ -544,7 +552,7 @@ export default function ProfileSettings() {
                         type="button"
                         className={`avatar-swatch ${avatar[group.key as keyof AvatarConfig] === color ? "active" : ""}`}
                         style={{ background: color }}
-                        onClick={() => setAvatar((prev) => ({ ...prev, [group.key]: color }))}
+                        onClick={() => handleAvatarChange({ ...avatar, [group.key]: color })}
                         aria-label={`${group.label} ${copy.colorSelect}`}
                       />
                     ))}
@@ -615,7 +623,6 @@ export default function ProfileSettings() {
         <div className="profile-actions">
           <button className="profile-secondary-btn" onClick={() => navigate("/workspace")}>{copy.workspace}</button>
           <button className="profile-save-btn" onClick={handleSave} disabled={saving || loading}>
-            <Save size={16} />
             {saving ? copy.saving : copy.save}
           </button>
         </div>
