@@ -697,10 +697,7 @@ export default function WorkSpacePage() {
                             </span>
                           )}
                           {card.assigneeName && (
-                            <div className="wsp-card-assignee">
-                              <PixelAvatar userId={card.assigneeId} name={card.assigneeName} size="sm" />
-                              <span className="wsp-card-assignee-name">{card.assigneeName}</span>
-                            </div>
+                            <PixelAvatar userId={card.assigneeId} name={card.assigneeName} size="sm" className="wsp-card-pixel-avatar" />
                           )}
                         </div>
                       )}
@@ -803,6 +800,8 @@ export default function WorkSpacePage() {
           taskId={selectedCard.card.id}
           workspaceId={workspace?.id}
           initialQuickSignal={selectedCard.card.quickSignal}
+          assigneeId={selectedCard.card.assigneeId}
+          assigneeName={selectedCard.card.assigneeName}
           onSaveTitle={(t) => handleSaveTitle(selectedCard.col, selectedCard.card.id, t)}
           onSaveDesc={(desc) => handleSaveDesc(selectedCard.col, selectedCard.card.id, desc)}
           onSaveStartDate={(startDate) => handleSaveStartDate(selectedCard.col, selectedCard.card.id, startDate)}

@@ -30,6 +30,8 @@ interface Props {
   initialDueDate?: string;
   initialComments?: Comment[];
   initialQuickSignal?: string;
+  assigneeId?: string;
+  assigneeName?: string;
   onSaveTitle?: (title: string) => void;
   onSaveDesc?: (desc: string) => void;
   onSaveStartDate?: (startDate: string) => void;
@@ -65,7 +67,7 @@ function formatSize(bytes: number) {
   return `${(bytes / (1024 * 1024)).toFixed(1)}MB`;
 }
 
-export default function CardDetailModal({ title, colName, taskId, workspaceId, initialDesc = "", initialStartDate = "", initialDueDate = "", initialComments = [], initialQuickSignal, onSaveTitle, onSaveDesc, onSaveStartDate, onSaveDueDate, onSaveComments, onSendSignal, onClose }: Props) {
+export default function CardDetailModal({ title, colName, taskId, workspaceId, initialDesc = "", initialStartDate = "", initialDueDate = "", initialComments = [], initialQuickSignal, assigneeId, assigneeName, onSaveTitle, onSaveDesc, onSaveStartDate, onSaveDueDate, onSaveComments, onSendSignal, onClose }: Props) {
   const userName  = localStorage.getItem("userName") ?? "나";
   const userId    = localStorage.getItem("userId") ?? "";
   const [cardTitle, setCardTitle] = useState(title);
@@ -395,6 +397,19 @@ export default function CardDetailModal({ title, colName, taskId, workspaceId, i
           </div>
 
           <div className="cdm-right">
+            {/* 담당자 */}
+            <div className="cdm-section">
+              <div className="cdm-section-title">담당자</div>
+              {assigneeName ? (
+                <div className="cdm-assignee">
+                  <PixelAvatar userId={assigneeId} name={assigneeName} size="sm" />
+                  <span className="cdm-assignee-name">{assigneeName}</span>
+                </div>
+              ) : (
+                <span className="cdm-assignee-empty">담당자 없음</span>
+              )}
+            </div>
+
             <div className="cdm-section-title">
               댓글 및 활동
               <button className="cdm-show-detail">상세 보기</button>
