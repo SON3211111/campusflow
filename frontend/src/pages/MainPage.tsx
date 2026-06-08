@@ -289,6 +289,14 @@ const MainPage: React.FC = () => {
 
   return (
     <div className="main-page-wrapper">
+      {/* 다크모드 플로팅 버튼 */}
+      <button
+        className="main-theme-float-btn"
+        onClick={toggleTheme}
+        aria-label={isDark ? "라이트 모드로 전환" : "다크 모드로 전환"}
+      >
+        {isDark ? <Sun size={18} /> : <Moon size={18} />}
+      </button>
       <Header showSearch={false} />
 
       <main className="main-container">
@@ -430,7 +438,6 @@ const MainPage: React.FC = () => {
 
         <footer className="main-footer">
           <div className="main-footer-brand">CAMPUS_FLOW</div>
-          <div className="main-footer-right">
           <div className="lang-select-area">
             {isLangMenuOpen && (
               <div className="lang-dropdown">
@@ -457,14 +464,6 @@ const MainPage: React.FC = () => {
               <Globe2 size={16} />
               <span>{selectedMeta.native}</span>
             </button>
-          </div>
-          <button
-            className="main-footer-theme-btn"
-            onClick={toggleTheme}
-            aria-label={isDark ? "라이트 모드로 전환" : "다크 모드로 전환"}
-          >
-            {isDark ? <Sun size={16} /> : <Moon size={16} />}
-          </button>
           </div>
         </footer>
       </main>
