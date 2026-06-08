@@ -239,7 +239,7 @@ export default function CardDetailModal({ title, colName, taskId, workspaceId, i
         <div className="cdm-body">
           <div className="cdm-left">
             <div className="cdm-title-row">
-              <span className="cdm-title-icon">○</span>
+              <span className="cdm-title-icon" style={{ color: COL_COLOR[currentCol] ?? "#aaa" }}>●</span>
               {editingTitle ? (
                 <div className="cdm-title-editor">
                   <input
