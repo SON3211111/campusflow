@@ -165,6 +165,10 @@ export default function CalendarPage() {
   const [blockPopup,setBlockPopup]=useState<{block:ScheduleBlockItem;x:number;y:number}|null>(null);
   const popupRef=useRef<HTMLDivElement>(null);
 
+  // 드래그 상태
+  const dragRef=useRef<{day:string;startHour:number;endHour:number}|null>(null);
+  const [dragHighlight,setDragHighlight]=useState<{day:string;startHour:number;endHour:number}|null>(null);
+
   const isMyView=!combinedMode&&viewingUserId===myUserId;
 
   // 팝업 외부 클릭 닫기
@@ -176,6 +180,23 @@ export default function CalendarPage() {
     };
     document.addEventListener("mousedown",handler);
     return()=>document.removeEventListener("mousedown",handler);
+  },[]);
+
+  // 드래그 전역 mouseup — 어디서 손을 놓아도 팝업 열기
+  useEffect(()=>{
+    const handler=(e:MouseEvent)=>{
+      const drag=dragRef.current;
+      if(!drag)return;
+      dragRef.current=null;
+      setDragHighlight(null);
+      document.body.style.cursor="";
+      const startH=Math.min(drag.startHour,drag.endHour);
+      const endH=Math.max(drag.startHour,drag.endHour)+1;
+      setAddPopup({day:drag.day,startHour:startH,x:e.clientX,y:e.clientY});
+      setAddForm({title:"",category:"CLASS",endHour:Math.min(endH,HOUR_END)});
+    };
+    document.addEventListener("mouseup",handler);
+    return()=>document.removeEventListener("mouseup",handler);
   },[]);
 
   // 시간표 블록 fetch (캐시)
@@ -227,22 +248,32 @@ export default function CalendarPage() {
     if(t==="board")navigate("/workspace-board",{state:{workspace,workspaces}});
   };
 
-  // ── 시간표 인터랙션 ──────────────────────────────────────────────
-  const handleCellClick=(e:React.MouseEvent,day:string,hour:number)=>{
+  // ── 시간표 인터랙션 (드래그 + 클릭) ─────────────────────────────
+  const handleCellMouseDown=(e:React.MouseEvent,day:string,hour:number)=>{
     if(!isMyView)return;
-    e.stopPropagation();
+    // 블록 위 클릭이면 드래그 시작하지 않음
     const existing=(blockMap[myUserId]??[]).find(b=>b.dayOfWeek===day&&timeToMins(b.startTime)<=hour*60&&hour*60<timeToMins(b.endTime));
     if(existing){
       setBlockPopup({block:existing,x:e.clientX,y:e.clientY});
       setAddPopup(null);
-    }else{
-      setAddPopup({day,startHour:hour,x:e.clientX,y:e.clientY});
-      setAddForm({title:"",category:"CLASS",endHour:hour+1});
-      setBlockPopup(null);
+      return;
     }
+    e.preventDefault(); // 텍스트 선택 방지
+    dragRef.current={day,startHour:hour,endHour:hour};
+    setDragHighlight({day,startHour:hour,endHour:hour});
+    setAddPopup(null);
+    setBlockPopup(null);
+    document.body.style.cursor="ns-resize";
   };
 
-  const handleBlockClick=(e:React.MouseEvent,block:ScheduleBlockItem)=>{
+  const handleCellMouseEnter=(day:string,hour:number)=>{
+    const drag=dragRef.current;
+    if(!drag||drag.day!==day)return;
+    drag.endHour=hour;
+    setDragHighlight({day,startHour:drag.startHour,endHour:hour});
+  };
+
+  const handleBlockMouseDown=(e:React.MouseEvent,block:ScheduleBlockItem)=>{
     if(!isMyView)return;
     e.stopPropagation();
     setBlockPopup({block,x:e.clientX,y:e.clientY});
@@ -397,14 +428,27 @@ export default function CalendarPage() {
                     <div key={day} className="cs-day-col">
                       <div className="cs-day-header">{day}</div>
                       <div className={`cs-day-body ${isMyView?"cs-day-editable":""}`}>
-                        {/* 시간 셀 (클릭 영역) */}
+                        {/* 시간 셀 (드래그/클릭 영역) */}
                         {TIMETABLE_HOURS.map(h=>(
                           <div
                             key={h}
                             className="cs-hour-cell"
-                            onClick={(e)=>handleCellClick(e,day,h)}
+                            onMouseDown={(e)=>handleCellMouseDown(e,day,h)}
+                            onMouseEnter={()=>handleCellMouseEnter(day,h)}
                           />
                         ))}
+                        {/* 드래그 프리뷰 */}
+                        {dragHighlight&&dragHighlight.day===day&&(()=>{
+                          const s=Math.min(dragHighlight.startHour,dragHighlight.endHour);
+                          const e2=Math.max(dragHighlight.startHour,dragHighlight.endHour)+1;
+                          const top=timeToTop(`${String(s).padStart(2,"0")}:00`);
+                          const height=timeToH(`${String(s).padStart(2,"0")}:00`,`${String(Math.min(e2,HOUR_END)).padStart(2,"0")}:00`);
+                          return(
+                            <div className="cs-drag-preview" style={{top,height}}>
+                              {`${String(s).padStart(2,"0")}:00 ~ ${String(Math.min(e2,HOUR_END)).padStart(2,"0")}:00`}
+                            </div>
+                          );
+                        })()}
                         {/* 시간표 블록 */}
                         {dayBlocks.map(block=>{
                           const top=timeToTop(block.startTime);
@@ -416,7 +460,7 @@ export default function CalendarPage() {
                               key={block.blockId}
                               className="cs-block"
                               style={{top,height,background:bg,borderLeft:`3px solid ${color}`}}
-                              onClick={(e)=>handleBlockClick(e,block)}
+                              onMouseDown={(e)=>handleBlockMouseDown(e,block)}
                             >
                               <span className="cs-block-cat" style={{color}}>{CAT_LABEL[block.category]??block.category}</span>
                               <span className="cs-block-title" style={{color}}>{block.title}</span>
