@@ -65,7 +65,8 @@ export default function BoardSubHeader({ wsName = "워크스페이스", members 
                     if (item === "Dash Board") navigate("/dashboard", { state: { workspace, workspaces } });
                     if (item === "Notification") navigate("/notifications", { state: { workspace, workspaces } });
                     if (item === "Setting") navigate("/settings", { state: { workspace, workspaces } });
-                    if (item === "Calender" || item === "Task Board") navigate("/workspace-board", { state: { workspace, workspaces } });
+                    if (item === "Calender") navigate("/calendar", { state: { workspace, workspaces } });
+                    if (item === "Task Board") navigate("/workspace-board", { state: { workspace, workspaces } });
                   }}
                 >
                   {item}
