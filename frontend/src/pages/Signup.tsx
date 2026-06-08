@@ -1,7 +1,6 @@
 import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { ArrowRight, CheckCircle2, Mail, Sparkles, UsersRound, Zap } from "lucide-react";
-import logoImg from "../assets/Logo.png";
 import "./Signup.css";
 
 const Signup: React.FC = () => {
@@ -29,8 +28,9 @@ const Signup: React.FC = () => {
   return (
     <div className="auth-page signup-auth-page">
       <section className="auth-visual signup-visual">
-        <button className="auth-logo-button" onClick={() => navigate("/")}>
-          <img src={logoImg} alt="CampusFlow" />
+        <button className="auth-logo-button auth-logo-brand" onClick={() => navigate("/")} aria-label="C'FLOW 랜딩페이지로 이동">
+          <span className="auth-logo-mark">C</span>
+          <span className="auth-logo-text">C'FLOW</span>
         </button>
         <div className="auth-hero-copy">
           <p className="auth-eyebrow">
