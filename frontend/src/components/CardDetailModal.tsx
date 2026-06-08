@@ -215,7 +215,15 @@ export default function CardDetailModal({ title, colName, taskId, workspaceId, i
 
   return (
     <div className="cdm-overlay" onClick={onClose}>
-      <div className="cdm-modal" onClick={(e) => e.stopPropagation()}>
+      <div
+        className="cdm-modal"
+        style={quickSignal === "HELP_NEEDED"
+          ? { border: "2px solid #f87171", boxShadow: "0 8px 40px rgba(248,113,113,0.25)" }
+          : quickSignal === "FEEDBACK_NEEDED"
+          ? { border: "2px solid #6ab4f8", boxShadow: "0 8px 40px rgba(106,180,248,0.25)" }
+          : undefined}
+        onClick={(e) => e.stopPropagation()}
+      >
         <div className="cdm-header">
           {/* 상태 변경 드롭다운 */}
           <div className="cdm-status-wrap" ref={statusDropRef}>
@@ -379,14 +387,6 @@ export default function CardDetailModal({ title, colName, taskId, workspaceId, i
               )}
             </div>
 
-            {/* 도움요청 상태 뱃지 (활성 시에만 표시) */}
-            {quickSignal && (
-              <div className="cdm-signal-badge-row">
-                <span className={`cdm-signal-badge ${quickSignal === "HELP_NEEDED" ? "help" : "feedback"}`}>
-                  {quickSignal === "HELP_NEEDED" ? "도움 요청 중" : "피드백 요청 중"}
-                </span>
-              </div>
-            )}
 
             <div className="cdm-section">
               <div className="cdm-section-title">

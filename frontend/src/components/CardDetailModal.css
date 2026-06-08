@@ -496,18 +496,16 @@
   padding: 10px 0;
 }
 
-/* 도움요청 상태 뱃지 */
-.cdm-signal-badge-row {
-  margin-bottom: 14px;
-}
-
+/* 도움요청 상태 뱃지 (헤더 좌상단) */
 .cdm-signal-badge {
   display: inline-flex;
   align-items: center;
-  padding: 4px 12px;
+  padding: 4px 10px;
   border-radius: 20px;
-  font-size: 12px;
+  font-size: 11px;
   font-weight: 700;
+  white-space: nowrap;
+  flex-shrink: 0;
 }
 
 .cdm-signal-badge.help {
