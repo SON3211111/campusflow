@@ -1,15 +1,24 @@
 /**
  * 카드 상세 모달 컴포넌트
  * 태스크 클릭 시 열리는 상세 편집 화면
- * 설명/마감일 인라인 편집, 댓글 작성 기능 포함
+ * 설명/마감일 인라인 편집, 댓글 작성, 파일 첨부 기능 포함
  */
-import { useState, useEffect } from "react";
-import { CalendarDays, MessageSquare } from "lucide-react";
+import { useState, useEffect, useRef } from "react";
+import { CalendarDays, MessageSquare, Paperclip, Trash2, Download } from "lucide-react";
 import PixelAvatar from "./PixelAvatar";
 import client from "../api/client";
 import "./CardDetailModal.css";
 
 interface Comment { user: string; text: string; time: string; }
+
+interface Attachment {
+  attachmentId: string;
+  originalName: string;
+  fileType: string;
+  fileSize: number;
+  uploaderName: string;
+  createdAt: string;
+}
 
 interface Props {
   title: string;
@@ -36,6 +45,24 @@ function timeAgo(iso: string) {
   return `${Math.floor(diff / 86400)}일 전`;
 }
 
+function fileIcon(fileType: string) {
+  if (!fileType) return "📎";
+  if (fileType.startsWith("image/")) return "🖼️";
+  if (fileType === "application/pdf") return "📄";
+  if (fileType.includes("excel") || fileType.includes("spreadsheet")) return "📊";
+  if (fileType.includes("word") || fileType.includes("wordprocessing")) return "📝";
+  if (fileType.includes("hwp") || fileType.includes("hangul")) return "📋";
+  if (fileType.includes("powerpoint") || fileType.includes("presentation")) return "📊";
+  if (fileType.includes("zip") || fileType.includes("compressed")) return "🗜️";
+  return "📎";
+}
+
+function formatSize(bytes: number) {
+  if (bytes < 1024) return `${bytes}B`;
+  if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)}KB`;
+  return `${(bytes / (1024 * 1024)).toFixed(1)}MB`;
+}
+
 export default function CardDetailModal({ title, colName, taskId, workspaceId, initialDesc = "", initialDueDate = "", initialComments = [], initialQuickSignal, onSaveTitle, onSaveDesc, onSaveDueDate, onSaveComments, onSendSignal, onClose }: Props) {
   const userName  = localStorage.getItem("userName") ?? "나";
   const userId    = localStorage.getItem("userId") ?? "";
@@ -49,6 +76,11 @@ export default function CardDetailModal({ title, colName, taskId, workspaceId, i
   const [comment, setComment]   = useState("");
   const [comments, setComments] = useState<Comment[]>(initialComments);
 
+  const [attachments, setAttachments] = useState<Attachment[]>([]);
+  const [uploading, setUploading] = useState(false);
+  const [dragging, setDragging] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
   useEffect(() => {
     if (!taskId || !workspaceId) return;
     client.get(`/workspaces/${workspaceId}/tasks/${taskId}/comments`)
@@ -56,7 +88,14 @@ export default function CardDetailModal({ title, colName, taskId, workspaceId, i
         const data = res.data.data ?? [];
         setComments(data.map((c: any) => ({ user: c.senderName, text: c.content, time: timeAgo(c.createdAt) })));
       })
-      .catch(() => {});
+      .catch((err) => console.error("댓글 조회 실패:", err));
+  }, [taskId, workspaceId]);
+
+  useEffect(() => {
+    if (!taskId || !workspaceId) return;
+    client.get(`/workspaces/${workspaceId}/tasks/${taskId}/attachments`)
+      .then((res) => setAttachments(res.data.data ?? []))
+      .catch((err) => console.error("첨부파일 조회 실패:", err));
   }, [taskId, workspaceId]);
 
   const appendComment = (newComment: Comment) => {
@@ -81,6 +120,48 @@ export default function CardDetailModal({ title, colName, taskId, workspaceId, i
     } else {
       appendComment({ user: userName, text, time: "방금 전" });
     }
+  };
+
+  const handleFileUpload = async (files: FileList | null) => {
+    if (!files || files.length === 0 || !taskId || !workspaceId) return;
+    setUploading(true);
+    try {
+      for (const file of Array.from(files)) {
+        const formData = new FormData();
+        formData.append("file", file);
+        if (userId) formData.append("uploaderId", userId);
+        if (userName) formData.append("uploaderName", userName);
+        const res = await client.post(
+          `/workspaces/${workspaceId}/tasks/${taskId}/attachments`,
+          formData,
+          { headers: { "Content-Type": "multipart/form-data" } }
+        );
+        setAttachments((prev) => [res.data.data, ...prev]);
+      }
+    } catch (err) {
+      console.error("파일 업로드 실패:", err);
+      alert("파일 업로드에 실패했습니다.");
+    } finally {
+      setUploading(false);
+      if (fileInputRef.current) fileInputRef.current.value = "";
+    }
+  };
+
+  const handleDeleteAttachment = async (attachmentId: string) => {
+    if (!taskId || !workspaceId) return;
+    try {
+      await client.delete(`/workspaces/${workspaceId}/tasks/${taskId}/attachments/${attachmentId}`);
+      setAttachments((prev) => prev.filter((a) => a.attachmentId !== attachmentId));
+    } catch (err) {
+      console.error("파일 삭제 실패:", err);
+      alert("파일 삭제에 실패했습니다.");
+    }
+  };
+
+  const handleDrop = (e: React.DragEvent) => {
+    e.preventDefault();
+    setDragging(false);
+    handleFileUpload(e.dataTransfer.files);
   };
 
   return (
@@ -120,6 +201,7 @@ export default function CardDetailModal({ title, colName, taskId, workspaceId, i
                 <h2 className="cdm-title" onClick={() => setEditingTitle(true)} title="클릭하여 제목 수정">{cardTitle}</h2>
               )}
             </div>
+
             <div className="cdm-section">
               <div className="cdm-section-title">
                 ≡ 설명
@@ -145,6 +227,7 @@ export default function CardDetailModal({ title, colName, taskId, workspaceId, i
                 </div>
               )}
             </div>
+
             <div className="cdm-section">
               <div className="cdm-section-title">🆘 도움 요청</div>
               <div className="cdm-signal-btns">
@@ -196,6 +279,88 @@ export default function CardDetailModal({ title, colName, taskId, workspaceId, i
                   {dueDate || "마감일을 설정하세요..."}
                 </div>
               )}
+            </div>
+
+            {/* 파일 첨부 섹션 */}
+            <div className="cdm-section">
+              <div className="cdm-section-title">
+                <Paperclip size={15} />
+                첨부파일
+                {taskId && workspaceId && (
+                  <>
+                    <button
+                      className="cdm-edit-btn"
+                      onClick={() => fileInputRef.current?.click()}
+                      disabled={uploading}
+                    >
+                      {uploading ? "업로드 중..." : "+ 파일 추가"}
+                    </button>
+                    <input
+                      ref={fileInputRef}
+                      type="file"
+                      multiple
+                      accept="image/*,.pdf,.doc,.docx,.xls,.xlsx,.hwp,.ppt,.pptx,.txt,.zip,.rar,.csv"
+                      style={{ display: "none" }}
+                      onChange={(e) => handleFileUpload(e.target.files)}
+                    />
+                  </>
+                )}
+              </div>
+
+              <div
+                className={`cdm-dropzone ${dragging ? "cdm-dropzone--over" : ""}`}
+                onDragOver={(e) => { e.preventDefault(); setDragging(true); }}
+                onDragLeave={() => setDragging(false)}
+                onDrop={handleDrop}
+              >
+                {attachments.length === 0 && !uploading ? (
+                  <span className="cdm-dropzone-hint">파일을 여기에 드래그하거나 위 버튼을 클릭하세요</span>
+                ) : null}
+
+                {uploading && (
+                  <div className="cdm-attach-uploading">
+                    <span className="cdm-attach-spinner" />
+                    업로드 중...
+                  </div>
+                )}
+
+                <div className="cdm-attach-list">
+                  {attachments.map((a) => (
+                    <div key={a.attachmentId} className="cdm-attach-item">
+                      {a.fileType?.startsWith("image/") ? (
+                        <img
+                          className="cdm-attach-thumb"
+                          src={`/api/workspaces/${workspaceId}/tasks/${taskId}/attachments/${a.attachmentId}/download`}
+                          alt={a.originalName}
+                        />
+                      ) : (
+                        <span className="cdm-attach-icon">{fileIcon(a.fileType)}</span>
+                      )}
+                      <div className="cdm-attach-info">
+                        <span className="cdm-attach-name" title={a.originalName}>{a.originalName}</span>
+                        <span className="cdm-attach-meta">{formatSize(a.fileSize)} · {a.uploaderName}</span>
+                      </div>
+                      <div className="cdm-attach-actions">
+                        <a
+                          href={`/api/workspaces/${workspaceId}/tasks/${taskId}/attachments/${a.attachmentId}/download`}
+                          download={a.originalName}
+                          className="cdm-attach-btn-icon"
+                          title="다운로드"
+                        >
+                          <Download size={14} />
+                        </a>
+                        <button
+                          className="cdm-attach-btn-icon cdm-attach-btn-delete"
+                          onClick={() => handleDeleteAttachment(a.attachmentId)}
+                          title="삭제"
+                        >
+                          <Trash2 size={14} />
+                        </button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
             </div>
           </div>
 

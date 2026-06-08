@@ -348,3 +348,166 @@
   font-size: 11px;
   color: #aaa;
 }
+
+/* ── 첨부파일 섹션 ── */
+.cdm-dropzone {
+  border: 2px dashed #e0e0e0;
+  border-radius: 10px;
+  padding: 10px;
+  transition: border-color 0.15s, background 0.15s;
+  min-height: 48px;
+}
+
+.cdm-dropzone--over {
+  border-color: #4f7cff;
+  background: #f0f4ff;
+}
+
+.cdm-dropzone-hint {
+  display: block;
+  text-align: center;
+  font-size: 12px;
+  color: #bbb;
+  padding: 8px 0;
+}
+
+.cdm-attach-uploading {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 12px;
+  color: #4f7cff;
+  padding: 6px 0;
+}
+
+.cdm-attach-spinner {
+  display: inline-block;
+  width: 14px;
+  height: 14px;
+  border: 2px solid #c7d6ff;
+  border-top-color: #4f7cff;
+  border-radius: 50%;
+  animation: cdm-spin 0.7s linear infinite;
+}
+
+@keyframes cdm-spin {
+  to { transform: rotate(360deg); }
+}
+
+.cdm-attach-list {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-top: 4px;
+}
+
+.cdm-attach-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 7px 10px;
+  background: #f8f8f8;
+  border-radius: 8px;
+  border: 1px solid #efefef;
+  transition: background 0.12s;
+}
+
+.cdm-attach-item:hover {
+  background: #f0f2f8;
+}
+
+.cdm-attach-thumb {
+  width: 36px;
+  height: 36px;
+  object-fit: cover;
+  border-radius: 6px;
+  border: 1px solid #e0e0e0;
+  flex-shrink: 0;
+}
+
+.cdm-attach-icon {
+  font-size: 22px;
+  flex-shrink: 0;
+  width: 36px;
+  text-align: center;
+}
+
+.cdm-attach-info {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.cdm-attach-name {
+  font-size: 13px;
+  font-weight: 500;
+  color: #222;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.cdm-attach-meta {
+  font-size: 11px;
+  color: #aaa;
+}
+
+.cdm-attach-actions {
+  display: flex;
+  gap: 4px;
+  flex-shrink: 0;
+}
+
+.cdm-attach-btn-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  border-radius: 6px;
+  border: none;
+  background: #efefef;
+  color: #666;
+  cursor: pointer;
+  text-decoration: none;
+  transition: background 0.12s, color 0.12s;
+}
+
+.cdm-attach-btn-icon:hover {
+  background: #e0e0e0;
+  color: #333;
+}
+
+.cdm-attach-btn-delete:hover {
+  background: #fff0f0;
+  color: #dc2626;
+}
+
+/* 다크모드 */
+:root[data-theme="dark"] .cdm-modal {
+  background: #1e1e2e;
+  color: #e0e0e0;
+}
+:root[data-theme="dark"] .cdm-dropzone {
+  border-color: #444;
+}
+:root[data-theme="dark"] .cdm-dropzone--over {
+  border-color: #6b9cff;
+  background: #1a2040;
+}
+:root[data-theme="dark"] .cdm-attach-item {
+  background: #2a2a3e;
+  border-color: #3a3a50;
+}
+:root[data-theme="dark"] .cdm-attach-item:hover {
+  background: #32325a;
+}
+:root[data-theme="dark"] .cdm-attach-btn-icon {
+  background: #3a3a50;
+  color: #ccc;
+}
+:root[data-theme="dark"] .cdm-attach-btn-icon:hover {
+  background: #4a4a60;
+}

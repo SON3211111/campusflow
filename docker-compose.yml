@@ -29,6 +29,7 @@ services:
     volumes:
       - ./backend:/app
       - gradle_cache:/root/.gradle
+      - ./uploads:/app/uploads
     environment:
       - SPRING_DATASOURCE_URL=jdbc:mysql://mysql:3306/campusflow?serverTimezone=Asia/Seoul
       - SPRING_DATASOURCE_USERNAME=root
