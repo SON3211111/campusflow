@@ -382,7 +382,16 @@ export default function AiTaskPage() {
       const offset = (buffer.categories as Category[]).length;
       return [...(buffer.tasks as Task[]), ...buildTasks(state.result!, offset)];
     }
-    if (shouldRestoreSession) return storedSession?.tasks ?? [];
+    if (shouldRestoreSession) {
+      const poolTasks = storedSession?.tasks ?? [];
+      // 장바구니에 이미 있는 태스크를 풀에서 제거 (새로고침 시 중복 방지)
+      const basketNames = new Set(
+        Object.values(storedSession?.memberBaskets ?? {})
+          .flat()
+          .map((t: Task) => t.name.trim().toLowerCase())
+      );
+      return poolTasks.filter((t) => !basketNames.has(t.name.trim().toLowerCase()));
+    }
     return buildTasks(aiResult);
   };
 
@@ -423,19 +432,31 @@ export default function AiTaskPage() {
         try {
           const taskRes = await client.get(`/workspaces/${workspace.id}/tasks`);
           const backendTasks: BackendTask[] = taskRes.data.data ?? [];
-          backendTasks.forEach((backendTask) => {
-            if (backendTask.assigneeId === undefined || backendTask.assigneeId === null) return;
-            const assigneeId = String(backendTask.assigneeId);
-            const member = list.find((item) => item.userId === assigneeId || item.name === backendTask.assigneeName);
-            const basketKey = member?.userId ?? assigneeId;
-            if (!nextBaskets[basketKey]) nextBaskets[basketKey] = [];
-            nextBaskets[basketKey] = mergeBasketTasks(nextBaskets[basketKey], [mapBackendTaskToAiTask(backendTask, categories)]);
+          // 백엔드에 실제로 존재하는 taskId 집합 — 보드에서 삭제된 카드를 장바구니에서도 제거하기 위해 사용
+          const existingBackendIds = new Set(
+            backendTasks
+              .map((t) => String(t.taskId ?? t.id ?? ""))
+              .filter(Boolean)
+          );
+          // 장바구니에서 백엔드에 없는 카드(보드에서 삭제된 카드) 제거
+          // backendId가 없는 카드(낙관적 저장 중)는 유지
+          Object.keys(nextBaskets).forEach((key) => {
+            nextBaskets[key] = nextBaskets[key].filter(
+              (t) => !t.backendId || existingBackendIds.has(t.backendId)
+            );
           });
+          // 주의: 보드에서 직접 배정된 카드는 장바구니에 추가하지 않음
+          // AI 세션에서 생성된 카드만 장바구니에 표시 (localStorage 기준)
         } catch (err) {
           console.error("워크스페이스 업무 동기화 실패:", err);
         }
 
         setMemberBaskets(nextBaskets);
+        // 장바구니에 있는 태스크는 풀에서 제거 (basket 확정 후 풀 중복 방지)
+        const basketNamesAfterSync = new Set(
+          Object.values(nextBaskets).flat().map((t) => t.name.trim().toLowerCase())
+        );
+        setTasks((prev) => prev.filter((t) => !basketNamesAfterSync.has(t.name.trim().toLowerCase())));
       })
       .catch(() => {
         const userId = localStorage.getItem("userId") ?? "me";
