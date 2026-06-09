@@ -72,16 +72,6 @@ interface AiTaskSession {
 
 type RawAiTaskSession = Partial<AiTaskSession> & Record<string, unknown>;
 
-interface BackendTask {
-  taskId?: string | number;
-  id?: string | number;
-  title?: string;
-  name?: string;
-  description?: string;
-  priority?: string;
-  assigneeId?: string | number;
-  assigneeName?: string;
-}
 
 function readStoredWorkspace(): WorkspaceItem | undefined {
   try {
@@ -257,37 +247,6 @@ function normalizeMember(raw: any): Member {
   };
 }
 
-function getTaskIdentity(task: Task) {
-  return task.backendId ? `backend:${task.backendId}` : `name:${task.name.trim().toLowerCase()}`;
-}
-
-function mergeBasketTasks(existing: Task[], incoming: Task[]) {
-  const seenById  = new Set(existing.filter((t) => t.backendId).map((t) => `backend:${t.backendId}`));
-  const seenByName = new Set(existing.map((t) => t.name.trim().toLowerCase()));
-  const merged = [...existing];
-  incoming.forEach((task) => {
-    const idKey   = task.backendId ? `backend:${task.backendId}` : null;
-    const nameKey = task.name.trim().toLowerCase();
-    if ((idKey && seenById.has(idKey)) || seenByName.has(nameKey)) return;
-    if (idKey) seenById.add(idKey);
-    seenByName.add(nameKey);
-    merged.push(task);
-  });
-  return merged;
-}
-
-function mapBackendTaskToAiTask(task: BackendTask, categories: Category[]): Task {
-  const description = task.description ?? "";
-  const categoryIdx = Math.max(0, categories.findIndex((category) => category.name === description));
-  return {
-    id: `backend-${task.taskId ?? task.id ?? task.title ?? Date.now()}`,
-    backendId: task.taskId || task.id ? String(task.taskId ?? task.id) : undefined,
-    name: String(task.title ?? task.name ?? "업무"),
-    categoryIdx: categoryIdx >= 0 ? categoryIdx : 0,
-    desc: description,
-    priority: task.priority ?? "",
-  };
-}
 
 export default function AiTaskPage() {
   const { state } = useLocation() as {
@@ -498,23 +457,20 @@ export default function AiTaskPage() {
     return () => window.clearInterval(timer);
   }, [basketCooldownUntil]);
 
-  // 보드에서 담당자가 바뀌면 장바구니 간 태스크 이동
+  // 보드에서 담당자가 바뀌면 장바구니 간 태스크 이동 (WebSocket 실시간)
   useWorkspaceSocket(workspace?.id, {
     onTaskUpdated: ({ taskId, field, value }) => {
       if (field !== "assigneeId") return;
       setMemberBaskets((prev) => {
-        // 변경된 태스크가 어느 바구니에 있는지 찾기
         let found: Task | null = null;
         let fromUserId = "";
         for (const [uid, basket] of Object.entries(prev)) {
           const t = basket.find((b) => b.backendId === taskId);
           if (t) { found = t; fromUserId = uid; break; }
         }
-        if (!found) return prev; // 장바구니에 없는 태스크면 무시
+        if (!found) return prev;
         const next = { ...prev };
-        // 기존 바구니에서 제거
         next[fromUserId] = next[fromUserId].filter((b) => b.backendId !== taskId);
-        // 새 담당자 바구니로 이동 (빈 문자열이면 제거만)
         if (value) {
           next[value] = [...(next[value] ?? []), found];
         }
@@ -522,6 +478,56 @@ export default function AiTaskPage() {
       });
     },
   });
+
+  // 탭 복귀 시 보드 담당자 변경사항 재조정 (visibilitychange)
+  // WebSocket이 탭 비활성화 중 이벤트를 놓쳤을 때 보완
+  useEffect(() => {
+    if (!workspace?.id) return;
+    const wsId = workspace.id;
+    let cancelled = false;
+
+    const syncOnVisible = async () => {
+      if (document.visibilityState !== "visible") return;
+      try {
+        const [membersRes, tasksRes] = await Promise.all([
+          client.get(`/workspaces/${wsId}/members`),
+          client.get(`/workspaces/${wsId}/tasks`),
+        ]);
+        if (cancelled) return;
+        const list: Member[] = (membersRes.data.data ?? []).map(normalizeMember);
+        const boardAssignees: Record<string, string> = {};
+        for (const t of (tasksRes.data.data ?? [])) {
+          if (t.taskId) boardAssignees[t.taskId] = t.assigneeId ?? "";
+        }
+        setMemberBaskets((prev) => {
+          const allTasks = Object.values(prev).flat();
+          if (!allTasks.some((t) => !!t.backendId)) return prev;
+          const reconciled: Record<string, Task[]> = Object.fromEntries(list.map((m) => [m.userId, []]));
+          let moved = false;
+          for (const [slotId, basket] of Object.entries(prev)) {
+            for (const task of basket) {
+              const boardAssigneeId = task.backendId ? boardAssignees[task.backendId] : undefined;
+              const targetId =
+                boardAssigneeId !== undefined && reconciled[boardAssigneeId] !== undefined
+                  ? boardAssigneeId
+                  : slotId;
+              if (reconciled[targetId] !== undefined) {
+                reconciled[targetId].push(task);
+                if (targetId !== slotId) moved = true;
+              }
+            }
+          }
+          return moved ? reconciled : prev;
+        });
+      } catch { /* 네트워크 오류 시 현재 상태 유지 */ }
+    };
+
+    document.addEventListener("visibilitychange", syncOnVisible);
+    return () => {
+      cancelled = true;
+      document.removeEventListener("visibilitychange", syncOnVisible);
+    };
+  }, [workspace?.id]);
 
   const toggleSession = (id: string) =>
     setSessions((prev) => prev.map((s) => s.id === id ? { ...s, collapsed: !s.collapsed } : s));
