@@ -601,7 +601,6 @@ export default function AiTaskPage() {
     const task = tasks.find((t) => t.id === draggingId);
     if (!task) return;
 
-    // 낙관적 UI 업데이트
     setMemberBaskets((prev) => {
       const basket = prev[userId] ?? [];
       if (basket.some((item) => item.id === task.id)) return prev;
@@ -611,36 +610,6 @@ export default function AiTaskPage() {
     setDraggingId(null);
     setDragOverUserId(null);
     if (!isPersonal) setBasketCooldownUntil(Date.now() + 3000);
-
-    // 즉시 보드에 생성
-    if (workspace?.id) {
-      client.post(`/workspaces/${workspace.id}/tasks`, {
-        title: task.name,
-        description: categories[task.categoryIdx]?.name ?? "",
-        status: "TODO",
-        assigneeId: userId,
-        priority: task.priority ?? null,
-      }).then((res) => {
-        const backendId = String(res.data.data?.taskId ?? "");
-        if (backendId) {
-          setMemberBaskets((prev) => ({
-            ...prev,
-            [userId]: (prev[userId] ?? []).map((t) =>
-              t.id === task.id ? { ...t, backendId } : t
-            ),
-          }));
-        }
-      }).catch((err) => {
-        console.error("태스크 생성 실패:", err);
-        // 롤백
-        setTasks((prev) => [...prev, task]);
-        setMemberBaskets((prev) => ({
-          ...prev,
-          [userId]: (prev[userId] ?? []).filter((t) => t.id !== task.id),
-        }));
-        alert("보드 저장에 실패했습니다.");
-      });
-    }
   };
 
   const handleReturnDragStart = (id: string, userId: string) => { setDraggingId(id); setDraggingFromUserId(userId); };
@@ -651,12 +620,6 @@ export default function AiTaskPage() {
     const task = memberBaskets[draggingFromUserId]?.find((t) => t.id === draggingId);
     if (!task) return;
 
-    // 즉시 보드에서 삭제
-    if (task.backendId && workspace?.id) {
-      client.delete(`/workspaces/${workspace.id}/tasks/${task.backendId}`)
-        .catch((err) => console.error("태스크 삭제 실패:", err));
-    }
-
     setTasks((prev) => [...prev, { ...task, backendId: undefined }]);
     setMemberBaskets((prev) => ({
       ...prev,
@@ -666,79 +629,30 @@ export default function AiTaskPage() {
     setDraggingFromUserId(null);
   };
 
-  const handleReturnAll = async () => {
+  // 로컬 상태만 변경 — 백엔드 반영은 "보드로 보내기" 시점에 일괄 처리
+  const handleReturnAll = () => {
     const basket = memberBaskets[currentUserId] ?? [];
     if (basket.length === 0) return;
-
-    // 낙관적 UI — 장바구니 비우고 풀로 복원
     setTasks((prev) => [...prev, ...basket.map((t) => ({ ...t, backendId: undefined }))]);
     setMemberBaskets((prev) => ({ ...prev, [currentUserId]: [] }));
-
-    // 백엔드에서 삭제
-    if (workspace?.id) {
-      for (const task of basket) {
-        if (task.backendId) {
-          client.delete(`/workspaces/${workspace.id}/tasks/${task.backendId}`)
-            .catch((err) => console.error("태스크 삭제 실패:", err));
-        }
-      }
-    }
   };
 
-  const handleTakeAll = async () => {
-    if (!workspace?.id || tasks.length === 0) return;
-    const userId = currentUserId;
-
-    // 낙관적 UI — 전부 장바구니로 이동
+  const handleTakeAll = () => {
+    if (tasks.length === 0) return;
     setMemberBaskets((prev) => ({
       ...prev,
-      [userId]: [...(prev[userId] ?? []), ...tasks],
+      [currentUserId]: [...(prev[currentUserId] ?? []), ...tasks],
     }));
     setTasks([]);
-
-    // 백엔드에 순차 생성
-    const created: Array<{ taskId: string; localId: string }> = [];
-    for (const task of tasks) {
-      try {
-        const res = await client.post(`/workspaces/${workspace.id}/tasks`, {
-          title: task.name,
-          description: categories[task.categoryIdx]?.name ?? "",
-          status: "TODO",
-          assigneeId: userId,
-          priority: task.priority ?? null,
-        });
-        const backendId = String(res.data.data?.taskId ?? "");
-        if (backendId) created.push({ taskId: backendId, localId: task.id });
-      } catch (err) {
-        console.error("태스크 생성 실패:", err);
-      }
-    }
-
-    // backendId 업데이트
-    if (created.length > 0) {
-      setMemberBaskets((prev) => ({
-        ...prev,
-        [userId]: (prev[userId] ?? []).map((t) => {
-          const found = created.find((c) => c.localId === t.id);
-          return found ? { ...t, backendId: found.taskId } : t;
-        }),
-      }));
-    }
   };
 
   const sendBasketToWorkspace = async () => {
     if (!workspace?.id) { alert("워크스페이스 정보가 없습니다."); return; }
 
-    // backendId 없는 태스크(드래그 중 API 실패 등) 혹시 있으면 저장
-    const unsaved: Array<[string, Task]> = [];
-    for (const [userId, basket] of Object.entries(memberBaskets)) {
-      for (const task of basket) {
-        if (!task.backendId) unsaved.push([userId, task]);
-      }
-    }
-    if (unsaved.length > 0) {
-      try {
-        for (const [userId, task] of unsaved) {
+    // 전체 basket을 한 번에 POST — 백엔드 중복 체크로 이미 있는 태스크는 자동 스킵
+    try {
+      for (const [userId, basket] of Object.entries(memberBaskets)) {
+        for (const task of basket) {
           await client.post(`/workspaces/${workspace.id}/tasks`, {
             title: task.name,
             description: task.desc || categories[task.categoryIdx]?.name || "",
@@ -747,10 +661,10 @@ export default function AiTaskPage() {
             priority: task.priority ?? null,
           });
         }
-      } catch (err: any) {
-        alert(`업무 저장에 실패했습니다: ${err?.response?.data?.message ?? err?.message ?? err}`);
-        return;
       }
+    } catch (err: any) {
+      alert(`업무 저장에 실패했습니다: ${err?.response?.data?.message ?? err?.message ?? err}`);
+      return;
     }
 
     navigate("/workspace-board", { state: { workspaces, workspace } });
