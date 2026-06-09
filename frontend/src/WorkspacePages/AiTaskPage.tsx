@@ -9,6 +9,7 @@ import { useLocation, useNavigate } from "react-router-dom";
 import Header from "../components/Header";
 import PixelAvatar from "../components/PixelAvatar";
 import client from "../api/client";
+import { useWorkspaceSocket } from "../hooks/useWorkspaceSocket";
 import { getAppendBuffer, clearAppendBuffer, hasAppendBuffer } from "../store/aiTaskBuffer";
 import { createWorkspaceThemeStyle, withStoredGradient, withStoredGradients } from "../utils/workspaceTheme";
 import "./AiTaskPage.css";
@@ -466,6 +467,31 @@ export default function AiTaskPage() {
     const timer = window.setInterval(tick, 250);
     return () => window.clearInterval(timer);
   }, [basketCooldownUntil]);
+
+  // 보드에서 담당자가 바뀌면 장바구니 간 태스크 이동
+  useWorkspaceSocket(workspace?.id, {
+    onTaskUpdated: ({ taskId, field, value }) => {
+      if (field !== "assigneeId") return;
+      setMemberBaskets((prev) => {
+        // 변경된 태스크가 어느 바구니에 있는지 찾기
+        let found: Task | null = null;
+        let fromUserId = "";
+        for (const [uid, basket] of Object.entries(prev)) {
+          const t = basket.find((b) => b.backendId === taskId);
+          if (t) { found = t; fromUserId = uid; break; }
+        }
+        if (!found) return prev; // 장바구니에 없는 태스크면 무시
+        const next = { ...prev };
+        // 기존 바구니에서 제거
+        next[fromUserId] = next[fromUserId].filter((b) => b.backendId !== taskId);
+        // 새 담당자 바구니로 이동 (빈 문자열이면 제거만)
+        if (value) {
+          next[value] = [...(next[value] ?? []), found];
+        }
+        return next;
+      });
+    },
+  });
 
   const toggleSession = (id: string) =>
     setSessions((prev) => prev.map((s) => s.id === id ? { ...s, collapsed: !s.collapsed } : s));

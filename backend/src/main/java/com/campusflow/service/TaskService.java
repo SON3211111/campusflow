@@ -397,7 +397,9 @@ public class TaskService {
         }
         Task saved = taskRepository.save(task);
         String newAssigneeName = saved.getAssignee() != null ? saved.getAssignee().getName() : "";
+        String newAssigneeId   = saved.getAssignee() != null ? saved.getAssignee().getUserId() : "";
         broadcastTaskUpdated(task, "assigneeName", newAssigneeName);
+        broadcastTaskUpdated(task, "assigneeId",   newAssigneeId);
         return TaskResponse.from(saved);
     }
 
