@@ -939,10 +939,10 @@ export default function AiTaskPage() {
     {confirmSessionId && (
       <div className="atp-confirm-overlay" onClick={() => setConfirmSessionId(null)}>
         <div className="atp-confirm-modal" onClick={(e) => e.stopPropagation()}>
-          <div className="atp-confirm-icon">🗑️</div>
+          <div className="atp-confirm-icon">🗑</div>
           <h3 className="atp-confirm-title">작업 섹션 삭제</h3>
           <p className="atp-confirm-msg">
-            이 작업과 연결된 모든 태스크가 삭제됩니다.<br />정말 삭제할까요?
+            이 작업과 연결된 모든 태스크가<br />삭제됩니다. 계속할까요?
           </p>
           <div className="atp-confirm-btns">
             <button className="atp-confirm-cancel" onClick={() => setConfirmSessionId(null)}>취소</button>
