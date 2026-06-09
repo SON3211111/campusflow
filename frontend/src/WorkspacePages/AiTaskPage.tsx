@@ -432,21 +432,33 @@ export default function AiTaskPage() {
         try {
           const taskRes = await client.get(`/workspaces/${workspace.id}/tasks`);
           const backendTasks: BackendTask[] = taskRes.data.data ?? [];
-          // 백엔드에 실제로 존재하는 taskId 집합 — 보드에서 삭제된 카드를 장바구니에서도 제거하기 위해 사용
-          const existingBackendIds = new Set(
-            backendTasks
-              .map((t) => String(t.taskId ?? t.id ?? ""))
-              .filter(Boolean)
-          );
-          // 장바구니에서 백엔드에 없는 카드(보드에서 삭제된 카드) 제거
-          // backendId가 없는 카드(낙관적 저장 중)는 유지
-          Object.keys(nextBaskets).forEach((key) => {
-            nextBaskets[key] = nextBaskets[key].filter(
-              (t) => !t.backendId || existingBackendIds.has(t.backendId)
-            );
+
+          // 백엔드 태스크를 이름 → backendId 맵으로 인덱싱
+          const backendByName = new Map<string, string>();
+          const backendIdSet = new Set<string>();
+          backendTasks.forEach((bt) => {
+            const bid = String(bt.taskId ?? bt.id ?? "");
+            if (!bid) return;
+            backendIdSet.add(bid);
+            const name = String(bt.title ?? bt.name ?? "").trim().toLowerCase();
+            if (name) backendByName.set(name, bid);
           });
-          // 주의: 보드에서 직접 배정된 카드는 장바구니에 추가하지 않음
-          // AI 세션에서 생성된 카드만 장바구니에 표시 (localStorage 기준)
+
+          // 장바구니 동기화:
+          //  1. backendId 없는 카드 → 이름으로 백엔드 ID 복원 (새로고침 타이밍 이슈 해결)
+          //  2. backendId 있는데 백엔드에 없는 카드 → 보드에서 삭제된 카드, 제거
+          //  3. 보드에서 직접 만든 카드는 basket에 추가하지 않음 (AI 세션 카드만 유지)
+          Object.keys(nextBaskets).forEach((key) => {
+            nextBaskets[key] = nextBaskets[key]
+              .map((t) => {
+                if (!t.backendId) {
+                  const recovered = backendByName.get(t.name.trim().toLowerCase());
+                  return recovered ? { ...t, backendId: recovered } : t;
+                }
+                return t;
+              })
+              .filter((t) => !t.backendId || backendIdSet.has(t.backendId));
+          });
         } catch (err) {
           console.error("워크스페이스 업무 동기화 실패:", err);
         }
