@@ -40,17 +40,46 @@ function readStoredWorkspace(): WsItem | undefined {
   }
 }
 
+function hasStoredAiTaskPayload(key: string) {
+  try {
+    const session = JSON.parse(localStorage.getItem(key) ?? "null");
+    const resultTaskCount = session?.result?.categories?.reduce(
+      (sum: number, category: { tasks?: unknown[] }) => sum + (category.tasks?.length ?? 0),
+      0
+    ) ?? 0;
+    const basketTaskCount = Object.values(session?.memberBaskets ?? {}).reduce(
+      (sum: number, basket) => sum + (Array.isArray(basket) ? basket.length : 0),
+      0
+    );
+    const objectTaskCount = (value: unknown) => {
+      if (Array.isArray(value)) return value.length;
+      if (value && typeof value === "object") return Object.keys(value).length;
+      return 0;
+    };
+    return (
+      objectTaskCount(session?.categories) > 0 ||
+      objectTaskCount(session?.tasks) > 0 ||
+      objectTaskCount(session?.taskList) > 0 ||
+      objectTaskCount(session?.items) > 0 ||
+      resultTaskCount > 0 ||
+      basketTaskCount > 0
+    );
+  } catch {
+    return false;
+  }
+}
+
 function hasAiTaskSession(workspaceId?: string) {
   const keys = [
     workspaceId ? `ai_task_session_${workspaceId}` : "",
     "ai_task_session_default",
   ].filter(Boolean);
 
-  if (keys.some((key) => !!localStorage.getItem(key))) return true;
+  if (keys.some(hasStoredAiTaskPayload)) return true;
 
   for (let i = 0; i < localStorage.length; i += 1) {
     const key = localStorage.key(i);
-    if (key?.startsWith("ai_task_session_") && localStorage.getItem(key)) return true;
+    if (key?.startsWith("ai_task_session_") && hasStoredAiTaskPayload(key)) return true;
   }
 
   return false;

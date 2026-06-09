@@ -63,9 +63,22 @@ interface AiTaskSession {
   categories: Category[];
   tasks: Task[];
   prompt: string;
-  result: AiResult;
+  result?: AiResult;
   memberBaskets?: Record<string, Task[]>;
   sessions?: Session[];
+}
+
+type RawAiTaskSession = Partial<AiTaskSession> & Record<string, unknown>;
+
+interface BackendTask {
+  taskId?: string | number;
+  id?: string | number;
+  title?: string;
+  name?: string;
+  description?: string;
+  priority?: string;
+  assigneeId?: string | number;
+  assigneeName?: string;
 }
 
 function readStoredWorkspace(): WorkspaceItem | undefined {
@@ -76,6 +89,146 @@ function readStoredWorkspace(): WorkspaceItem | undefined {
   }
 }
 
+function asArray<T = unknown>(value: unknown): T[] {
+  if (Array.isArray(value)) return value as T[];
+  if (value && typeof value === "object") return Object.values(value as Record<string, T>);
+  return [];
+}
+
+function normalizeRawTasks(value: unknown): Task[] {
+  return asArray<Record<string, unknown>>(value).map((task, index) => ({
+    id: String(task.id ?? task.taskId ?? `restored-task-${index}`),
+    name: String(task.name ?? task.title ?? task.taskName ?? ""),
+    categoryIdx: Number(task.categoryIdx ?? task.categoryIndex ?? task.category ?? 0),
+    desc: typeof task.desc === "string" ? task.desc : typeof task.description === "string" ? task.description : "",
+    priority: typeof task.priority === "string" ? task.priority : "",
+    backendId: task.backendId ? String(task.backendId) : undefined,
+  })).filter((task) => task.name.trim());
+}
+
+function normalizeSavedBaskets(value: unknown): Record<string, Task[]> {
+  if (!value || typeof value !== "object") return {};
+  return Object.fromEntries(
+    Object.entries(value as Record<string, unknown>).map(([key, basket]) => [key, normalizeRawTasks(basket)])
+  );
+}
+
+function normalizeRawCategories(value: unknown, tasks: Task[]): Category[] {
+  const rawCategories = asArray<Record<string, unknown>>(value);
+  if (rawCategories.length > 0) {
+    return rawCategories.map((category, index) => ({
+      name: String(category.name ?? category.title ?? `Category ${index + 1}`),
+      color: typeof category.color === "string" ? category.color : CAT_COLORS[index % CAT_COLORS.length].color,
+      taskColor: typeof category.taskColor === "string" ? category.taskColor : CAT_COLORS[index % CAT_COLORS.length].taskColor,
+      sessionId: typeof category.sessionId === "string" ? category.sessionId : "",
+    }));
+  }
+
+  const maxCategoryIdx = tasks.reduce((max, task) => Math.max(max, task.categoryIdx), -1);
+  return Array.from({ length: maxCategoryIdx + 1 }, (_, index) => ({
+    name: `Category ${index + 1}`,
+    color: CAT_COLORS[index % CAT_COLORS.length].color,
+    taskColor: CAT_COLORS[index % CAT_COLORS.length].taskColor,
+    sessionId: "",
+  }));
+}
+
+function coerceAiTaskSession(raw: RawAiTaskSession | null): AiTaskSession | null {
+  if (!raw) return null;
+  const result = raw.result as AiResult | undefined;
+  const resultTasks = result?.categories?.flatMap((category, categoryIdx) =>
+    (category.tasks ?? []).map((task, taskIdx) => ({
+      id: `result-c${categoryIdx}-t${taskIdx}`,
+      name: task.name,
+      categoryIdx,
+      desc: task.desc,
+      priority: task.priority,
+    }))
+  ) ?? [];
+
+  const tasks = normalizeRawTasks(raw.tasks ?? raw.taskList ?? raw.items ?? resultTasks);
+  const categories = normalizeRawCategories(raw.categories ?? result?.categories, tasks);
+
+  return {
+    title: String(raw.title ?? result?.title ?? raw.prompt ?? "AI Task"),
+    categories,
+    tasks,
+    prompt: String(raw.prompt ?? raw.title ?? result?.title ?? "AI Task"),
+    result,
+    memberBaskets: normalizeSavedBaskets(raw.memberBaskets),
+    sessions: asArray<Session>(raw.sessions),
+  };
+}
+
+function countBasketTasks(memberBaskets?: Record<string, Task[]>) {
+  return Object.values(memberBaskets ?? {}).reduce((sum, basket) => sum + (Array.isArray(basket) ? basket.length : 0), 0);
+}
+
+function getSessionPayloadScore(session: Partial<AiTaskSession> | null) {
+  if (!session) return 0;
+  const resultTaskCount = session.result?.categories?.reduce((sum, category) => sum + (category.tasks?.length ?? 0), 0) ?? 0;
+  return (
+    (session.categories?.length ?? 0) +
+    (session.tasks?.length ?? 0) +
+    resultTaskCount +
+    countBasketTasks(session.memberBaskets)
+  );
+}
+
+function normalizeSessionRefs(session: AiTaskSession): AiTaskSession {
+  const categories = Array.isArray(session.categories) ? session.categories : [];
+  const existingSessions = Array.isArray(session.sessions) ? session.sessions : [];
+  const fallbackId = existingSessions[0]?.id ?? "session-restored";
+  const normalizedCategories = categories.map((category) => ({
+    ...category,
+    sessionId: category.sessionId || fallbackId,
+  }));
+
+  const categorySessionIds = [...new Set(normalizedCategories.map((category) => category.sessionId))];
+  const existingById = new Map(existingSessions.map((entry) => [entry.id, entry]));
+  const sessions = categorySessionIds.length > 0
+    ? categorySessionIds.map((id, index) => existingById.get(id) ?? {
+        id,
+        prompt: index === 0 ? (session.prompt || session.title || "AI Task") : `AI Task ${index + 1}`,
+        collapsed: false,
+      })
+    : existingSessions;
+
+  return {
+    ...session,
+    categories: normalizedCategories,
+    sessions,
+  };
+}
+
+function normalizeAiTaskSession(rawSession: RawAiTaskSession | null): AiTaskSession | null {
+  const session = coerceAiTaskSession(rawSession);
+  if (!session) return null;
+  if (session.result) {
+    const normalized = normalizeSessionRefs(session);
+    return getSessionPayloadScore(normalized) > 0 ? normalized : null;
+  }
+  if (!Array.isArray(session.categories) || !Array.isArray(session.tasks)) return null;
+
+  const result: AiResult = {
+    title: session.title || session.prompt || "AI Task",
+    categories: session.categories.map((category, index) => ({
+      id: `c${index + 1}`,
+      name: category.name,
+      tasks: session.tasks
+        .filter((task) => task.categoryIdx === index)
+        .map((task) => ({
+          name: task.name,
+          desc: task.desc ?? "",
+          priority: task.priority ?? "",
+        })),
+    })),
+  };
+
+  const normalized = normalizeSessionRefs({ ...session, result });
+  return getSessionPayloadScore(normalized) > 0 ? normalized : null;
+}
+
 function readAiTaskSession(preferredKey: string): AiTaskSession | null {
   const keys = [
     preferredKey,
@@ -84,16 +237,19 @@ function readAiTaskSession(preferredKey: string): AiTaskSession | null {
       .filter((key) => key.startsWith("ai_task_session_")),
   ];
 
+  const candidates: AiTaskSession[] = [];
+
   for (const key of [...new Set(keys)]) {
     try {
-      const session = JSON.parse(localStorage.getItem(key) ?? "null") as AiTaskSession | null;
-      if (session?.result) return session;
+      const session = JSON.parse(localStorage.getItem(key) ?? "null") as RawAiTaskSession | null;
+      const normalized = normalizeAiTaskSession(session);
+      if (normalized) candidates.push(normalized);
     } catch {
       // Ignore malformed saved sessions and keep looking for a usable one.
     }
   }
 
-  return null;
+  return candidates.sort((a, b) => getSessionPayloadScore(b) - getSessionPayloadScore(a))[0] ?? null;
 }
 
 const CAT_COLORS = [
@@ -103,6 +259,45 @@ const CAT_COLORS = [
   { color: "#c4a8f8", taskColor: "#c4a8f8" },
   { color: "#f8d08a", taskColor: "#f8d08a" },
 ];
+
+function normalizeMember(raw: any): Member {
+  const userId = raw?.userId ?? raw?.id ?? raw?.memberId ?? raw?.user?.userId ?? raw?.user?.id ?? "";
+  return {
+    userId: String(userId),
+    name: raw?.name ?? raw?.userName ?? raw?.username ?? raw?.user?.name ?? "팀원",
+    role: raw?.role ?? "MEMBER",
+  };
+}
+
+function getTaskIdentity(task: Task) {
+  return task.backendId ? `backend:${task.backendId}` : `name:${task.name.trim().toLowerCase()}`;
+}
+
+function mergeBasketTasks(existing: Task[], incoming: Task[]) {
+  const seen = new Set(existing.map(getTaskIdentity));
+  const merged = [...existing];
+  incoming.forEach((task) => {
+    const identity = getTaskIdentity(task);
+    if (!seen.has(identity)) {
+      seen.add(identity);
+      merged.push(task);
+    }
+  });
+  return merged;
+}
+
+function mapBackendTaskToAiTask(task: BackendTask, categories: Category[]): Task {
+  const description = task.description ?? "";
+  const categoryIdx = Math.max(0, categories.findIndex((category) => category.name === description));
+  return {
+    id: `backend-${task.taskId ?? task.id ?? task.title ?? Date.now()}`,
+    backendId: task.taskId || task.id ? String(task.taskId ?? task.id) : undefined,
+    name: String(task.title ?? task.name ?? "업무"),
+    categoryIdx: categoryIdx >= 0 ? categoryIdx : 0,
+    desc: description,
+    priority: task.priority ?? "",
+  };
+}
 
 export default function AiTaskPage() {
   const { state } = useLocation() as {
@@ -226,27 +421,42 @@ export default function AiTaskPage() {
   useEffect(() => {
     if (!workspace?.id) return;
     client.get(`/workspaces/${workspace.id}/members`)
-      .then((res) => {
-        const list: Member[] = (res.data.data ?? []).map((m: any) => ({
-          userId: m.userId, name: m.name, role: m.role,
-        }));
+      .then(async (res) => {
+        const list: Member[] = (res.data.data ?? []).map(normalizeMember);
         setMembers(list);
         const savedBaskets = storedSession?.memberBaskets;
-        if (savedBaskets) {
-          setMemberBaskets(Object.fromEntries(list.map((m) => [m.userId, savedBaskets[m.userId] ?? []])));
-        } else {
-          setMemberBaskets(Object.fromEntries(list.map((m) => [m.userId, []])));
+
+        const nextBaskets: Record<string, Task[]> = Object.fromEntries(
+          list.map((member) => [member.userId, savedBaskets?.[member.userId] ?? savedBaskets?.[member.name] ?? []])
+        );
+
+        try {
+          const taskRes = await client.get(`/workspaces/${workspace.id}/tasks`);
+          const backendTasks: BackendTask[] = taskRes.data.data ?? [];
+          backendTasks.forEach((backendTask) => {
+            if (backendTask.assigneeId === undefined || backendTask.assigneeId === null) return;
+            const assigneeId = String(backendTask.assigneeId);
+            const member = list.find((item) => item.userId === assigneeId || item.name === backendTask.assigneeName);
+            const basketKey = member?.userId ?? assigneeId;
+            if (!nextBaskets[basketKey]) nextBaskets[basketKey] = [];
+            nextBaskets[basketKey] = mergeBasketTasks(nextBaskets[basketKey], [mapBackendTaskToAiTask(backendTask, categories)]);
+          });
+        } catch (err) {
+          console.error("워크스페이스 업무 동기화 실패:", err);
         }
+
+        setMemberBaskets(nextBaskets);
       })
       .catch(() => {
         const userId = localStorage.getItem("userId") ?? "me";
         const userName = localStorage.getItem("userName") ?? "나";
         setMembers([{ userId, name: userName, role: "MEMBER" }]);
-        setMemberBaskets({ [userId]: [] });
+        setMemberBaskets({ [userId]: storedSession?.memberBaskets?.[userId] ?? [] });
       });
-  }, [workspace?.id]);
+  }, [workspace?.id, categories]);
 
   useEffect(() => {
+    if (!aiResult || getSessionPayloadScore({ categories, tasks, result: aiResult, memberBaskets }) === 0) return;
     localStorage.setItem(sessionKey, JSON.stringify({
       title, categories, tasks, prompt: origPrompt, result: aiResult, memberBaskets, sessions,
     }));
