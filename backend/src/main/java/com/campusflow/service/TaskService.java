@@ -97,6 +97,16 @@ public class TaskService {
             try { startDate = LocalDate.parse(req.startDate()); } catch (Exception ignored) {}
         }
 
+        // 같은 제목 + 같은 담당자 태스크가 이미 있으면 기존 태스크 반환 (중복 저장 방지)
+        if (assignee != null) {
+            java.util.Optional<Task> existing = taskRepository
+                .findFirstByWorkspace_WorkspaceIdAndTitleAndAssignee_UserIdAndDeletedFalse(
+                    workspaceId, req.title(), assignee.getUserId());
+            if (existing.isPresent()) {
+                return TaskResponse.from(existing.get());
+            }
+        }
+
         Task task = Task.builder()
                 .workspace(workspace)
                 .title(req.title())

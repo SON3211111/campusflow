@@ -429,46 +429,13 @@ export default function AiTaskPage() {
           list.map((member) => [member.userId, savedBaskets?.[member.userId] ?? savedBaskets?.[member.name] ?? []])
         );
 
-        try {
-          const taskRes = await client.get(`/workspaces/${workspace.id}/tasks`);
-          const backendTasks: BackendTask[] = taskRes.data.data ?? [];
-
-          // 백엔드 태스크를 이름 → backendId 맵으로 인덱싱
-          const backendByName = new Map<string, string>();
-          const backendIdSet = new Set<string>();
-          backendTasks.forEach((bt) => {
-            const bid = String(bt.taskId ?? bt.id ?? "");
-            if (!bid) return;
-            backendIdSet.add(bid);
-            const name = String(bt.title ?? bt.name ?? "").trim().toLowerCase();
-            if (name) backendByName.set(name, bid);
-          });
-
-          // 장바구니 동기화:
-          //  1. backendId 없는 카드 → 이름으로 백엔드 ID 복원 (새로고침 타이밍 이슈 해결)
-          //  2. backendId 있는데 백엔드에 없는 카드 → 보드에서 삭제된 카드, 제거
-          //  3. 보드에서 직접 만든 카드는 basket에 추가하지 않음 (AI 세션 카드만 유지)
-          Object.keys(nextBaskets).forEach((key) => {
-            nextBaskets[key] = nextBaskets[key]
-              .map((t) => {
-                if (!t.backendId) {
-                  const recovered = backendByName.get(t.name.trim().toLowerCase());
-                  return recovered ? { ...t, backendId: recovered } : t;
-                }
-                return t;
-              })
-              .filter((t) => !t.backendId || backendIdSet.has(t.backendId));
-          });
-        } catch (err) {
-          console.error("워크스페이스 업무 동기화 실패:", err);
-        }
-
+        // 장바구니는 localStorage 기준으로만 복원 (POST는 보드 전송 시에만)
         setMemberBaskets(nextBaskets);
-        // 장바구니에 있는 태스크는 풀에서 제거 (basket 확정 후 풀 중복 방지)
-        const basketNamesAfterSync = new Set(
+        // 장바구니에 있는 태스크는 풀에서 제거
+        const basketNames = new Set(
           Object.values(nextBaskets).flat().map((t) => t.name.trim().toLowerCase())
         );
-        setTasks((prev) => prev.filter((t) => !basketNamesAfterSync.has(t.name.trim().toLowerCase())));
+        setTasks((prev) => prev.filter((t) => !basketNames.has(t.name.trim().toLowerCase())));
       })
       .catch(() => {
         const userId = localStorage.getItem("userId") ?? "me";
