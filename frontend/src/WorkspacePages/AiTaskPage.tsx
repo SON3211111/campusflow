@@ -417,6 +417,7 @@ export default function AiTaskPage() {
   // 삭제 undo — 최근 삭제된 태스크와 원래 위치(categoryIdx) 보관
   const [undoStack, setUndoStack]   = useState<Task[]>([]);
   const undoTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const basketReconciledRef = useRef(false); // reconciliation은 마운트 시 한 번만 실행
 
   useEffect(() => {
     if (!workspace?.id) return;
@@ -432,9 +433,11 @@ export default function AiTaskPage() {
 
         // backendId가 있는 basket 태스크는 보드의 현재 담당자와 교정
         // (보드에서 담당자를 바꾼 후 AiTaskPage로 오면 localStorage가 구버전이므로 재조정 필요)
+        // categories 의존성으로 effect가 재실행될 수 있으므로 최초 1회만 실행
         const allBasketTasks = Object.values(nextBaskets).flat();
         const hasBackendIds = allBasketTasks.some((t) => !!t.backendId);
-        if (hasBackendIds) {
+        if (hasBackendIds && !basketReconciledRef.current) {
+          basketReconciledRef.current = true;
           try {
             const tasksRes = await client.get(`/workspaces/${workspace.id}/tasks`);
             const boardAssignees: Record<string, string> = {};
