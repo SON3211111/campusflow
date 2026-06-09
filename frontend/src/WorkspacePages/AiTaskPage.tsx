@@ -614,11 +614,19 @@ export default function AiTaskPage() {
 
   const handleReturnDragStart = (id: string, userId: string) => { setDraggingId(id); setDraggingFromUserId(userId); };
 
-  const handleReturnDrop = (e: React.DragEvent) => {
+  const handleReturnDrop = async (e: React.DragEvent) => {
     e.preventDefault();
     if (!draggingId || !draggingFromUserId) return;
     const task = memberBaskets[draggingFromUserId]?.find((t) => t.id === draggingId);
     if (!task) return;
+
+    if (task.backendId && workspace?.id) {
+      try {
+        await client.delete(`/workspaces/${workspace.id}/tasks/${task.backendId}`);
+      } catch (err) {
+        console.error("보드 태스크 삭제 실패:", err);
+      }
+    }
 
     setTasks((prev) => [...prev, { ...task, backendId: undefined }]);
     setMemberBaskets((prev) => ({
@@ -629,10 +637,22 @@ export default function AiTaskPage() {
     setDraggingFromUserId(null);
   };
 
-  // 로컬 상태만 변경 — 백엔드 반영은 "보드로 보내기" 시점에 일괄 처리
-  const handleReturnAll = () => {
+  const handleReturnAll = async () => {
     const basket = memberBaskets[currentUserId] ?? [];
     if (basket.length === 0) return;
+
+    if (workspace?.id) {
+      for (const task of basket) {
+        if (task.backendId) {
+          try {
+            await client.delete(`/workspaces/${workspace.id}/tasks/${task.backendId}`);
+          } catch (err) {
+            console.error("보드 태스크 삭제 실패:", err);
+          }
+        }
+      }
+    }
+
     setTasks((prev) => [...prev, ...basket.map((t) => ({ ...t, backendId: undefined }))]);
     setMemberBaskets((prev) => ({ ...prev, [currentUserId]: [] }));
   };
@@ -649,19 +669,29 @@ export default function AiTaskPage() {
   const sendBasketToWorkspace = async () => {
     if (!workspace?.id) { alert("워크스페이스 정보가 없습니다."); return; }
 
-    // 전체 basket을 한 번에 POST — 백엔드 중복 체크로 이미 있는 태스크는 자동 스킵
+    // POST 후 backendId 수집 — 이후 장바구니에서 빼면 보드에서도 삭제할 수 있도록
     try {
+      const nextBaskets: typeof memberBaskets = {};
       for (const [userId, basket] of Object.entries(memberBaskets)) {
-        for (const task of basket) {
-          await client.post(`/workspaces/${workspace.id}/tasks`, {
+        const updated = [...basket];
+        for (let i = 0; i < updated.length; i++) {
+          const task = updated[i];
+          const res = await client.post(`/workspaces/${workspace.id}/tasks`, {
             title: task.name,
             description: task.desc || categories[task.categoryIdx]?.name || "",
             status: "TODO",
             assigneeId: userId,
             priority: task.priority ?? null,
           });
+          const backendId: string | undefined = res.data?.data?.taskId;
+          if (backendId) updated[i] = { ...task, backendId };
         }
+        nextBaskets[userId] = updated;
       }
+      // navigate 전에 backendId 포함된 basket을 localStorage에 직접 저장
+      localStorage.setItem(sessionKey, JSON.stringify({
+        title, categories, tasks, prompt: origPrompt, result: aiResult, memberBaskets: nextBaskets, sessions,
+      }));
     } catch (err: any) {
       alert(`업무 저장에 실패했습니다: ${err?.response?.data?.message ?? err?.message ?? err}`);
       return;
