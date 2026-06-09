@@ -881,7 +881,7 @@ export default function AiTaskPage() {
                   {(() => {
                     const isMe = member.userId === currentUserId;
                     const myBasket = memberBaskets[member.userId] ?? [];
-                    const canTake = isMe && tasks.length > 0;
+                    const canTake = isMe && tasks.length > 0 && isPersonal;
                     const canReturn = isMe && tasks.length === 0 && myBasket.length > 0;
                     const interactive = canTake || canReturn;
                     return (
