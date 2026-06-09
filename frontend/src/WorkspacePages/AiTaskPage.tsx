@@ -68,6 +68,34 @@ interface AiTaskSession {
   sessions?: Session[];
 }
 
+function readStoredWorkspace(): WorkspaceItem | undefined {
+  try {
+    return JSON.parse(localStorage.getItem("clickedWorkspace") ?? "null") ?? undefined;
+  } catch {
+    return undefined;
+  }
+}
+
+function readAiTaskSession(preferredKey: string): AiTaskSession | null {
+  const keys = [
+    preferredKey,
+    "ai_task_session_default",
+    ...Array.from({ length: localStorage.length }, (_, i) => localStorage.key(i) ?? "")
+      .filter((key) => key.startsWith("ai_task_session_")),
+  ];
+
+  for (const key of [...new Set(keys)]) {
+    try {
+      const session = JSON.parse(localStorage.getItem(key) ?? "null") as AiTaskSession | null;
+      if (session?.result) return session;
+    } catch {
+      // Ignore malformed saved sessions and keep looking for a usable one.
+    }
+  }
+
+  return null;
+}
+
 const CAT_COLORS = [
   { color: "#1a1a1a", taskColor: "#f8b4b4" },
   { color: "#6ab4f8", taskColor: "#6ab4f8" },
@@ -87,17 +115,15 @@ export default function AiTaskPage() {
     };
   };
   const navigate = useNavigate();
-  const workspaces = withStoredGradients(state?.workspaces ?? []);
-  const rawWorkspace = state?.workspace ?? workspaces[0];
+  const savedWorkspace = readStoredWorkspace();
+  const workspaces = withStoredGradients(state?.workspaces ?? (savedWorkspace ? [savedWorkspace] : []));
+  const rawWorkspace = state?.workspace ?? workspaces[0] ?? savedWorkspace;
   const workspace = rawWorkspace ? withStoredGradient(rawWorkspace) : undefined;
   const themeStyle = createWorkspaceThemeStyle(workspace?.gradient);
   const sessionKey = `ai_task_session_${workspace?.id ?? "default"}`;
   const currentUserId = localStorage.getItem("userId") ?? "me";
 
-  const storedSession: AiTaskSession | null = (() => {
-    try { return JSON.parse(localStorage.getItem(sessionKey) ?? "null"); }
-    catch { return null; }
-  })();
+  const storedSession = readAiTaskSession(sessionKey);
 
   const shouldRestoreSession = !state?.result && !!storedSession;
   const isAppend = !!(state?.append && state?.result && hasAppendBuffer());

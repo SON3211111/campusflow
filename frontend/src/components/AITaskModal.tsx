@@ -32,6 +32,30 @@ const DOMAIN_OPTIONS = [
   { value: "research_science",label: "실험 / 데이터 분석" },
 ];
 
+function readStoredWorkspace(): WsItem | undefined {
+  try {
+    return JSON.parse(localStorage.getItem("clickedWorkspace") ?? "null") ?? undefined;
+  } catch {
+    return undefined;
+  }
+}
+
+function hasAiTaskSession(workspaceId?: string) {
+  const keys = [
+    workspaceId ? `ai_task_session_${workspaceId}` : "",
+    "ai_task_session_default",
+  ].filter(Boolean);
+
+  if (keys.some((key) => !!localStorage.getItem(key))) return true;
+
+  for (let i = 0; i < localStorage.length; i += 1) {
+    const key = localStorage.key(i);
+    if (key?.startsWith("ai_task_session_") && localStorage.getItem(key)) return true;
+  }
+
+  return false;
+}
+
 export default function AITaskModal({ onClose, workspaces = [], workspace }: Props) {
   const navigate = useNavigate();
   const [screen, setScreen] = useState<Screen>("home");
@@ -40,9 +64,10 @@ export default function AITaskModal({ onClose, workspaces = [], workspace }: Pro
   const [teamSize, setTeamSize]   = useState("");
   const [deadline, setDeadline]   = useState("");
 
-  const activeWs = workspace ?? workspaces[0];
+  const activeWs = workspace ?? workspaces[0] ?? readStoredWorkspace();
+  const navWorkspaces = workspaces.length > 0 ? workspaces : activeWs ? [activeWs] : [];
   const sessionKey = `ai_task_session_${activeWs?.id ?? "default"}`;
-  const hasSession = !!localStorage.getItem(sessionKey);
+  const hasSession = hasAiTaskSession(activeWs?.id);
 
   // 구조화된 입력을 AI가 이해하기 좋은 형태로 조합
   const buildStructuredPrompt = () => {
@@ -61,7 +86,7 @@ export default function AITaskModal({ onClose, workspaces = [], workspace }: Pro
         domain: domain || undefined,
         teamSize: teamSize ? parseInt(teamSize) : undefined,
         deadline: deadline || undefined,
-        workspaces,
+        workspaces: navWorkspaces,
         workspace: activeWs,
       },
     });
@@ -88,7 +113,7 @@ export default function AITaskModal({ onClose, workspaces = [], workspace }: Pro
         domain: domain || undefined,
         teamSize: teamSize ? parseInt(teamSize) : undefined,
         deadline: deadline || undefined,
-        workspaces,
+        workspaces: navWorkspaces,
         workspace: activeWs,
         append: true,
       },
@@ -107,7 +132,7 @@ export default function AITaskModal({ onClose, workspaces = [], workspace }: Pro
               {hasSession && (
                 <div className="ai-option-card" onClick={() => {
                   onClose();
-                  navigate("/ai-task", { state: { workspace: activeWs, workspaces } });
+                  navigate("/ai-task", { state: { workspace: activeWs, workspaces: navWorkspaces } });
                 }}>
                   <div className="ai-option-icon purple">▶</div>
                   <div className="ai-option-info">
@@ -137,7 +162,7 @@ export default function AITaskModal({ onClose, workspaces = [], workspace }: Pro
 
               <div className="ai-option-card" onClick={() => {
                 onClose();
-                navigate("/workspace-board", { state: { workspace: activeWs, workspaces } });
+                navigate("/workspace-board", { state: { workspace: activeWs, workspaces: navWorkspaces } });
               }}>
                 <div className="ai-option-icon orange"><Rocket size={20} /></div>
                 <div className="ai-option-info">
