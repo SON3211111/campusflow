@@ -474,7 +474,7 @@ export default function AiTaskPage() {
         setMembers([{ userId, name: userName, role: "MEMBER" }]);
         setMemberBaskets({ [userId]: storedSession?.memberBaskets?.[userId] ?? [] });
       });
-  }, [workspace?.id, categories]);
+  }, [workspace?.id]); // categories 제거 — categories 변경 시 재실행되면 WebSocket 이동 상태가 storedSession으로 덮어씌워짐
 
   useEffect(() => {
     if (!aiResult || getSessionPayloadScore({ categories, tasks, result: aiResult, memberBaskets }) === 0) return;
