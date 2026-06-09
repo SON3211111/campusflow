@@ -70,19 +70,9 @@ function hasStoredAiTaskPayload(key: string) {
 }
 
 function hasAiTaskSession(workspaceId?: string) {
-  const keys = [
-    workspaceId ? `ai_task_session_${workspaceId}` : "",
-    "ai_task_session_default",
-  ].filter(Boolean);
-
-  if (keys.some(hasStoredAiTaskPayload)) return true;
-
-  for (let i = 0; i < localStorage.length; i += 1) {
-    const key = localStorage.key(i);
-    if (key?.startsWith("ai_task_session_") && hasStoredAiTaskPayload(key)) return true;
-  }
-
-  return false;
+  // 현재 워크스페이스 세션만 확인 — 다른 워크스페이스 세션은 무시
+  const key = workspaceId ? `ai_task_session_${workspaceId}` : "ai_task_session_default";
+  return hasStoredAiTaskPayload(key);
 }
 
 export default function AITaskModal({ onClose, workspaces = [], workspace }: Props) {
