@@ -853,6 +853,7 @@
   background: #f0f2f8;
   border-top: 1px solid #ddd;
   overflow-x: auto;
+  justify-content: center;
 }
 
 .atp-basket-bar--personal {
