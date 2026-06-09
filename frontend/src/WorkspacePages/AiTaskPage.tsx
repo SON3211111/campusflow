@@ -426,11 +426,38 @@ export default function AiTaskPage() {
         setMembers(list);
         const savedBaskets = storedSession?.memberBaskets;
 
-        const nextBaskets: Record<string, Task[]> = Object.fromEntries(
+        let nextBaskets: Record<string, Task[]> = Object.fromEntries(
           list.map((member) => [member.userId, savedBaskets?.[member.userId] ?? savedBaskets?.[member.name] ?? []])
         );
 
-        // 장바구니는 localStorage 기준으로만 복원 (POST는 보드 전송 시에만)
+        // backendId가 있는 basket 태스크는 보드의 현재 담당자와 교정
+        // (보드에서 담당자를 바꾼 후 AiTaskPage로 오면 localStorage가 구버전이므로 재조정 필요)
+        const allBasketTasks = Object.values(nextBaskets).flat();
+        const hasBackendIds = allBasketTasks.some((t) => !!t.backendId);
+        if (hasBackendIds) {
+          try {
+            const tasksRes = await client.get(`/workspaces/${workspace.id}/tasks`);
+            const boardAssignees: Record<string, string> = {};
+            for (const t of (tasksRes.data.data ?? [])) {
+              if (t.taskId) boardAssignees[t.taskId] = t.assigneeId ?? "";
+            }
+            const reconciled: Record<string, Task[]> = Object.fromEntries(list.map((m) => [m.userId, []]));
+            for (const [slotId, basket] of Object.entries(nextBaskets)) {
+              for (const task of basket) {
+                const currentAssigneeId = task.backendId ? boardAssignees[task.backendId] : undefined;
+                const targetId =
+                  currentAssigneeId !== undefined && reconciled[currentAssigneeId] !== undefined
+                    ? currentAssigneeId
+                    : slotId;
+                if (reconciled[targetId] !== undefined) reconciled[targetId].push(task);
+              }
+            }
+            nextBaskets = reconciled;
+          } catch {
+            // 백엔드 조회 실패 시 localStorage 기준 유지
+          }
+        }
+
         setMemberBaskets(nextBaskets);
         // 장바구니에 있는 태스크는 풀에서 제거
         const basketNames = new Set(
