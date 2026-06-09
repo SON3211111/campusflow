@@ -37,7 +37,7 @@ export interface WsTaskRestored {
 export interface WsTaskUpdated {
   type: "TASK_UPDATED";
   taskId: string;
-  field: "title" | "description" | "startDate" | "dueDate" | "assigneeName" | "boardColumn";
+  field: "title" | "description" | "startDate" | "dueDate" | "assigneeName" | "assigneeId" | "boardColumn";
   value: string;
 }
 

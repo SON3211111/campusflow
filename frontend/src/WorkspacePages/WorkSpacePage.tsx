@@ -317,10 +317,12 @@ export default function WorkSpacePage() {
         for (const col of Object.keys(next)) {
           next[col] = next[col].map((c) => {
             if (c.id !== taskId) return c;
-            if (field === "title")       return { ...c, title: value };
-            if (field === "description") return { ...c, desc: value };
-            if (field === "startDate")   return { ...c, startDate: value };
-            if (field === "dueDate")     return { ...c, dueDate: value };
+            if (field === "title")        return { ...c, title: value };
+            if (field === "description")  return { ...c, desc: value };
+            if (field === "startDate")    return { ...c, startDate: value };
+            if (field === "dueDate")      return { ...c, dueDate: value };
+            if (field === "assigneeName") return { ...c, assigneeName: value || undefined };
+            if (field === "assigneeId")   return { ...c, assigneeId: value || undefined };
             return c;
           });
         }
