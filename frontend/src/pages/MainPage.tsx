@@ -54,9 +54,9 @@ type MainCopy = {
 const mainCopy = {
   ko: {
     eyebrow: "TEAM PROJECT CONTROL ROOM",
-    headlineA: "팀플이",
-    headlineB: "굴러가기",
-    headlineC: "시작합니다",
+    headlineA: "흩어진",
+    headlineB: "팀플을 하나의",
+    headlineC: "흐름으로",
     desc: "과제 목표를 넣으면 AI가 업무를 쪼개고, 팀은 보드에서 바로 움직입니다.",
     openWorkspace: "워크스페이스 열기",
     start: "바로 시작하기",
@@ -437,7 +437,28 @@ const MainPage: React.FC = () => {
         </section>
 
         <footer className="main-footer">
-          <div className="main-footer-brand">CAMPUS_FLOW</div>
+          <div className="main-footer-brand-block">
+            <div className="main-footer-brand">CAMPUS_FLOW</div>
+            <span>Team project control room</span>
+          </div>
+          <div className="main-footer-team" aria-label="Campus Flow team">
+            <div className="main-footer-role main-footer-role-lead">
+              <span>Team Lead</span>
+              <strong>손정익</strong>
+            </div>
+            <div className="main-footer-role">
+              <span>Backend</span>
+              <strong>안태형 · 김성민</strong>
+            </div>
+            <div className="main-footer-role">
+              <span>Frontend</span>
+              <strong>홍태민 · 바크티요르</strong>
+            </div>
+            <div className="main-footer-role">
+              <span>AI</span>
+              <strong>곽 정</strong>
+            </div>
+          </div>
           <div className="lang-select-area">
             {isLangMenuOpen && (
               <div className="lang-dropdown">
