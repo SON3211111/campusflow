@@ -17,4 +17,7 @@ public interface TeamCommunicationRepository extends JpaRepository<TeamCommunica
 
     // 스레드 답글 조회
     List<TeamCommunication> findAllByParentMessage_MessageIdOrderByCreatedAtAsc(String parentMessageId);
+
+    // 워크스페이스 삭제 시 전체 제거
+    void deleteAllByWorkspace_WorkspaceId(String workspaceId);
 }

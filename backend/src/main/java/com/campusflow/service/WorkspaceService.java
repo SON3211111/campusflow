@@ -5,10 +5,13 @@ import com.campusflow.entity.Workspace;
 import com.campusflow.entity.WorkspaceMember;
 import com.campusflow.entity.enums.WorkspaceRole;
 import com.campusflow.entity.enums.WorkspaceType;
+import com.campusflow.repository.ChannelRepository;
 import com.campusflow.repository.ContributionMetricsRepository;
 import com.campusflow.repository.InvitationRepository;
 import com.campusflow.repository.ProjectRepository;
 import com.campusflow.repository.TaskRepository;
+import com.campusflow.repository.TaskStatusHistoryRepository;
+import com.campusflow.repository.TeamCommunicationRepository;
 import com.campusflow.repository.UserRepository;
 import com.campusflow.repository.WorkspaceMemberRepository;
 import com.campusflow.repository.WorkspaceRepository;
@@ -30,6 +33,9 @@ public class WorkspaceService {
     private final InvitationRepository invitationRepository;
     private final ProjectRepository projectRepository;
     private final ContributionMetricsRepository contributionMetricsRepository;
+    private final TeamCommunicationRepository teamCommunicationRepository;
+    private final TaskStatusHistoryRepository taskStatusHistoryRepository;
+    private final ChannelRepository channelRepository;
 
     /** 회원가입 시 개인 워크스페이스 자동 생성 */
     @Transactional
@@ -102,22 +108,22 @@ public class WorkspaceService {
 
     @Transactional
     public void deleteWorkspace(String workspaceId) {
-        // FK 제약 순서:
-        // 1. Task의 project FK 제거 (null로 설정)
-        // 2. Task 삭제
-        // 3. ContributionMetrics 삭제
-        // 4. Project 삭제
-        // 5. Invitation 삭제
-        // 6. WorkspaceMember 삭제
-        // 7. Workspace 삭제
+        // FK 제약 삭제 순서 (참조하는 쪽 → 참조받는 쪽):
+        // 1. TeamCommunication (task_id, workspace_id FK) — 스레드 답글이 부모를 참조하므로 일괄 삭제
+        // 2. TaskStatusHistory (task_id, workspace_id FK)
+        // 3. Task의 project FK, parent FK null 처리 후 Task 삭제
+        // 4. ContributionMetrics → Project → Channel → Invitation → WorkspaceMember → Workspace
 
-        // Task의 project_id, parent_id를 null로 설정 (FK 제약 제거)
+        teamCommunicationRepository.deleteAllByWorkspace_WorkspaceId(workspaceId);
+        taskStatusHistoryRepository.deleteAllByWorkspace_WorkspaceId(workspaceId);
+
         taskRepository.updateProjectNullByWorkspace(workspaceId);
         taskRepository.updateParentTaskNullByWorkspace(workspaceId);
-
         taskRepository.deleteAllByWorkspace_WorkspaceId(workspaceId);
+
         contributionMetricsRepository.deleteAllByProject_Workspace_WorkspaceId(workspaceId);
         projectRepository.deleteAllByWorkspace_WorkspaceId(workspaceId);
+        channelRepository.deleteAllByWorkspace_WorkspaceId(workspaceId);
         invitationRepository.deleteAllByWorkspace_WorkspaceId(workspaceId);
         workspaceMemberRepository.deleteAllByWorkspace_WorkspaceId(workspaceId);
         workspaceRepository.deleteById(workspaceId);

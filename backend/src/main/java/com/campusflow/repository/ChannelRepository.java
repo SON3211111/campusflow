@@ -8,4 +8,5 @@ import java.util.List;
 public interface ChannelRepository extends JpaRepository<Channel, String> {
     List<Channel> findAllByWorkspace_WorkspaceIdOrderByCreatedAtAsc(String workspaceId);
     boolean existsByWorkspace_WorkspaceIdAndName(String workspaceId, String name);
+    void deleteAllByWorkspace_WorkspaceId(String workspaceId);
 }
