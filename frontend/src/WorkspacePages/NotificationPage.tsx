@@ -23,6 +23,8 @@ interface Noti {
   createdAt?: string;
 }
 
+type QuickSignal = "HELP_NEEDED" | "FEEDBACK_NEEDED";
+
 interface AffectedTask {
   taskId: string;
   title: string;
@@ -57,6 +59,28 @@ function timeAgo(iso?: string) {
   if (diff < 3600) return `${Math.floor(diff / 60)}분 전`;
   if (diff < 86400) return `${Math.floor(diff / 3600)}시간 전`;
   return `${Math.floor(diff / 86400)}일 전`;
+}
+
+function getNotificationTypeLabel(n: Noti) {
+  if (n.type === "QUICK_SIGNAL" || n.type === "QUICK_SIGNAL_SENT") {
+    return n.message.includes("피드백") ? "피드백 요청" : "도움 요청";
+  }
+  return TYPE_LABEL[n.type] ?? "알림";
+}
+
+function getNotificationTypeClass(n: Noti) {
+  if (n.type !== "QUICK_SIGNAL" && n.type !== "QUICK_SIGNAL_SENT") return "";
+  return n.message.includes("피드백") ? "ntp-item-type--feedback" : "ntp-item-type--help";
+}
+
+function getNotificationSignal(n: Noti): QuickSignal | null {
+  if (n.type !== "QUICK_SIGNAL" && n.type !== "QUICK_SIGNAL_SENT") return null;
+  return n.message.includes("피드백") ? "FEEDBACK_NEEDED" : "HELP_NEEDED";
+}
+
+function formatNotificationMessage(n: Noti) {
+  if (n.type !== "QUICK_SIGNAL" && n.type !== "QUICK_SIGNAL_SENT") return n.message;
+  return n.message.replace(/(?:\s*(?:🆘|SOS))+$/gi, "");
 }
 
 const TYPE_LABEL: Record<string, string> = {
@@ -102,6 +126,8 @@ export default function NotificationPage() {
   const [loading, setLoading]   = useState(true);
   const [report, setReport]     = useState<BottleneckReport | null>(null);
   const [reportLoading, setReportLoading] = useState(false);
+  const [taskSignals, setTaskSignals] = useState<Record<string, string>>({});
+  const [taskSignalsLoaded, setTaskSignalsLoaded] = useState(false);
   const [expandedId, setExpandedId] = useState<string | null>(null);
   const [showPlanner,   setShowPlanner]   = useState(false);
   const [showCommunity, setShowCommunity] = useState(false);
@@ -137,11 +163,36 @@ export default function NotificationPage() {
     }
   };
 
+  const fetchTaskSignals = async () => {
+    if (!workspace?.id) return;
+    setTaskSignalsLoaded(false);
+    try {
+      const res = await client.get(`/workspaces/${workspace.id}/tasks`);
+      const next: Record<string, string> = {};
+      for (const task of (res.data.data ?? [])) {
+        if (task.taskId) next[task.taskId] = task.quickSignal ?? "";
+      }
+      setTaskSignals(next);
+      setTaskSignalsLoaded(true);
+    } catch (err) {
+      console.error("태스크 요청 상태 조회 실패:", err);
+      setTaskSignals({});
+      setTaskSignalsLoaded(false);
+    }
+  };
+
+  const isRequestResolved = (n: Noti) => {
+    const expectedSignal = getNotificationSignal(n);
+    if (!taskSignalsLoaded || !expectedSignal || !n.taskId) return false;
+    return taskSignals[n.taskId] !== expectedSignal;
+  };
+
   const unreadCount = notis.filter((n) => !n.read).length;
   const dueDateCount    = notis.filter((n) => n.type === "DUE_DATE").length;
   const requestCount    = notis.filter((n) => ["QUICK_SIGNAL", "COMMENT", "MENTION"].includes(n.type)).length;
 
-  useEffect(() => { fetchNotis(); }, [userId]);
+  useEffect(() => { fetchNotis(); }, [userId, workspace?.id]);
+  useEffect(() => { fetchTaskSignals(); }, [workspace?.id]);
   useEffect(() => {
     if (filter === "BOTTLENECK") fetchReport();
   }, [filter, workspace?.id]);
@@ -176,6 +227,9 @@ export default function NotificationPage() {
     if (activeFilter?.key === "BOTTLENECK")  return false; // 리포트 탭엔 알림 대신 리포트 렌더
     if (activeFilter?.types) return activeFilter.types.includes(noti.type);
     return true;
+  }).sort((a, b) => {
+    if (activeFilter?.key !== "REQUEST") return 0;
+    return Number(isRequestResolved(a)) - Number(isRequestResolved(b));
   });
 
   const renderBottleneckReport = () => {
@@ -183,7 +237,6 @@ export default function NotificationPage() {
     if (!report) return <div className="ntp-empty"><Inbox size={24} /><strong>데이터를 불러올 수 없습니다</strong></div>;
     if (report.bottlenecks.length === 0) return (
       <div className="ntp-empty">
-        <span style={{ fontSize: 32 }}>✅</span>
         <strong>현재 병목 태스크가 없습니다</strong>
         <span>모든 업무가 원활히 진행 중입니다</span>
       </div>
@@ -240,7 +293,7 @@ export default function NotificationPage() {
 
             {expandedId === item.taskId && item.affectedTasks.length > 0 && (
               <div className="ntp-affected-list">
-                <p className="ntp-affected-title">⚠️ 영향받는 후속 업무</p>
+                <p className="ntp-affected-title">영향받는 후속 업무</p>
                 {item.affectedTasks.map((a) => (
                   <div key={a.taskId} className="ntp-affected-item">
                     <span className="ntp-affected-name">{a.title}</span>
@@ -293,19 +346,19 @@ export default function NotificationPage() {
 
         {/* 요약 카드 4종 */}
         <section className="ntp-summary-grid">
-          <div className="ntp-summary-card ntp-summary-card--bottleneck" onClick={() => setFilter("BOTTLENECK")} style={{ cursor: "pointer" }}>
+          <div className={`ntp-summary-card ntp-summary-card--bottleneck ${filter === "BOTTLENECK" ? "active" : ""}`} onClick={() => setFilter("BOTTLENECK")} style={{ cursor: "pointer" }}>
             <span className="ntp-summary-icon bottleneck"><AlertTriangle size={17} /></span>
             <div><strong>{report?.bottlenecks.length ?? "—"}</strong><span>병목 태스크</span></div>
           </div>
-          <div className="ntp-summary-card ntp-summary-card--delay" onClick={() => setFilter("BOTTLENECK")} style={{ cursor: "pointer" }}>
+          <div className={`ntp-summary-card ntp-summary-card--delay ${filter === "BOTTLENECK" ? "active" : ""}`} onClick={() => setFilter("BOTTLENECK")} style={{ cursor: "pointer" }}>
             <span className="ntp-summary-icon delay"><TrendingDown size={17} /></span>
             <div><strong>{report ? `+${report.totalDelayDays}일` : "—"}</strong><span>예상 지연</span></div>
           </div>
-          <div className="ntp-summary-card">
+          <div className={`ntp-summary-card ${filter === "TASK" ? "active" : ""}`} onClick={() => setFilter("TASK")} style={{ cursor: "pointer" }}>
             <span className="ntp-summary-icon duedate"><Calendar size={17} /></span>
             <div><strong>{dueDateCount}</strong><span>마감 임박</span></div>
           </div>
-          <div className="ntp-summary-card">
+          <div className={`ntp-summary-card ${filter === "REQUEST" ? "active" : ""}`} onClick={() => setFilter("REQUEST")} style={{ cursor: "pointer" }}>
             <span className="ntp-summary-icon request"><HelpCircle size={17} /></span>
             <div><strong>{requestCount}</strong><span>도움 요청</span></div>
           </div>
@@ -343,13 +396,16 @@ export default function NotificationPage() {
               {filteredNotis.map((n) => (
                 <div
                   key={n.notificationId}
-                  className={`ntp-item ntp-item--${n.type?.toLowerCase() ?? "default"} ${n.taskId ? "ntp-item--clickable" : ""} ${n.read ? "ntp-item--read" : ""}`}
+                  className={`ntp-item ntp-item--${n.type?.toLowerCase() ?? "default"} ${n.taskId ? "ntp-item--clickable" : ""} ${n.read ? "ntp-item--read" : ""} ${isRequestResolved(n) ? "ntp-item--request-resolved" : ""}`}
                   onClick={() => n.taskId && handleClickNoti(n)}
                 >
                   <div className="ntp-item-icon">{TYPE_ICON[n.type] ?? <Bell size={20} color="#999" />}</div>
                   <div className="ntp-item-content">
-                    <span className="ntp-item-type">{TYPE_LABEL[n.type] ?? "알림"}</span>
-                    <span className="ntp-item-msg">{n.message}</span>
+                    <div className="ntp-item-label-row">
+                      <span className={`ntp-item-type ${getNotificationTypeClass(n)}`}>{getNotificationTypeLabel(n)}</span>
+                      {isRequestResolved(n) && <span className="ntp-item-resolved-badge">해결됨</span>}
+                    </div>
+                    <span className="ntp-item-msg">{formatNotificationMessage(n)}</span>
                     <span className="ntp-item-time">{timeAgo(n.createdAt)}</span>
                     {n.taskId && <span className="ntp-item-goto">태스크 보기 →</span>}
                   </div>

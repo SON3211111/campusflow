@@ -877,17 +877,49 @@
 
 .wsp-card-signal {
   font-size: 11px;
-  font-weight: 600;
-  padding: 3px 7px;
-  border-radius: 4px;
+  font-weight: 800;
+  padding: 4px 8px;
+  border-radius: 999px;
   margin-bottom: 4px;
   display: inline-flex;
   align-items: center;
   gap: 4px;
   align-self: flex-start;
+  border: 1px solid transparent;
+  line-height: 1;
 }
-.wsp-card-signal.signal-help { background: #fff0f0; color: #dc2626; }
-.wsp-card-signal.signal-feedback { background: #f0f7ff; color: #2563eb; }
+
+.wsp-card-signal svg {
+  display: none;
+}
+
+.wsp-card-signal::before {
+  content: "";
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.wsp-card-signal.signal-help {
+  background: #fee2e2;
+  border-color: #fca5a5;
+  color: #991b1b;
+}
+
+.wsp-card-signal.signal-help::before {
+  background: #dc2626;
+}
+
+.wsp-card-signal.signal-feedback {
+  background: #dbeafe;
+  border-color: #93c5fd;
+  color: #1d4ed8;
+}
+
+.wsp-card-signal.signal-feedback::before {
+  background: #2563eb;
+}
 
 .wsp-card-signal-spacer {
   min-height: 19px;
