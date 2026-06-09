@@ -4,7 +4,7 @@
  * 설명/마감일 인라인 편집, 댓글 작성, 파일 첨부 기능 포함
  */
 import { useState, useEffect, useRef } from "react";
-import { CalendarDays, Paperclip, Trash2, Download } from "lucide-react";
+import { CalendarDays, Paperclip, Trash2, Download, File, FileImage, FileText, FileSpreadsheet, FileArchive } from "lucide-react";
 import PixelAvatar from "./PixelAvatar";
 import client from "../api/client";
 import "./CardDetailModal.css";
@@ -62,15 +62,15 @@ function timeAgo(iso: string) {
 }
 
 function fileIcon(fileType: string) {
-  if (!fileType) return "📎";
-  if (fileType.startsWith("image/")) return "🖼️";
-  if (fileType === "application/pdf") return "📄";
-  if (fileType.includes("excel") || fileType.includes("spreadsheet")) return "📊";
-  if (fileType.includes("word") || fileType.includes("wordprocessing")) return "📝";
-  if (fileType.includes("hwp") || fileType.includes("hangul")) return "📋";
-  if (fileType.includes("powerpoint") || fileType.includes("presentation")) return "📊";
-  if (fileType.includes("zip") || fileType.includes("compressed")) return "🗜️";
-  return "📎";
+  if (!fileType) return <File size={20} />;
+  if (fileType.startsWith("image/")) return <FileImage size={20} />;
+  if (fileType === "application/pdf") return <FileText size={20} />;
+  if (fileType.includes("excel") || fileType.includes("spreadsheet")) return <FileSpreadsheet size={20} />;
+  if (fileType.includes("word") || fileType.includes("wordprocessing")) return <FileText size={20} />;
+  if (fileType.includes("hwp") || fileType.includes("hangul")) return <FileText size={20} />;
+  if (fileType.includes("powerpoint") || fileType.includes("presentation")) return <FileSpreadsheet size={20} />;
+  if (fileType.includes("zip") || fileType.includes("compressed")) return <FileArchive size={20} />;
+  return <File size={20} />;
 }
 
 function formatSize(bytes: number) {
@@ -106,6 +106,14 @@ export default function CardDetailModal({ title, colName, taskId, workspaceId, i
   const [uploading, setUploading] = useState(false);
   const [dragging, setDragging] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    const handler = (e: KeyboardEvent) => {
+      if (e.key === "Escape") onClose();
+    };
+    document.addEventListener("keydown", handler);
+    return () => document.removeEventListener("keydown", handler);
+  }, [onClose]);
 
   useEffect(() => {
     if (!statusDropOpen) return;

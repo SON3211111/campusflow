@@ -77,6 +77,48 @@
   background: #f4f4f4;
 }
 
+.atp-avatar-wrap {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.atp-avatar-takeable {
+  cursor: pointer;
+}
+
+.atp-avatar-takeable:hover .atp-pixel-avatar,
+.atp-avatar-returnable:hover .atp-pixel-avatar {
+  opacity: 0.75;
+  transform: scale(1.08);
+  transition: opacity 0.15s, transform 0.15s;
+}
+
+.atp-avatar-take-hint {
+  position: absolute;
+  top: -5px;
+  right: -5px;
+  background: #4f7cff;
+  color: #fff;
+  font-size: 10px;
+  font-weight: 700;
+  min-width: 16px;
+  height: 16px;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0 3px;
+  pointer-events: none;
+  box-shadow: 0 1px 4px rgba(79,124,255,0.4);
+}
+
+.atp-avatar-return-hint {
+  background: #f59e0b;
+  box-shadow: 0 1px 4px rgba(245,158,11,0.4);
+}
+
 .atp-new-btn {
   background: #7de89a;
   color: #1a4a2a;
@@ -788,6 +830,21 @@
   background: #f0f2f8;
   border-top: 1px solid #ddd;
   overflow-x: auto;
+}
+
+.atp-basket-bar--personal {
+  justify-content: center;
+  align-items: center;
+}
+
+.atp-basket-bar--personal .atp-basket-outer {
+  min-width: 320px;
+  max-width: 400px;
+}
+
+.atp-basket-bar--personal .atp-user-slot {
+  min-width: 280px;
+  width: 100%;
 }
 
 .atp-basket-outer {

@@ -119,6 +119,12 @@
   display: grid;
   grid-template-columns: 1fr 280px;
   gap: 20px;
+  min-width: 0;
+}
+
+.cdm-left,
+.cdm-right {
+  min-width: 0;
 }
 
 /* 제목 */
@@ -226,6 +232,8 @@
   min-height: 60px;
   line-height: 1.6;
   white-space: pre-wrap;
+  overflow-wrap: break-word;
+  word-break: break-word;
   text-align: left;
 }
 
@@ -401,6 +409,8 @@
 .cdm-activity-text {
   font-size: 12px;
   color: #555;
+  overflow-wrap: break-word;
+  word-break: break-word;
 }
 
 .cdm-activity-time {

@@ -51,6 +51,7 @@ interface WorkspaceItem {
   id: string;
   name: string;
   gradient: string;
+  type?: string;
 }
 
 interface AiResult {
@@ -230,26 +231,12 @@ function normalizeAiTaskSession(rawSession: RawAiTaskSession | null): AiTaskSess
 }
 
 function readAiTaskSession(preferredKey: string): AiTaskSession | null {
-  const keys = [
-    preferredKey,
-    "ai_task_session_default",
-    ...Array.from({ length: localStorage.length }, (_, i) => localStorage.key(i) ?? "")
-      .filter((key) => key.startsWith("ai_task_session_")),
-  ];
-
-  const candidates: AiTaskSession[] = [];
-
-  for (const key of [...new Set(keys)]) {
-    try {
-      const session = JSON.parse(localStorage.getItem(key) ?? "null") as RawAiTaskSession | null;
-      const normalized = normalizeAiTaskSession(session);
-      if (normalized) candidates.push(normalized);
-    } catch {
-      // Ignore malformed saved sessions and keep looking for a usable one.
-    }
+  try {
+    const session = JSON.parse(localStorage.getItem(preferredKey) ?? "null") as RawAiTaskSession | null;
+    return normalizeAiTaskSession(session);
+  } catch {
+    return null;
   }
-
-  return candidates.sort((a, b) => getSessionPayloadScore(b) - getSessionPayloadScore(a))[0] ?? null;
 }
 
 const CAT_COLORS = [
@@ -274,14 +261,16 @@ function getTaskIdentity(task: Task) {
 }
 
 function mergeBasketTasks(existing: Task[], incoming: Task[]) {
-  const seen = new Set(existing.map(getTaskIdentity));
+  const seenById  = new Set(existing.filter((t) => t.backendId).map((t) => `backend:${t.backendId}`));
+  const seenByName = new Set(existing.map((t) => t.name.trim().toLowerCase()));
   const merged = [...existing];
   incoming.forEach((task) => {
-    const identity = getTaskIdentity(task);
-    if (!seen.has(identity)) {
-      seen.add(identity);
-      merged.push(task);
-    }
+    const idKey   = task.backendId ? `backend:${task.backendId}` : null;
+    const nameKey = task.name.trim().toLowerCase();
+    if ((idKey && seenById.has(idKey)) || seenByName.has(nameKey)) return;
+    if (idKey) seenById.add(idKey);
+    seenByName.add(nameKey);
+    merged.push(task);
   });
   return merged;
 }
@@ -317,6 +306,7 @@ export default function AiTaskPage() {
   const themeStyle = createWorkspaceThemeStyle(workspace?.gradient);
   const sessionKey = `ai_task_session_${workspace?.id ?? "default"}`;
   const currentUserId = localStorage.getItem("userId") ?? "me";
+  const isPersonal = workspace?.type === "PERSONAL";
 
   const storedSession = readAiTaskSession(sessionKey);
 
@@ -594,7 +584,7 @@ export default function AiTaskPage() {
     setTasks((prev) => prev.filter((t) => t.id !== draggingId));
     setDraggingId(null);
     setDragOverUserId(null);
-    setBasketCooldownUntil(Date.now() + 3000);
+    if (!isPersonal) setBasketCooldownUntil(Date.now() + 3000);
 
     // 즉시 보드에 생성
     if (workspace?.id) {
@@ -648,6 +638,66 @@ export default function AiTaskPage() {
     }));
     setDraggingId(null);
     setDraggingFromUserId(null);
+  };
+
+  const handleReturnAll = async () => {
+    const basket = memberBaskets[currentUserId] ?? [];
+    if (basket.length === 0) return;
+
+    // 낙관적 UI — 장바구니 비우고 풀로 복원
+    setTasks((prev) => [...prev, ...basket.map((t) => ({ ...t, backendId: undefined }))]);
+    setMemberBaskets((prev) => ({ ...prev, [currentUserId]: [] }));
+
+    // 백엔드에서 삭제
+    if (workspace?.id) {
+      for (const task of basket) {
+        if (task.backendId) {
+          client.delete(`/workspaces/${workspace.id}/tasks/${task.backendId}`)
+            .catch((err) => console.error("태스크 삭제 실패:", err));
+        }
+      }
+    }
+  };
+
+  const handleTakeAll = async () => {
+    if (!workspace?.id || tasks.length === 0) return;
+    const userId = currentUserId;
+
+    // 낙관적 UI — 전부 장바구니로 이동
+    setMemberBaskets((prev) => ({
+      ...prev,
+      [userId]: [...(prev[userId] ?? []), ...tasks],
+    }));
+    setTasks([]);
+
+    // 백엔드에 순차 생성
+    const created: Array<{ taskId: string; localId: string }> = [];
+    for (const task of tasks) {
+      try {
+        const res = await client.post(`/workspaces/${workspace.id}/tasks`, {
+          title: task.name,
+          description: categories[task.categoryIdx]?.name ?? "",
+          status: "TODO",
+          assigneeId: userId,
+          priority: task.priority ?? null,
+        });
+        const backendId = String(res.data.data?.taskId ?? "");
+        if (backendId) created.push({ taskId: backendId, localId: task.id });
+      } catch (err) {
+        console.error("태스크 생성 실패:", err);
+      }
+    }
+
+    // backendId 업데이트
+    if (created.length > 0) {
+      setMemberBaskets((prev) => ({
+        ...prev,
+        [userId]: (prev[userId] ?? []).map((t) => {
+          const found = created.find((c) => c.localId === t.id);
+          return found ? { ...t, backendId: found.taskId } : t;
+        }),
+      }));
+    }
   };
 
   const sendBasketToWorkspace = async () => {
@@ -808,7 +858,7 @@ export default function AiTaskPage() {
         </div>
 
         {/* 팀원별 장바구니 슬롯 */}
-        <div className="atp-basket-bar">
+        <div className={`atp-basket-bar ${isPersonal ? "atp-basket-bar--personal" : ""}`}>
           {basketCooldownLeft > 0 && (
             <div className="atp-basket-toolbar">
               <span className="atp-basket-cooldown">{basketCooldownLeft}초 후 추가 가능</span>
@@ -858,7 +908,24 @@ export default function AiTaskPage() {
                       );
                     })}
                   </div>
-                  <PixelAvatar userId={member.userId} name={member.name} size="sm" className="atp-pixel-avatar" />
+                  {(() => {
+                    const isMe = member.userId === currentUserId;
+                    const myBasket = memberBaskets[member.userId] ?? [];
+                    const canTake = isMe && tasks.length > 0;
+                    const canReturn = isMe && tasks.length === 0 && myBasket.length > 0;
+                    const interactive = canTake || canReturn;
+                    return (
+                      <div
+                        className={`atp-avatar-wrap ${interactive ? (canTake ? "atp-avatar-takeable" : "atp-avatar-returnable") : ""}`}
+                        onClick={() => { if (canTake) handleTakeAll(); else if (canReturn) handleReturnAll(); }}
+                        title={canTake ? `모두 가져오기 (${tasks.length}개)` : canReturn ? `모두 내보내기 (${myBasket.length}개)` : undefined}
+                      >
+                        <PixelAvatar userId={member.userId} name={member.name} size="sm" className="atp-pixel-avatar" />
+                        {canTake && <span className="atp-avatar-take-hint">{tasks.length}</span>}
+                        {canReturn && <span className="atp-avatar-take-hint atp-avatar-return-hint">{myBasket.length}</span>}
+                      </div>
+                    );
+                  })()}
                   <span className="atp-user-name">{member.name}</span>
                 </div>
               );
