@@ -295,9 +295,12 @@ export default function AiTaskPage() {
           setDbSession(parsed);
           setSessions(parsed.sessions ?? []);
           setCategories(parsed.categories ?? []);
-          setTasks(parsed.tasks ?? []);
-          // 장바구니: 내 장바구니는 로컬 유지, 다른 팀원 장바구니는 DB 기준으로 업데이트
+          // 바구니에 있는 항목은 태스크 풀에서 제거 (DB tasks 타이밍 이슈 방어)
           const dbBaskets: Record<string, Task[]> = parsed.memberBaskets ?? {};
+          const basketIds = new Set(
+            Object.values(dbBaskets).flat().map((t: Task) => t.id)
+          );
+          setTasks((parsed.tasks ?? []).filter((t: Task) => !basketIds.has(t.id)));
           setMemberBaskets((prev) => {
             const merged: Record<string, Task[]> = {};
             const allKeys = new Set([...Object.keys(prev), ...Object.keys(dbBaskets)]);
