@@ -189,13 +189,11 @@ export default function NotificationPage() {
 
   const unreadCount = notis.filter((n) => !n.read).length;
   const dueDateCount    = notis.filter((n) => n.type === "DUE_DATE").length;
-  const requestCount    = notis.filter((n) => ["QUICK_SIGNAL", "COMMENT", "MENTION"].includes(n.type) && !isRequestResolved(n)).length;
+  const requestCount    = notis.filter((n) => ["QUICK_SIGNAL", "QUICK_SIGNAL_SENT"].includes(n.type) && !isRequestResolved(n)).length;
 
   useEffect(() => { fetchNotis(); }, [userId, workspace?.id]);
   useEffect(() => { fetchTaskSignals(); }, [workspace?.id]);
-  useEffect(() => {
-    if (filter === "BOTTLENECK") fetchReport();
-  }, [filter, workspace?.id]);
+  useEffect(() => { fetchReport(); }, [workspace?.id]);
 
   const handleRead = async (notificationId: string) => {
     try {

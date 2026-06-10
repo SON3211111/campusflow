@@ -969,6 +969,7 @@ export default function WorkSpacePage() {
           initialQuickSignal={selectedCard.card.quickSignal}
           assigneeId={selectedCard.card.assigneeId}
           assigneeName={selectedCard.card.assigneeName}
+          availableTasks={Object.values(cards).flat().map((card) => ({ id: card.id, title: card.title }))}
           onSaveTitle={(t) => handleSaveTitle(selectedCard.col, selectedCard.card.id, t)}
           onSaveDesc={(desc) => handleSaveDesc(selectedCard.col, selectedCard.card.id, desc)}
           onSaveStartDate={(startDate) => handleSaveStartDate(selectedCard.col, selectedCard.card.id, startDate)}

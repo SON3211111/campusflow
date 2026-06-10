@@ -20,6 +20,7 @@ interface Task {
   categoryIdx: number;
   desc?: string;
   priority?: string;
+  estimatedHours?: number;
   backendId?: string;
 }
 
@@ -27,6 +28,7 @@ interface CategoryTaskItem {
   name: string;
   desc: string;
   priority: string;
+  estimatedHours?: number;
 }
 
 interface Category {
@@ -96,6 +98,7 @@ function normalizeRawTasks(value: unknown): Task[] {
     categoryIdx: Number(task.categoryIdx ?? task.categoryIndex ?? task.category ?? 0),
     desc: typeof task.desc === "string" ? task.desc : typeof task.description === "string" ? task.description : "",
     priority: typeof task.priority === "string" ? task.priority : "",
+    estimatedHours: typeof task.estimatedHours === "number" ? task.estimatedHours : undefined,
     backendId: task.backendId ? String(task.backendId) : undefined,
   })).filter((task) => task.name.trim());
 }
@@ -137,6 +140,7 @@ function coerceAiTaskSession(raw: RawAiTaskSession | null): AiTaskSession | null
       categoryIdx,
       desc: task.desc,
       priority: task.priority,
+      estimatedHours: task.estimatedHours,
     }))
   ) ?? [];
 
@@ -217,6 +221,7 @@ function normalizeAiTaskSession(rawSession: RawAiTaskSession | null): AiTaskSess
           name: task.name,
           desc: task.desc ?? "",
           priority: task.priority ?? "",
+          estimatedHours: task.estimatedHours,
         })),
     })),
   };
@@ -310,6 +315,7 @@ export default function AiTaskPage() {
         categoryIdx: ci + offset,
         desc: t.desc,
         priority: t.priority,
+        estimatedHours: t.estimatedHours,
       }))
     );
 
@@ -609,6 +615,7 @@ export default function AiTaskPage() {
         name: t.title,
         categoryIdx: task.categoryIdx,
         priority: task.priority,
+        estimatedHours: task.estimatedHours,
         desc: t.description,
       }));
       setTasks((prev) => {
@@ -723,6 +730,7 @@ export default function AiTaskPage() {
             status: "TODO",
             assigneeId: userId,
             priority: task.priority ?? null,
+            estimatedHours: task.estimatedHours ?? null,
           });
           const backendId: string | undefined = res.data?.data?.taskId;
           if (backendId) updated[i] = { ...task, backendId };
@@ -730,6 +738,26 @@ export default function AiTaskPage() {
         nextBaskets[userId] = updated;
       }
       // navigate 전에 backendId 포함된 basket을 localStorage에 직접 저장
+      const createdTasks = Object.values(nextBaskets).flat().filter((task) => task.backendId);
+      const tasksByCategory = new Map<number, Task[]>();
+      createdTasks.forEach((task) => {
+        const bucket = tasksByCategory.get(task.categoryIdx) ?? [];
+        bucket.push(task);
+        tasksByCategory.set(task.categoryIdx, bucket);
+      });
+      for (const bucket of tasksByCategory.values()) {
+        const ordered = [...bucket].sort((a, b) => a.id.localeCompare(b.id));
+        for (let i = 0; i < ordered.length - 1; i++) {
+          const predecessorId = ordered[i].backendId;
+          const successorId = ordered[i + 1].backendId;
+          if (!predecessorId || !successorId) continue;
+          try {
+            await client.post(`/workspaces/${workspace.id}/tasks/${predecessorId}/successors`, { successorTaskId: successorId });
+          } catch (err) {
+            console.warn("AI task dependency auto-link failed:", err);
+          }
+        }
+      }
       localStorage.setItem(sessionKey, JSON.stringify({
         title, categories, tasks, prompt: origPrompt, result: aiResult, memberBaskets: nextBaskets, sessions,
       }));
