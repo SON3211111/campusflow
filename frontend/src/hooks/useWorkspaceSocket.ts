@@ -45,6 +45,7 @@ export interface WsAiSessionUpdate {
   type: "AI_SESSION_UPDATE";
   workspaceId: string;
   updatedBy?: string;
+  sessionData?: Record<string, unknown>;
 }
 
 export interface WsAiSessionDeleted {

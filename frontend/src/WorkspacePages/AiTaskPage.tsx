@@ -285,30 +285,38 @@ export default function AiTaskPage() {
   // AI 세션 WebSocket 동기화 — 다른 팀원이 세션을 변경하면 DB에서 리로드
   useWorkspaceSocket(workspace?.id, {
     onAiSessionUpdate: (msg) => {
-      if (msg.updatedBy === currentUserId) return; // 내가 저장한 건 무시
+      if (msg.updatedBy === currentUserId) return;
       if (!workspace?.id) return;
+
+      const applySession = (parsed: AiTaskSession) => {
+        setDbSession(parsed);
+        setSessions(parsed.sessions ?? []);
+        setCategories(parsed.categories ?? []);
+        const dbBaskets: Record<string, Task[]> = parsed.memberBaskets ?? {};
+        const basketIds = new Set(Object.values(dbBaskets).flat().map((t: Task) => t.id));
+        setTasks((parsed.tasks ?? []).filter((t: Task) => !basketIds.has(t.id)));
+        setMemberBaskets((prev) => {
+          const merged: Record<string, Task[]> = {};
+          const allKeys = new Set([...Object.keys(prev), ...Object.keys(dbBaskets)]);
+          for (const uid of allKeys) {
+            merged[uid] = uid === currentUserId ? (prev[uid] ?? []) : (dbBaskets[uid] ?? []);
+          }
+          return merged;
+        });
+      };
+
+      // WS 메시지에 sessionData 포함된 경우 DB 재조회 없이 즉시 적용
+      if (msg.sessionData) {
+        applySession(msg.sessionData as unknown as AiTaskSession);
+        return;
+      }
+
+      // fallback: DB에서 조회
       client.get(`/workspaces/${workspace.id}/ai-session`)
         .then((res) => {
           const dbData = res.data?.data;
           if (!dbData?.exists || !dbData?.sessionData) return;
-          const parsed: AiTaskSession = JSON.parse(dbData.sessionData);
-          setDbSession(parsed);
-          setSessions(parsed.sessions ?? []);
-          setCategories(parsed.categories ?? []);
-          // 바구니에 있는 항목은 태스크 풀에서 제거 (DB tasks 타이밍 이슈 방어)
-          const dbBaskets: Record<string, Task[]> = parsed.memberBaskets ?? {};
-          const basketIds = new Set(
-            Object.values(dbBaskets).flat().map((t: Task) => t.id)
-          );
-          setTasks((parsed.tasks ?? []).filter((t: Task) => !basketIds.has(t.id)));
-          setMemberBaskets((prev) => {
-            const merged: Record<string, Task[]> = {};
-            const allKeys = new Set([...Object.keys(prev), ...Object.keys(dbBaskets)]);
-            for (const uid of allKeys) {
-              merged[uid] = uid === currentUserId ? (prev[uid] ?? []) : (dbBaskets[uid] ?? []);
-            }
-            return merged;
-          });
+          applySession(JSON.parse(dbData.sessionData));
         })
         .catch((err) => console.error("AI 세션 리로드 실패:", err));
     },

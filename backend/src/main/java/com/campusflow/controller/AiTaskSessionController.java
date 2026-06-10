@@ -45,7 +45,8 @@ public class AiTaskSessionController {
         service.saveSession(workspaceId, sessionData, userId);
         wsHandler.broadcast(workspaceId,
                 "{\"type\":\"AI_SESSION_UPDATE\",\"workspaceId\":\"" + escapeJson(workspaceId) +
-                "\",\"updatedBy\":\"" + escapeJson(userId) + "\"}");
+                "\",\"updatedBy\":\"" + escapeJson(userId) +
+                "\",\"sessionData\":" + sessionData + "}");
         return ResponseEntity.ok(ApiResponse.success(200, "저장 완료"));
     }
 
