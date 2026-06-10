@@ -113,6 +113,7 @@ interface Category {
 interface BreakdownResult {
   title: string;
   categories: Category[];
+  fallback?: boolean;
 }
 
 interface DraggedTask {
@@ -154,6 +155,7 @@ function convertToBreakdownResult(data: any, prompt: string): BreakdownResult {
   });
   return {
     title: prompt.slice(0, 30),
+    fallback: Boolean(data.fallback),
     categories: Array.from(categoryMap.entries()).map(([name, tasks], i) => ({
       id: `c${i + 1}`,
       name,

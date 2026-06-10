@@ -58,6 +58,7 @@ interface WorkspaceItem {
 interface AiResult {
   title: string;
   categories: { id: string; name: string; tasks: CategoryTaskItem[] }[];
+  fallback?: boolean;
 }
 
 interface AiTaskSession {
@@ -66,6 +67,7 @@ interface AiTaskSession {
   tasks: Task[];
   prompt: string;
   result?: AiResult;
+  fallback?: boolean;
   memberBaskets?: Record<string, Task[]>;
   sessions?: Session[];
 }
@@ -147,6 +149,7 @@ function coerceAiTaskSession(raw: RawAiTaskSession | null): AiTaskSession | null
     tasks,
     prompt: String(raw.prompt ?? raw.title ?? result?.title ?? "AI Task"),
     result,
+    fallback: Boolean(raw.fallback ?? result?.fallback),
     memberBaskets: normalizeSavedBaskets(raw.memberBaskets),
     sessions: asArray<Session>(raw.sessions),
   };
@@ -204,6 +207,7 @@ function normalizeAiTaskSession(rawSession: RawAiTaskSession | null): AiTaskSess
 
   const result: AiResult = {
     title: session.title || session.prompt || "AI Task",
+    fallback: session.fallback,
     categories: session.categories.map((category, index) => ({
       id: `c${index + 1}`,
       name: category.name,
@@ -359,6 +363,7 @@ export default function AiTaskPage() {
   const [categories, setCategories] = useState<Category[]>(initCategories);
   const [tasks, setTasks]           = useState<Task[]>(initTasks);
   const [title]                     = useState(shouldRestoreSession ? storedSession?.title ?? "" : aiResult?.title ?? "");
+  const [isFallbackResult]          = useState(Boolean(shouldRestoreSession ? storedSession?.fallback : aiResult?.fallback));
   const [confirmSessionId, setConfirmSessionId] = useState<string | null>(null);
 
   const [members, setMembers]                       = useState<Member[]>([]);
@@ -438,7 +443,7 @@ export default function AiTaskPage() {
   useEffect(() => {
     if (!aiResult || getSessionPayloadScore({ categories, tasks, result: aiResult, memberBaskets }) === 0) return;
     localStorage.setItem(sessionKey, JSON.stringify({
-      title, categories, tasks, prompt: origPrompt, result: aiResult, memberBaskets, sessions,
+      title, categories, tasks, prompt: origPrompt, result: aiResult, fallback: isFallbackResult, memberBaskets, sessions,
     }));
   }, [categories, tasks, origPrompt, sessionKey, memberBaskets, sessions]);
 
@@ -798,8 +803,12 @@ export default function AiTaskPage() {
 
       <div className="atp-topbar">
         <button className="atp-back-btn" onClick={() => navigate("/workspace")}>뒤로가기</button>
-        {title && <span className="atp-project-title">{title}</span>}
-        <button className="atp-workspace-btn" onClick={sendBasketToWorkspace}>시작하기</button>
+        {title && (
+          <span className={`atp-project-title ${isFallbackResult ? "atp-project-title--fallback" : ""}`}>
+            {title}
+          </span>
+        )}
+        <button className="atp-workspace-btn" onClick={sendBasketToWorkspace}>보드로 시작하기</button>
       </div>
 
       <div className="atp-body">

@@ -61,6 +61,12 @@ public class WorkspaceTaskController {
         return ResponseEntity.ok(ApiResponse.success(200, "삭제 완료"));
     }
 
+    @DeleteMapping("/{taskId}/hard")
+    public ResponseEntity<ApiResponse<Void>> hardDelete(@PathVariable String taskId) {
+        taskService.hardDeleteTask(taskId);
+        return ResponseEntity.ok(ApiResponse.success(200, "영구 삭제 완료"));
+    }
+
     @PatchMapping("/{taskId}/restore")
     public ResponseEntity<ApiResponse<TaskResponse>> restore(@PathVariable String taskId) {
         TaskResponse restored = taskService.restoreTask(taskId);

@@ -40,4 +40,8 @@ public interface TaskRepository extends JpaRepository<Task, String> {
     @Modifying
     @Query("UPDATE Task t SET t.parentTask = null WHERE t.workspace.workspaceId = :workspaceId")
     void updateParentTaskNullByWorkspace(@Param("workspaceId") String workspaceId);
+
+    @Modifying
+    @Query("UPDATE Task t SET t.parentTask = null WHERE t.parentTask.taskId = :taskId")
+    void updateParentTaskNullByParentTaskId(@Param("taskId") String taskId);
 }

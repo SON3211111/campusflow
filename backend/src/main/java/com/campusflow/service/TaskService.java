@@ -9,14 +9,17 @@ import com.campusflow.entity.ContributionMetrics;
 import com.campusflow.entity.Project;
 import com.campusflow.entity.Task;
 import com.campusflow.entity.TaskStatusHistory;
+import com.campusflow.entity.TeamCommunication;
 import com.campusflow.entity.User;
 import com.campusflow.entity.Workspace;
 import com.campusflow.entity.enums.TaskPriority;
 import com.campusflow.entity.enums.TaskStatus;
 import com.campusflow.repository.ContributionMetricsRepository;
 import com.campusflow.repository.ProjectRepository;
+import com.campusflow.repository.TaskAttachmentRepository;
 import com.campusflow.repository.TaskRepository;
 import com.campusflow.repository.TaskStatusHistoryRepository;
+import com.campusflow.repository.TeamCommunicationRepository;
 import com.campusflow.repository.UserRepository;
 import com.campusflow.repository.WorkspaceRepository;
 import com.campusflow.websocket.TaskWebSocketHandler;
@@ -42,6 +45,8 @@ public class TaskService {
     private final UserRepository userRepository;
     private final WorkspaceRepository workspaceRepository;
     private final TaskStatusHistoryRepository taskStatusHistoryRepository;
+    private final TeamCommunicationRepository teamCommunicationRepository;
+    private final TaskAttachmentRepository taskAttachmentRepository;
     private final ContributionMetricsRepository contributionMetricsRepository;
     private final NotificationService notificationService;
     private final TaskWebSocketHandler taskWebSocketHandler;
@@ -365,7 +370,23 @@ public class TaskService {
         return TaskResponse.from(task);
     }
 
-    /** 마감일 업데이트 (yyyy-MM-dd 형식 문자열) */
+    /** 휴지통의 태스크를 DB에서 영구 삭제 */
+    @Transactional
+    public void hardDeleteTask(String taskId) {
+        Task task = taskRepository.findById(taskId)
+                .orElseThrow(() -> new IllegalArgumentException("태스크를 찾을 수 없습니다. ID: " + taskId));
+        if (!task.isDeleted()) {
+            throw new IllegalStateException("휴지통에 있는 태스크만 영구 삭제할 수 있습니다.");
+        }
+        taskStatusHistoryRepository.deleteAllByTask_TaskId(taskId);
+        List<TeamCommunication> taskMessages = teamCommunicationRepository.findAllByTask_TaskIdOrderByCreatedAtAsc(taskId);
+        taskMessages.forEach((message) -> teamCommunicationRepository.deleteAllByParentMessage_MessageId(message.getMessageId()));
+        teamCommunicationRepository.deleteAllByTask_TaskId(taskId);
+        taskAttachmentRepository.deleteAllByTaskId(taskId);
+        taskRepository.updateParentTaskNullByParentTaskId(taskId);
+        taskRepository.delete(task);
+    }
+
     @Transactional
     public void updateDueDate(String taskId, String dueDate) {
         Task task = taskRepository.findById(taskId)

@@ -257,6 +257,86 @@
 .wsp-context-menu button:hover { background: #f5f5f5; }
 .wsp-ctx-delete { color: #ef4444 !important; }
 
+.wsp-confirm-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 12000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+  background: rgba(17, 24, 39, 0.46);
+  backdrop-filter: blur(8px);
+}
+
+.wsp-confirm-modal {
+  width: min(360px, calc(100vw - 40px));
+  padding: 24px;
+  border: 1px solid rgba(229, 231, 235, 0.9);
+  border-radius: 14px;
+  background: #fff;
+  color: #222;
+  box-shadow: 0 22px 70px rgba(15, 23, 42, 0.28);
+  text-align: center;
+  animation: ctxFade 0.14s ease;
+}
+
+.wsp-confirm-icon {
+  width: 48px;
+  height: 48px;
+  margin: 0 auto 12px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #fee2e2;
+  color: #dc2626;
+}
+
+.wsp-confirm-title {
+  margin: 0;
+  font-size: 18px;
+  font-weight: 800;
+  color: #1f2937;
+}
+
+.wsp-confirm-msg {
+  margin: 10px 0 20px;
+  color: #6b7280;
+  font-size: 13px;
+  line-height: 1.5;
+  word-break: keep-all;
+}
+
+.wsp-confirm-actions {
+  display: flex;
+  justify-content: center;
+  gap: 8px;
+}
+
+.wsp-confirm-cancel,
+.wsp-confirm-delete {
+  border: none;
+  border-radius: 9px;
+  padding: 9px 16px;
+  font-size: 13px;
+  font-weight: 800;
+  cursor: pointer;
+}
+
+.wsp-confirm-cancel {
+  background: #f3f4f6;
+  color: #4b5563;
+}
+
+.wsp-confirm-delete {
+  background: #ef4444;
+  color: #fff;
+}
+
+.wsp-confirm-cancel:hover { background: #e5e7eb; }
+.wsp-confirm-delete:hover { background: #dc2626; }
+
 /* ===== 카카오톡 스타일 인용 버블 ===== */
 .wsp-reply-quote {
   display: flex;
@@ -1272,4 +1352,26 @@
   font-size: 12px;
   font-weight: 600;
   cursor: pointer;
+}
+
+.wsp-trash-actions {
+  display: flex;
+  gap: 7px;
+  flex-shrink: 0;
+}
+
+.wsp-hard-delete-btn {
+  border: none;
+  border-radius: 7px;
+  padding: 7px 12px;
+  background: #fee2e2;
+  color: #b91c1c;
+  font-size: 12px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.wsp-hard-delete-btn:hover {
+  background: #ef4444;
+  color: #fff;
 }

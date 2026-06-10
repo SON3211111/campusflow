@@ -1018,6 +1018,10 @@
 }
 
 .atp-topbar {
+  display: grid;
+  grid-template-columns: minmax(120px, 1fr) minmax(0, auto) minmax(120px, 1fr);
+  align-items: center;
+  gap: 16px;
   min-height: 42px;
   padding: 12px 24px;
   border-bottom: 1px solid rgba(221, 226, 250, 0.88);
@@ -1028,6 +1032,7 @@
 }
 
 .atp-back-btn {
+  justify-self: start;
   border-color: #d7dcf4;
   border-radius: 10px;
   background: #f8f9ff;
@@ -1043,14 +1048,31 @@
 }
 
 .atp-project-title {
+  justify-self: center;
+  max-width: min(760px, 52vw);
+  overflow: hidden;
+  text-align: center;
+  text-overflow: ellipsis;
+  white-space: nowrap;
   color: #313958;
   font-size: 15px;
   font-weight: 800;
 }
 
+.atp-project-title--fallback {
+  max-width: min(780px, 54vw);
+  border: 2px solid #ef4444;
+  border-radius: 9px;
+  padding: 5px 10px;
+  color: #991b1b;
+  background: #fff5f5;
+}
+
 .atp-workspace-btn {
+  justify-self: end;
   border: 0;
   border-radius: 11px;
+  min-width: 128px;
   padding: 9px 18px;
   background: linear-gradient(135deg, var(--ws-theme-primary, #607cff), var(--ws-theme-secondary, #805de8));
   box-shadow: 0 5px 13px rgba(var(--ws-theme-primary-rgb, 99, 105, 202), 0.22);
@@ -1076,8 +1098,10 @@
 }
 
 .atp-session {
+  width: fit-content;
+  max-width: none;
   min-width: max-content;
-  margin-bottom: 18px;
+  margin: 0 auto 18px;
   padding: 14px;
   border: 1px solid rgba(231, 234, 250, 0.94);
   border-radius: 18px;
@@ -1115,10 +1139,11 @@
 }
 
 .atp-categories {
-  min-width: 100%;
+  min-width: 0;
   width: max-content;
   gap: 18px;
-  justify-content: flex-start;
+  justify-content: center;
+  margin: 0 auto;
 }
 
 .atp-categories::before,
@@ -1335,12 +1360,13 @@
 
 @media (max-width: 720px) {
   .atp-topbar {
+    grid-template-columns: auto minmax(0, 1fr) auto;
     gap: 10px;
     padding: 10px 14px;
   }
 
   .atp-project-title {
-    max-width: 36vw;
+    max-width: 100%;
     overflow: hidden;
     font-size: 13px;
     text-overflow: ellipsis;
@@ -1348,6 +1374,7 @@
   }
 
   .atp-workspace-btn {
+    min-width: 104px;
     padding: 8px 13px;
     font-size: 12px;
   }
@@ -1379,6 +1406,7 @@
 
 @media (max-width: 480px) {
   .atp-topbar {
+    grid-template-columns: auto minmax(0, 1fr) auto;
     gap: 8px;
     min-height: 38px;
     padding: 9px 10px;
@@ -1390,11 +1418,12 @@
   }
 
   .atp-project-title {
-    max-width: 26vw;
+    max-width: 100%;
     font-size: 12px;
   }
 
   .atp-workspace-btn {
+    min-width: 78px;
     padding: 7px 11px;
     font-size: 11px;
   }

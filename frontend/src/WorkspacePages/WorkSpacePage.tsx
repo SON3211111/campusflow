@@ -501,6 +501,16 @@ export default function WorkSpacePage() {
     } catch {}
   };
 
+  const handleHardDeleteCard = async (card: CardItem) => {
+    if (!workspace?.id) return;
+    try {
+      await client.delete(`/workspaces/${workspace.id}/tasks/${card.id}/hard`);
+      setDeletedCards((prev) => prev.filter((c) => c.id !== card.id));
+    } catch (err: any) {
+      alert(`영구 삭제에 실패했습니다: ${err?.response?.data?.message ?? err?.message ?? "알 수 없는 오류"}`);
+    }
+  };
+
   const openTrash = async () => {
     await loadTrash();
     setTrashOpen(true);
@@ -995,9 +1005,14 @@ export default function WorkSpacePage() {
                       <strong>{card.title}</strong>
                       {card.desc && <p>{card.desc}</p>}
                     </div>
-                    <button className="wsp-restore-btn" onClick={() => handleRestoreCard(card)}>
-                      복구
-                    </button>
+                    <div className="wsp-trash-actions">
+                      <button className="wsp-restore-btn" onClick={() => handleRestoreCard(card)}>
+                        복구
+                      </button>
+                      <button className="wsp-hard-delete-btn" onClick={() => handleHardDeleteCard(card)}>
+                        영구 삭제
+                      </button>
+                    </div>
                   </div>
                 ))}
               </div>
