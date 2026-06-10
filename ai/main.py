@@ -14,19 +14,6 @@ app = FastAPI()
 OLLAMA_URL = os.getenv("OLLAMA_URL", "http://ollama:11434")
 OLLAMA_MODEL = os.getenv("OLLAMA_MODEL", "qwen2.5:14b")
 OLLAMA_MODELS = [m.strip() for m in os.getenv("OLLAMA_MODELS", OLLAMA_MODEL).split(",")]
-MOCK_AI = os.getenv("MOCK_AI", "false").lower() == "true"
-
-MOCK_TASKS = [
-    {"title": "요구사항 명세서 작성", "description": "기능 목록·비기능 요구사항 Notion 정리", "category": "기획", "priority": "HIGH", "estimated_hours": 3},
-    {"title": "ERD 및 테이블 설계", "description": "핵심 테이블 draw.io ERD 작성", "category": "설계", "priority": "HIGH", "estimated_hours": 4},
-    {"title": "로그인·회원가입 API", "description": "JWT 발급, /auth/login·/auth/signup 구현", "category": "백엔드", "priority": "HIGH", "estimated_hours": 6},
-    {"title": "핵심 비즈니스 로직 API", "description": "CRUD REST 엔드포인트 5개 구현", "category": "백엔드", "priority": "MEDIUM", "estimated_hours": 8},
-    {"title": "메인 화면 UI 구현", "description": "React 컴포넌트, 목록 카드 레이아웃", "category": "프론트엔드", "priority": "MEDIUM", "estimated_hours": 6},
-    {"title": "로그인 화면 UI 구현", "description": "폼 유효성 검사 포함, JWT 로컬스토리지 저장", "category": "프론트엔드", "priority": "MEDIUM", "estimated_hours": 4},
-    {"title": "상세 페이지 UI 구현", "description": "데이터 조회·수정 폼, API 연동", "category": "프론트엔드", "priority": "MEDIUM", "estimated_hours": 5},
-    {"title": "API 연동 및 통합 테스트", "description": "프론트-백엔드 연동, 주요 시나리오 5개 테스트", "category": "테스트", "priority": "MEDIUM", "estimated_hours": 5},
-    {"title": "배포 환경 설정", "description": "Docker Compose 작성, 클라우드 서버 배포", "category": "배포", "priority": "LOW", "estimated_hours": 4},
-]
 
 
 # /generate-tasks 용 요청 구조 (프로젝트 제목 + 설명)
@@ -529,9 +516,6 @@ async def subdivide_task(req: SubdivideRequest):
 # 팀장이 제목+설명 입력 → AI가 8~15개 업무로 분해 → 팀원이 드래그해서 가져감
 @app.post("/generate-tasks", response_model=TaskGenerateResponse)
 async def generate_tasks(req: TaskGenerateRequest):
-    if MOCK_AI:
-        return TaskGenerateResponse(tasks=[Task(**t) for t in MOCK_TASKS])
-
     model = req.model or OLLAMA_MODEL
     if model not in OLLAMA_MODELS:
         raise HTTPException(
