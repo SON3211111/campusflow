@@ -41,14 +41,27 @@ export interface WsTaskUpdated {
   value: string;
 }
 
-export type WsMessage = WsStatusChange | WsTaskCreated | WsTaskDeleted | WsTaskRestored | WsTaskUpdated;
+export interface WsAiSessionUpdate {
+  type: "AI_SESSION_UPDATE";
+  workspaceId: string;
+  updatedBy?: string;
+}
+
+export interface WsAiSessionDeleted {
+  type: "AI_SESSION_DELETED";
+  workspaceId: string;
+}
+
+export type WsMessage = WsStatusChange | WsTaskCreated | WsTaskDeleted | WsTaskRestored | WsTaskUpdated | WsAiSessionUpdate | WsAiSessionDeleted;
 
 interface Handlers {
-  onStatusChange?: (msg: WsStatusChange) => void;
-  onTaskCreated?:  (msg: WsTaskCreated)  => void;
-  onTaskDeleted?:  (msg: WsTaskDeleted)  => void;
-  onTaskRestored?: (msg: WsTaskRestored) => void;
-  onTaskUpdated?:  (msg: WsTaskUpdated)  => void;
+  onStatusChange?:      (msg: WsStatusChange)     => void;
+  onTaskCreated?:       (msg: WsTaskCreated)       => void;
+  onTaskDeleted?:       (msg: WsTaskDeleted)        => void;
+  onTaskRestored?:      (msg: WsTaskRestored)      => void;
+  onTaskUpdated?:       (msg: WsTaskUpdated)        => void;
+  onAiSessionUpdate?:   (msg: WsAiSessionUpdate)   => void;
+  onAiSessionDeleted?:  (msg: WsAiSessionDeleted)  => void;
 }
 
 export function useWorkspaceSocket(
@@ -97,6 +110,12 @@ export function useWorkspaceSocket(
               break;
             case "TASK_UPDATED":
               handlersRef.current.onTaskUpdated?.(data);
+              break;
+            case "AI_SESSION_UPDATE":
+              handlersRef.current.onAiSessionUpdate?.(data);
+              break;
+            case "AI_SESSION_DELETED":
+              handlersRef.current.onAiSessionDeleted?.(data);
               break;
           }
         } catch (e) {

@@ -1,13 +1,14 @@
 /**
  * AI Task 모달 컴포넌트
  * - 새 프롬프트 작성: 새 세션 시작
- * - 진행 중인 업무 이어하기: 기존 세션 복원
+ * - 진행 중인 업무 이어하기: 기존 세션 복원 (DB 기준)
  * - 큰 작업 추가: 기존 세션에 새 분해 결과를 누적
  */
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { Bot, FileText, Plus, Rocket, Sparkles } from "lucide-react";
 import { setAppendBuffer } from "../store/aiTaskBuffer";
+import client from "../api/client";
 import "./AITaskModal.css";
 
 type Screen = "home" | "new-prompt" | "append-prompt";
@@ -39,12 +40,33 @@ export default function AITaskModal({ onClose, workspaces = [], workspace }: Pro
   const [domain, setDomain]       = useState("");
   const [teamSize, setTeamSize]   = useState("");
   const [deadline, setDeadline]   = useState("");
+  const [hasSession, setHasSession] = useState(false);
 
   const activeWs = workspace ?? workspaces[0];
-  const sessionKey = `ai_task_session_${activeWs?.id ?? "default"}`;
-  const hasSession = !!localStorage.getItem(sessionKey);
 
-  // 구조화된 입력을 AI가 이해하기 좋은 형태로 조합
+  // DB에서 진행 중인 세션 여부 확인
+  useEffect(() => {
+    if (!activeWs?.id) return;
+    client.get(`/workspaces/${activeWs.id}/ai-session`)
+      .then((res) => {
+        setHasSession(res.data?.data?.exists === true);
+      })
+      .catch(() => {
+        // API 실패 시 localStorage 폴백
+        const key = `ai_task_session_${activeWs.id}`;
+        try {
+          const saved = JSON.parse(localStorage.getItem(key) ?? "null");
+          const hasData = saved && (
+            (saved.result?.categories?.some((c: { tasks?: unknown[] }) => (c.tasks?.length ?? 0) > 0)) ||
+            Object.values(saved.memberBaskets ?? {}).some((b) => Array.isArray(b) && b.length > 0)
+          );
+          setHasSession(!!hasData);
+        } catch {
+          setHasSession(false);
+        }
+      });
+  }, [activeWs?.id]);
+
   const buildStructuredPrompt = () => {
     const parts = [prompt.trim()];
     if (teamSize) parts.push(`팀 인원: ${teamSize}명`);
@@ -67,11 +89,14 @@ export default function AITaskModal({ onClose, workspaces = [], workspace }: Pro
     });
   };
 
-  const handleAppendBreakdown = () => {
+  const handleAppendBreakdown = async () => {
     if (!prompt.trim()) return;
+    // DB에서 세션 데이터를 가져와 append 버퍼 구성
     try {
-      const saved = JSON.parse(localStorage.getItem(sessionKey) ?? "null");
-      if (saved) {
+      const res = await client.get(`/workspaces/${activeWs!.id}/ai-session`);
+      const sessionData = res.data?.data?.sessionData;
+      if (sessionData) {
+        const saved = JSON.parse(sessionData);
         setAppendBuffer({
           categories: saved.categories ?? [],
           tasks: saved.tasks ?? [],
@@ -80,7 +105,24 @@ export default function AITaskModal({ onClose, workspaces = [], workspace }: Pro
           newSessionPrompt: buildStructuredPrompt(),
         });
       }
-    } catch {}
+    } catch {
+      // DB 실패 시 localStorage 폴백
+      try {
+        const key = `ai_task_session_${activeWs?.id ?? "default"}`;
+        const saved = JSON.parse(localStorage.getItem(key) ?? "null");
+        if (saved) {
+          setAppendBuffer({
+            categories: saved.categories ?? [],
+            tasks: saved.tasks ?? [],
+            memberBaskets: saved.memberBaskets ?? {},
+            sessions: saved.sessions ?? [],
+            newSessionPrompt: buildStructuredPrompt(),
+          });
+        }
+      } catch {
+        console.error("append 버퍼 구성 실패");
+      }
+    }
     onClose();
     navigate("/task-breakdown", {
       state: {
@@ -160,7 +202,7 @@ export default function AITaskModal({ onClose, workspaces = [], workspace }: Pro
               className="ai-prompt-textarea"
               value={prompt}
               onChange={(e) => setPrompt(e.target.value)}
-              placeholder={"예: 경영학원론 팀 레포트 — MZ세대 소비 트렌드 분석\n예: React + Spring Boot 쇼핑몰 웹사이트 제작\n예: 캡스톤디자인 — AI 일정 관리 앱 개발"}
+              placeholder={"예: 경영학원론 팀 레포트 — MZ세대 소비 트렌드 분析\n예: React + Spring Boot 쇼핑몰 웹사이트 제작\n예: 캡스톤디자인 — AI 일정 관리 앱 개발"}
               autoFocus
               rows={3}
             />

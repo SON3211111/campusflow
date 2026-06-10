@@ -11,6 +11,7 @@ import PixelAvatar from "../components/PixelAvatar";
 import client from "../api/client";
 import { getAppendBuffer, clearAppendBuffer, hasAppendBuffer } from "../store/aiTaskBuffer";
 import { createWorkspaceThemeStyle, withStoredGradient, withStoredGradients } from "../utils/workspaceTheme";
+import { useWorkspaceSocket } from "../hooks/useWorkspaceSocket";
 import "./AiTaskPage.css";
 
 interface Task {
@@ -99,13 +100,20 @@ export default function AiTaskPage() {
     catch { return null; }
   })();
 
+  // DB에서 로드한 세션 (팀원이 "이어가기"로 진입할 때 사용)
+  const [dbSession, setDbSession] = useState<AiTaskSession | null>(null);
+  const [isDbLoading, setIsDbLoading] = useState(() =>
+    !state?.result && !storedSession && !!workspace?.id
+  );
+  const dbSaveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
   const shouldRestoreSession = !state?.result && !!storedSession;
   const isAppend = !!(state?.append && state?.result && hasAppendBuffer());
-  const aiResult   = state?.result ?? storedSession?.result ?? null;
-  const origPrompt = state?.prompt ?? storedSession?.prompt ?? "";
+  const aiResult   = state?.result ?? storedSession?.result ?? dbSession?.result ?? null;
+  const origPrompt = state?.prompt ?? storedSession?.prompt ?? dbSession?.prompt ?? "";
 
   useEffect(() => {
-    if (!aiResult) navigate("/workspace-board", { replace: true, state: { workspace, workspaces } });
+    if (!aiResult && !isDbLoading) navigate("/workspace-board", { replace: true, state: { workspace, workspaces } });
   }, []);
 
   // append 모드용 버퍼 (소비 전 캡처)
@@ -178,7 +186,7 @@ export default function AiTaskPage() {
   const [sessions, setSessions]     = useState<Session[]>(initSessions);
   const [categories, setCategories] = useState<Category[]>(initCategories);
   const [tasks, setTasks]           = useState<Task[]>(initTasks);
-  const [title]                     = useState(shouldRestoreSession ? storedSession?.title ?? "" : aiResult?.title ?? "");
+  const [title, setTitle]           = useState(shouldRestoreSession ? storedSession?.title ?? "" : aiResult?.title ?? "");
   const [confirmSessionId, setConfirmSessionId] = useState<string | null>(null);
 
   const [members, setMembers]                       = useState<Member[]>([]);
@@ -198,19 +206,15 @@ export default function AiTaskPage() {
   const undoTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => {
-    if (!workspace?.id) return;
+    if (!workspace?.id || isDbLoading) return;
     client.get(`/workspaces/${workspace.id}/members`)
       .then((res) => {
         const list: Member[] = (res.data.data ?? []).map((m: any) => ({
           userId: m.userId, name: m.name, role: m.role,
         }));
         setMembers(list);
-        const savedBaskets = storedSession?.memberBaskets;
-        if (savedBaskets) {
-          setMemberBaskets(Object.fromEntries(list.map((m) => [m.userId, savedBaskets[m.userId] ?? []])));
-        } else {
-          setMemberBaskets(Object.fromEntries(list.map((m) => [m.userId, []])));
-        }
+        const savedBaskets = storedSession?.memberBaskets ?? dbSession?.memberBaskets ?? {};
+        setMemberBaskets(Object.fromEntries(list.map((m) => [m.userId, savedBaskets[m.userId] ?? []])));
       })
       .catch(() => {
         const userId = localStorage.getItem("userId") ?? "me";
@@ -218,12 +222,49 @@ export default function AiTaskPage() {
         setMembers([{ userId, name: userName, role: "MEMBER" }]);
         setMemberBaskets({ [userId]: [] });
       });
-  }, [workspace?.id]);
+  }, [workspace?.id, isDbLoading]); // isDbLoading이 false가 되면 멤버 로딩 실행
+
+  // DB 세션 로드 (팀원이 "이어가기"로 진입할 때)
+  useEffect(() => {
+    if (!isDbLoading || !workspace?.id) return;
+    const wsId = workspace.id;
+    client.get(`/workspaces/${wsId}/ai-session`)
+      .then((res) => {
+        const dbData = res.data?.data;
+        if (!dbData?.exists || !dbData?.sessionData) {
+          navigate("/workspace-board", { replace: true, state: { workspace, workspaces } });
+          return;
+        }
+        const parsed: AiTaskSession = JSON.parse(dbData.sessionData);
+        const sessionId = parsed.sessions?.[0]?.id ?? `session-db`;
+        setDbSession(parsed);
+        setTitle(parsed.title ?? parsed.result?.title ?? "");
+        setSessions(parsed.sessions ?? [{ id: sessionId, prompt: parsed.prompt ?? "", collapsed: false }]);
+        setCategories((parsed.categories ?? []).map((c) => ({
+          ...c,
+          sessionId: c.sessionId || sessionId,
+        })));
+        setTasks(parsed.tasks ?? []);
+        setIsDbLoading(false);
+      })
+      .catch(() => {
+        navigate("/workspace-board", { replace: true, state: { workspace, workspaces } });
+      });
+  }, []); // 마운트 시 1회만 실행
 
   useEffect(() => {
-    localStorage.setItem(sessionKey, JSON.stringify({
-      title, categories, tasks, prompt: origPrompt, result: aiResult, memberBaskets, sessions,
-    }));
+    if (isDbLoading) return; // DB 로딩 중에는 저장 안 함
+    const payload = { title, categories, tasks, prompt: origPrompt, result: aiResult, memberBaskets, sessions };
+    localStorage.setItem(sessionKey, JSON.stringify(payload));
+
+    if (!workspace?.id) return;
+    if (dbSaveTimerRef.current) clearTimeout(dbSaveTimerRef.current);
+    dbSaveTimerRef.current = setTimeout(() => {
+      client.put(`/workspaces/${workspace.id}/ai-session`, {
+        sessionData: JSON.stringify(payload),
+        userId: currentUserId,
+      }).catch((err) => console.error("AI 세션 DB 저장 실패:", err));
+    }, 2000);
   }, [categories, tasks, origPrompt, sessionKey, memberBaskets, sessions]);
 
   useEffect(() => {
@@ -240,6 +281,39 @@ export default function AiTaskPage() {
     const timer = window.setInterval(tick, 250);
     return () => window.clearInterval(timer);
   }, [basketCooldownUntil]);
+
+  // AI 세션 WebSocket 동기화 — 다른 팀원이 세션을 변경하면 DB에서 리로드
+  useWorkspaceSocket(workspace?.id, {
+    onAiSessionUpdate: (msg) => {
+      if (msg.updatedBy === currentUserId) return; // 내가 저장한 건 무시
+      if (!workspace?.id) return;
+      client.get(`/workspaces/${workspace.id}/ai-session`)
+        .then((res) => {
+          const dbData = res.data?.data;
+          if (!dbData?.exists || !dbData?.sessionData) return;
+          const parsed: AiTaskSession = JSON.parse(dbData.sessionData);
+          setDbSession(parsed);
+          setSessions(parsed.sessions ?? []);
+          setCategories(parsed.categories ?? []);
+          setTasks(parsed.tasks ?? []);
+          // 장바구니: 내 장바구니는 로컬 유지, 다른 팀원 장바구니는 DB 기준으로 업데이트
+          const dbBaskets: Record<string, Task[]> = parsed.memberBaskets ?? {};
+          setMemberBaskets((prev) => {
+            const merged: Record<string, Task[]> = {};
+            const allKeys = new Set([...Object.keys(prev), ...Object.keys(dbBaskets)]);
+            for (const uid of allKeys) {
+              merged[uid] = uid === currentUserId ? (prev[uid] ?? []) : (dbBaskets[uid] ?? []);
+            }
+            return merged;
+          });
+        })
+        .catch((err) => console.error("AI 세션 리로드 실패:", err));
+    },
+    onAiSessionDeleted: () => {
+      localStorage.removeItem(sessionKey);
+      navigate("/workspace-board", { state: { workspace, workspaces } });
+    },
+  });
 
   const toggleSession = (id: string) =>
     setSessions((prev) => prev.map((s) => s.id === id ? { ...s, collapsed: !s.collapsed } : s));
@@ -441,6 +515,13 @@ export default function AiTaskPage() {
       }
     }
 
+    // DB 세션 삭제 (보드 배정 완료 → 팀원들에게 AI_SESSION_DELETED 브로드캐스트)
+    if (workspace?.id) {
+      client.delete(`/workspaces/${workspace.id}/ai-session`)
+        .catch((err) => console.error("세션 삭제 실패:", err));
+      localStorage.removeItem(sessionKey);
+    }
+
     navigate("/workspace-board", { state: { workspaces, workspace } });
   };
 
@@ -487,6 +568,12 @@ export default function AiTaskPage() {
         </button>
         <button className="atp-task-delete-btn" onClick={(e) => { e.stopPropagation(); handleDeleteTask(task.id); }} title="삭제">✕</button>
       </div>
+    </div>
+  );
+
+  if (isDbLoading) return (
+    <div className="atp-page" style={{ ...themeStyle, background: workspace?.gradient ?? "#fff", display: "flex", alignItems: "center", justifyContent: "center" }}>
+      <p style={{ color: "#888", fontSize: "1.1rem" }}>세션 불러오는 중...</p>
     </div>
   );
 
