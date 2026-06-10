@@ -513,67 +513,6 @@ export default function CardDetailModal({ title, colName, taskId, workspaceId, i
               )}
             </div>
 
-            {/* 파일 첨부 섹션 */}
-            {taskId && workspaceId && (
-              <div className="cdm-section">
-                <div className="cdm-section-title">
-                  <CalendarDays size={15} />
-                  선후행 업무
-                </div>
-
-                {predecessors.length > 0 && (
-                  <div className="cdm-dependency-group">
-                    <div className="cdm-dependency-label">선행 업무</div>
-                    {predecessors.map((dependency) => (
-                      <div key={dependency.id} className="cdm-dependency-chip">
-                        {dependency.predecessorTitle}
-                      </div>
-                    ))}
-                  </div>
-                )}
-
-                <div className="cdm-dependency-group">
-                  <div className="cdm-dependency-label">후속 업무</div>
-                  {successors.length === 0 ? (
-                    <div className="cdm-dependency-empty">연결된 후속 업무가 없습니다.</div>
-                  ) : successors.map((dependency) => (
-                    <div key={dependency.id} className="cdm-dependency-row">
-                      <span>{dependency.successorTitle}</span>
-                      <button
-                        type="button"
-                        className="cdm-dependency-remove"
-                        onClick={() => handleRemoveSuccessor(dependency.successorTaskId)}
-                        disabled={dependencySaving}
-                      >
-                        삭제
-                      </button>
-                    </div>
-                  ))}
-                </div>
-
-                <div className="cdm-dependency-add">
-                  <select
-                    value={selectedSuccessorId}
-                    onChange={(e) => setSelectedSuccessorId(e.target.value)}
-                    disabled={dependencySaving || successorOptions.length === 0}
-                  >
-                    <option value="">후속 업무 선택</option>
-                    {successorOptions.map((task) => (
-                      <option key={task.id} value={task.id}>{task.title}</option>
-                    ))}
-                  </select>
-                  <button
-                    type="button"
-                    className="cdm-save-btn"
-                    onClick={handleAddSuccessor}
-                    disabled={!selectedSuccessorId || dependencySaving}
-                  >
-                    연결
-                  </button>
-                </div>
-              </div>
-            )}
-
             <div className="cdm-section">
               <div className="cdm-section-title">
                 <Paperclip size={15} />
