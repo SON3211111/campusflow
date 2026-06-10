@@ -656,7 +656,6 @@
 .ntp-affected-name {
   font-size: 13px;
   color: #374151;
-  flex: 1;
   min-width: 0;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -695,6 +694,70 @@
   font-size: 11px;
   color: #d1d5db;
 }
+
+/* depth 그룹 헤더 */
+.ntp-affected-depth-group {
+  margin-bottom: 8px;
+}
+
+.ntp-affected-depth-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 8px 0 4px;
+}
+
+.ntp-depth-badge {
+  display: inline-block;
+  padding: 2px 8px;
+  border-radius: 20px;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+}
+.ntp-depth-badge.depth-direct {
+  background: #fef3c7;
+  color: #92400e;
+  border: 1px solid #fcd34d;
+}
+.ntp-depth-badge.depth-indirect {
+  background: #f3f4f6;
+  color: #6b7280;
+  border: 1px solid #e5e7eb;
+}
+
+.ntp-affected-depth-arrow {
+  font-size: 11px;
+  color: #d1d5db;
+  letter-spacing: 2px;
+}
+
+.ntp-affected-count {
+  font-size: 11px;
+  color: #9ca3af;
+  font-weight: 400;
+  margin-left: 6px;
+}
+
+.ntp-affected-item-left {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  flex: 1;
+  min-width: 0;
+}
+
+.ntp-affected-status-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+.ntp-affected-status-dot.status-doing  { background: #f59e0b; }
+.ntp-affected-status-dot.status-review { background: #6366f1; }
+.ntp-affected-status-dot.status-todo   { background: #d1d5db; }
+.ntp-affected-status-dot.status-issue  { background: #ef4444; }
+.ntp-affected-status-dot.status-done   { background: #22c55e; }
 
 .ntp-bottleneck-actions {
   display: flex;

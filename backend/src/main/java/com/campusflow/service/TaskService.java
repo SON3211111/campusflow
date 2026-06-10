@@ -36,6 +36,8 @@ import org.springframework.data.domain.PageRequest;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.ArrayDeque;
+import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.HashSet;
@@ -265,10 +267,9 @@ public class TaskService {
                 .toList();
     }
 
-    /** 병목 태스크 — DOING/ISSUE 상태로 N일 이상 변경 없는 태스크 */
+    /** 병목 태스크 — 기한 초과 또는 계획 기간 + 버퍼 이상 정체 */
     @Transactional(readOnly = true)
-    public List<TaskResponse> getBottleneckTasks(String workspaceId, int days) {
-        LocalDateTime threshold = LocalDateTime.now().minusDays(days);
+    public List<TaskResponse> getBottleneckTasks(String workspaceId, int thresholdDays) {
         List<TaskStatus> stuckStatuses = List.of(TaskStatus.DOING, TaskStatus.ISSUE);
 
         List<Task> candidates = taskRepository
@@ -277,22 +278,22 @@ public class TaskService {
                 .filter(t -> stuckStatuses.contains(t.getStatus()))
                 .toList();
 
-        // 히스토리가 있는 태스크 중 마지막 변경이 threshold 이전인 것만 반환
-        Set<String> stuckIds = taskStatusHistoryRepository
+        Map<String, LocalDateTime> lastChangedMap = taskStatusHistoryRepository
                 .findAllByWorkspace_WorkspaceIdOrderByOccurredAtDesc(workspaceId)
                 .stream()
                 .collect(Collectors.toMap(
                         h -> h.getTask().getTaskId(),
-                        h -> h,
-                        (a, b) -> a   // 가장 최근 것만 유지
-                ))
-                .entrySet().stream()
-                .filter(e -> e.getValue().getOccurredAt().isBefore(threshold))
-                .map(Map.Entry::getKey)
-                .collect(Collectors.toSet());
+                        h -> h.getOccurredAt(),
+                        (a, b) -> a
+                ));
 
         return candidates.stream()
-                .filter(t -> stuckIds.contains(t.getTaskId()))
+                .filter(t -> {
+                    LocalDateTime lastChanged = lastChangedMap.get(t.getTaskId());
+                    if (lastChanged == null) return false;
+                    long daysStuck = java.time.temporal.ChronoUnit.DAYS.between(lastChanged, LocalDateTime.now());
+                    return isBottleneckCondition(t, daysStuck, thresholdDays);
+                })
                 .map(TaskResponse::from)
                 .toList();
     }
@@ -320,8 +321,6 @@ public class TaskService {
                         (a, b) -> a
                 ));
 
-        java.time.LocalDateTime threshold = java.time.LocalDateTime.now().minusDays(thresholdDays);
-
         java.time.LocalDate projectDeadline = allActive.stream()
                 .filter(t -> t.getDueDate() != null && t.getStatus() != TaskStatus.DONE)
                 .map(Task::getDueDate)
@@ -334,26 +333,32 @@ public class TaskService {
         for (Task t : allActive) {
             if (!stuckStatuses.contains(t.getStatus())) continue;
             java.time.LocalDateTime lastChanged = lastChangedMap.get(t.getTaskId());
-            if (lastChanged == null || !lastChanged.isBefore(threshold)) continue;
+            if (lastChanged == null) continue;
 
             long daysStuck = java.time.temporal.ChronoUnit.DAYS.between(lastChanged, java.time.LocalDateTime.now());
+            if (!isBottleneckCondition(t, daysStuck, thresholdDays)) continue;
+
             int delayDays = calculateWeightedDelayDays(t, daysStuck, thresholdDays);
             maxDelayDays = Math.max(maxDelayDays, delayDays);
 
-            // 실제 dependency 그래프만 사용 — 직·간접 후속 전부 수집
-            Set<String> downstreamIds = collectAllDownstream(t.getTaskId(), dependencies);
-            List<BottleneckReportDto.AffectedTask> affected = downstreamIds.stream()
-                    .filter(taskById::containsKey)
-                    .map(taskById::get)
-                    .filter(a -> a.getStatus() != TaskStatus.DONE)
-                    .map(a -> new BottleneckReportDto.AffectedTask(
-                            a.getTaskId(),
-                            a.getTitle(),
-                            a.getDueDate() != null ? a.getDueDate().toString() : null,
-                            a.getStatus().name(),
-                            a.getAssignee() != null ? a.getAssignee().getName() : null,
-                            delayDays
-                    ))
+            // BFS로 모든 직·간접 후속 수집 + 각 태스크의 depth(거리) 포함
+            Map<String, Integer> downstreamWithDepth = collectAllDownstreamWithDepth(t.getTaskId(), dependencies);
+            List<BottleneckReportDto.AffectedTask> affected = downstreamWithDepth.entrySet().stream()
+                    .filter(e -> taskById.containsKey(e.getKey()))
+                    .map(e -> {
+                        Task a = taskById.get(e.getKey());
+                        return new BottleneckReportDto.AffectedTask(
+                                a.getTaskId(),
+                                a.getTitle(),
+                                a.getDueDate() != null ? a.getDueDate().toString() : null,
+                                a.getStatus().name(),
+                                a.getAssignee() != null ? a.getAssignee().getName() : null,
+                                delayDays,
+                                e.getValue()
+                        );
+                    })
+                    .filter(a -> !a.status().equals("DONE"))
+                    .sorted(java.util.Comparator.comparingInt(BottleneckReportDto.AffectedTask::depth))
                     .toList();
 
             items.add(new BottleneckReportDto.BottleneckItem(
@@ -377,22 +382,51 @@ public class TaskService {
         return new BottleneckReportDto(items, maxDelayDays, deadlineStr, newDeadlineStr);
     }
 
-    /** BFS로 taskId의 모든 직·간접 후속 태스크 ID를 수집 */
-    private Set<String> collectAllDownstream(String startTaskId, List<TaskDependency> dependencies) {
-        Set<String> result = new HashSet<>();
+    /** BFS로 모든 직·간접 후속 태스크 ID와 depth(거리)를 수집 */
+    private Map<String, Integer> collectAllDownstreamWithDepth(String startTaskId, List<TaskDependency> dependencies) {
+        Map<String, Integer> result = new LinkedHashMap<>();
         Queue<String> queue = new ArrayDeque<>();
         queue.add(startTaskId);
-        Set<String> visited = new HashSet<>();
+        Map<String, Integer> depthMap = new HashMap<>();
+        depthMap.put(startTaskId, 0);
+
         while (!queue.isEmpty()) {
             String current = queue.poll();
-            if (!visited.add(current)) continue;
+            int currentDepth = depthMap.get(current);
             for (TaskDependency dep : dependencies) {
                 if (!dep.getPredecessor().getTaskId().equals(current)) continue;
                 String next = dep.getSuccessor().getTaskId();
-                if (result.add(next)) queue.add(next);
+                if (!depthMap.containsKey(next)) {
+                    depthMap.put(next, currentDepth + 1);
+                    result.put(next, currentDepth + 1);
+                    queue.add(next);
+                }
             }
         }
         return result;
+    }
+
+    /** 병목 발동 조건 3단계:
+     * 1순위. dueDate < 오늘 → 기한 초과 (무조건 병목)
+     * 2순위. daysStuck > plannedDuration + buffer → 계획 기간 초과
+     * 3순위. 날짜 정보 없으면 daysStuck > thresholdDays
+     */
+    private boolean isBottleneckCondition(Task task, long daysStuck, int thresholdDays) {
+        java.time.LocalDate today = java.time.LocalDate.now();
+        if (task.getDueDate() != null && task.getDueDate().isBefore(today)) return true;
+        long planned = plannedDurationDays(task);
+        if (planned > 0) return daysStuck > planned + thresholdDays;
+        return daysStuck > thresholdDays;
+    }
+
+    private long plannedDurationDays(Task task) {
+        if (task.getStartDate() != null && task.getDueDate() != null) {
+            return Math.max(0, java.time.temporal.ChronoUnit.DAYS.between(task.getStartDate(), task.getDueDate()));
+        }
+        if (task.getEstimatedHours() != null && task.getEstimatedHours() > 0) {
+            return (long) Math.ceil(task.getEstimatedHours() / 8.0);
+        }
+        return 0;
     }
 
     private boolean hasDependencyPath(String fromTaskId, String targetTaskId, String workspaceId) {
@@ -416,9 +450,19 @@ public class TaskService {
     }
 
     private int calculateWeightedDelayDays(Task task, long daysStuck, int thresholdDays) {
-        long baseOverrunDays = Math.max(daysStuck - thresholdDays, 0);
-        if (baseOverrunDays <= 0) return 0;
+        java.time.LocalDate today = java.time.LocalDate.now();
+        long baseOverrunDays;
 
+        if (task.getDueDate() != null && task.getDueDate().isBefore(today)) {
+            // 기한 초과: 마감일로부터 경과일
+            baseOverrunDays = java.time.temporal.ChronoUnit.DAYS.between(task.getDueDate(), today);
+        } else {
+            long planned = plannedDurationDays(task);
+            long buffer = planned > 0 ? planned + thresholdDays : thresholdDays;
+            baseOverrunDays = Math.max(daysStuck - buffer, 0);
+        }
+
+        if (baseOverrunDays <= 0) return 0;
         double weight = priorityWeight(task.getPriority()) * estimatedHoursWeight(task.getEstimatedHours()) * statusWeight(task.getStatus());
         return Math.max(1, (int) Math.ceil(baseOverrunDays * weight));
     }

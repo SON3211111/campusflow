@@ -32,6 +32,7 @@ interface AffectedTask {
   status: string;
   assigneeName?: string;
   estimatedDelayDays?: number;
+  depth?: number;  // 병목으로부터의 거리 (1=직접, 2+=간접)
 }
 
 interface BottleneckItem {
@@ -495,24 +496,51 @@ export default function NotificationPage() {
 
             {expandedId === item.taskId && (
               <div className="ntp-affected-list">
-                <p className="ntp-affected-title">영향받는 후속 업무</p>
+                <p className="ntp-affected-title">
+                  전체 영향 연쇄 <span className="ntp-affected-count">{item.affectedTasks.length}개 업무</span>
+                </p>
                 {item.affectedTasks.length === 0 ? (
                   <div className="ntp-affected-empty">
                     <span>연결된 후속 업무가 없습니다.</span>
-                    <span className="ntp-affected-empty-hint">카드 상세에서 선후행 업무를 연결하면 영향 분석이 가능합니다.</span>
+                    <span className="ntp-affected-empty-hint">선후행 관계가 설정된 업무가 있으면 영향 분석이 가능합니다.</span>
                   </div>
-                ) : item.affectedTasks.map((a) => (
-                  <div key={a.taskId} className="ntp-affected-item">
-                    <span className="ntp-affected-name">{a.title}</span>
-                    <div className="ntp-affected-meta">
-                      {a.assigneeName && <span>{a.assigneeName}</span>}
-                      {a.dueDate && <span> · {a.dueDate} 마감</span>}
-                      {a.estimatedDelayDays != null && a.estimatedDelayDays > 0 && (
-                        <span className="ntp-affected-delay">+{a.estimatedDelayDays}일 지연 예상</span>
-                      )}
+                ) : (() => {
+                  // depth별 그룹핑
+                  const byDepth = new Map<number, AffectedTask[]>();
+                  for (const a of item.affectedTasks) {
+                    const d = a.depth ?? 1;
+                    if (!byDepth.has(d)) byDepth.set(d, []);
+                    byDepth.get(d)!.push(a);
+                  }
+                  const depths = [...byDepth.keys()].sort((x, y) => x - y);
+                  return depths.map((depth) => (
+                    <div key={depth} className="ntp-affected-depth-group">
+                      <div className="ntp-affected-depth-header">
+                        <span className={`ntp-depth-badge ${depth === 1 ? "depth-direct" : "depth-indirect"}`}>
+                          {depth === 1 ? "직접 영향" : `${depth}단계 간접 영향`}
+                        </span>
+                        <span className="ntp-affected-depth-arrow">
+                          {"→".repeat(depth)}
+                        </span>
+                      </div>
+                      {byDepth.get(depth)!.map((a) => (
+                        <div key={a.taskId} className="ntp-affected-item" style={{ paddingLeft: `${(depth - 1) * 12 + 12}px` }}>
+                          <div className="ntp-affected-item-left">
+                            <span className={`ntp-affected-status-dot status-${a.status.toLowerCase()}`} />
+                            <span className="ntp-affected-name">{a.title}</span>
+                          </div>
+                          <div className="ntp-affected-meta">
+                            {a.assigneeName && <span>{a.assigneeName}</span>}
+                            {a.dueDate && <span> · {a.dueDate} 마감</span>}
+                            {a.estimatedDelayDays != null && a.estimatedDelayDays > 0 && (
+                              <span className="ntp-affected-delay">+{a.estimatedDelayDays}일 지연 예상</span>
+                            )}
+                          </div>
+                        </div>
+                      ))}
                     </div>
-                  </div>
-                ))}
+                  ));
+                })()}
               </div>
             )}
 

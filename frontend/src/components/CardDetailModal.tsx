@@ -25,13 +25,6 @@ interface TaskOption {
   title: string;
 }
 
-interface DependencyItem {
-  id: number;
-  predecessorTaskId: string;
-  predecessorTitle: string;
-  successorTaskId: string;
-  successorTitle: string;
-}
 
 const COL_OPTIONS = ["상태 없음", "시작하지 않음", "진행 중", "보류 중", "완료"] as const;
 const COL_COLOR: Record<string, string> = {
@@ -94,7 +87,7 @@ function formatSize(bytes: number) {
   return `${(bytes / (1024 * 1024)).toFixed(1)}MB`;
 }
 
-export default function CardDetailModal({ title, colName, taskId, workspaceId, initialDesc = "", initialStartDate = "", initialDueDate = "", initialComments = [], initialQuickSignal, assigneeId, assigneeName, availableTasks = [], members = [], onSaveTitle, onSaveDesc, onSaveStartDate, onSaveDueDate, onSaveComments, onSendSignal, onStatusChange, onChangeAssignee, isBottleneck = false, onClose }: Props) {
+export default function CardDetailModal({ title, colName, taskId, workspaceId, initialDesc = "", initialStartDate = "", initialDueDate = "", initialComments = [], initialQuickSignal, assigneeId, assigneeName, availableTasks: _availableTasks = [], members = [], onSaveTitle, onSaveDesc, onSaveStartDate, onSaveDueDate, onSaveComments, onSendSignal, onStatusChange, onChangeAssignee, isBottleneck = false, onClose }: Props) {
   const userName  = localStorage.getItem("userName") ?? "나";
   const userId    = localStorage.getItem("userId") ?? "";
   const [cardTitle, setCardTitle] = useState(title);
@@ -118,10 +111,6 @@ export default function CardDetailModal({ title, colName, taskId, workspaceId, i
   const [comments, setComments] = useState<Comment[]>(initialComments);
 
   const [attachments, setAttachments] = useState<Attachment[]>([]);
-  const [predecessors, setPredecessors] = useState<DependencyItem[]>([]);
-  const [successors, setSuccessors] = useState<DependencyItem[]>([]);
-  const [selectedSuccessorId, setSelectedSuccessorId] = useState("");
-  const [dependencySaving, setDependencySaving] = useState(false);
   const [uploading, setUploading] = useState(false);
   const [dragging, setDragging] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -174,45 +163,6 @@ export default function CardDetailModal({ title, colName, taskId, workspaceId, i
       .catch((err) => console.error("첨부파일 조회 실패:", err));
   }, [taskId, workspaceId]);
 
-  const fetchDependencies = async () => {
-    if (!taskId || !workspaceId) return;
-    try {
-      const res = await client.get(`/workspaces/${workspaceId}/tasks/${taskId}/dependencies`);
-      setPredecessors(res.data.data?.predecessors ?? []);
-      setSuccessors(res.data.data?.successors ?? []);
-    } catch (err) {
-      console.error("Dependency fetch failed:", err);
-    }
-  };
-
-  useEffect(() => { fetchDependencies(); }, [taskId, workspaceId]);
-
-  const handleAddSuccessor = async () => {
-    if (!taskId || !workspaceId || !selectedSuccessorId || dependencySaving) return;
-    setDependencySaving(true);
-    try {
-      await client.post(`/workspaces/${workspaceId}/tasks/${taskId}/successors`, { successorTaskId: selectedSuccessorId });
-      setSelectedSuccessorId("");
-      await fetchDependencies();
-    } catch (err: any) {
-      alert(err?.response?.data?.message ?? "후속 업무 연결에 실패했습니다.");
-    } finally {
-      setDependencySaving(false);
-    }
-  };
-
-  const handleRemoveSuccessor = async (successorTaskId: string) => {
-    if (!taskId || !workspaceId || dependencySaving) return;
-    setDependencySaving(true);
-    try {
-      await client.delete(`/workspaces/${workspaceId}/tasks/${taskId}/successors/${successorTaskId}`);
-      await fetchDependencies();
-    } catch (err: any) {
-      alert(err?.response?.data?.message ?? "후속 업무 삭제에 실패했습니다.");
-    } finally {
-      setDependencySaving(false);
-    }
-  };
 
   const appendComment = (newComment: Comment) => {
     const nextComments = [...comments, newComment];
@@ -279,10 +229,6 @@ export default function CardDetailModal({ title, colName, taskId, workspaceId, i
     setDragging(false);
     handleFileUpload(e.dataTransfer.files);
   };
-
-  const successorOptions = availableTasks.filter((task) =>
-    task.id !== taskId && !successors.some((dependency) => dependency.successorTaskId === task.id)
-  );
 
   return (
     <div className="cdm-overlay" onClick={onClose}>
