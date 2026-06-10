@@ -251,72 +251,82 @@
 /* ── 간트 차트 ── */
 .ntp-gantt {
   background: #fff;
-  border: 1px solid #e5e7eb;
+  border: 1px solid #e2e8f0;
   border-radius: 14px;
   overflow: hidden;
-  box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+  box-shadow: 0 2px 12px rgba(0,0,0,0.07);
 }
 
 .ntp-gantt-heading {
   display: flex;
   align-items: center;
-  gap: 6px;
+  gap: 7px;
   font-size: 13px;
   font-weight: 700;
-  color: #374151;
-  padding: 14px 18px 10px;
-  border-bottom: 1px solid #f3f4f6;
+  color: #1e293b;
+  padding: 16px 20px 12px;
+  border-bottom: 1px solid #f1f5f9;
+  background: #fafbff;
 }
 
 .ntp-gantt-legend {
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: 12px;
   margin-left: auto;
   font-size: 11px;
   font-weight: 500;
-  color: #6b7280;
+  color: #64748b;
 }
 
 .ntp-gantt-dot {
   display: inline-block;
-  width: 8px;
-  height: 8px;
+  width: 9px;
+  height: 9px;
   border-radius: 50%;
   flex-shrink: 0;
   font-style: normal;
+  margin-right: 3px;
 }
 .dot-bottleneck { background: #f59e0b; }
 .dot-affected   { background: #f97316; }
 .dot-normal     { background: #60a5fa; }
-.dot-done       { background: #4ade80; }
+.dot-done       { background: #34d399; }
 
 .ntp-gantt-scroll {
   overflow-x: auto;
 }
 
 .ntp-gantt-inner {
-  min-width: 600px;
+  min-width: 700px;
 }
 
 /* 날짜 눈금 */
 .ntp-gantt-ruler {
   display: flex;
-  height: 28px;
-  border-bottom: 1px solid #f3f4f6;
-  position: relative;
+  height: 36px;
+  border-bottom: 2px solid #e2e8f0;
+  background: #f8fafc;
 }
 
 .ntp-gantt-name-col {
-  width: 180px;
-  min-width: 180px;
+  width: 200px;
+  min-width: 200px;
   flex-shrink: 0;
-  padding: 0 10px;
+  padding: 0 12px;
   display: flex;
   align-items: center;
-  gap: 6px;
-  border-right: 1px solid #f3f4f6;
+  gap: 7px;
+  border-right: 2px solid #e2e8f0;
   overflow: hidden;
+}
+
+.ntp-gantt-ruler-label {
+  font-size: 11px;
+  font-weight: 600;
+  color: #94a3b8;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
 }
 
 .ntp-gantt-track-area {
@@ -327,104 +337,146 @@
 
 .ntp-gantt-tick {
   position: absolute;
-  top: 6px;
-  font-size: 10px;
-  color: #9ca3af;
-  transform: translateX(-50%);
+  top: 50%;
+  transform: translate(-50%, -50%);
+  font-size: 11px;
+  font-weight: 500;
+  color: #94a3b8;
   white-space: nowrap;
+  user-select: none;
 }
 
 .ntp-gantt-today-tick {
   position: absolute;
-  top: 6px;
-  font-size: 10px;
-  font-weight: 700;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  font-size: 11px;
+  font-weight: 800;
   color: #ef4444;
-  transform: translateX(-50%);
   white-space: nowrap;
+  background: #fff0f0;
+  padding: 2px 6px;
+  border-radius: 4px;
+  border: 1px solid #fca5a5;
+  user-select: none;
 }
 
 /* 태스크 행 */
 .ntp-gantt-body {
   position: relative;
+  max-height: 420px;
+  overflow-y: auto;
+}
+
+.ntp-gantt-grid-line {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: 1px;
+  background: #f1f5f9;
+  pointer-events: none;
+  z-index: 0;
 }
 
 .ntp-gantt-today-line {
   position: absolute;
   top: 0;
   bottom: 0;
-  width: 1.5px;
-  background: rgba(239,68,68,0.45);
+  width: 2px;
+  background: rgba(239, 68, 68, 0.6);
   pointer-events: none;
-  z-index: 2;
+  z-index: 3;
 }
 
 .ntp-gantt-row {
   display: flex;
   align-items: center;
-  height: 32px;
-  border-bottom: 1px solid #f9fafb;
+  height: 44px;
+  border-bottom: 1px solid #f8fafc;
+  position: relative;
 }
 
-.ntp-gantt-row.row-bottleneck { background: #fffbeb; }
-.ntp-gantt-row.row-affected   { background: #fff7ed; }
+.ntp-gantt-row.row-stripe      { background: #fafbfc; }
+.ntp-gantt-row.row-bottleneck  { background: #fffbeb !important; }
+.ntp-gantt-row.row-affected    { background: #fff8f1 !important; }
+.ntp-gantt-row:hover           { background: #f0f4ff !important; }
+
+.ntp-gantt-name-wrap {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  flex: 1;
+  min-width: 0;
+}
 
 .ntp-gantt-task-name {
-  font-size: 11px;
-  color: #374151;
+  font-size: 12px;
+  font-weight: 500;
+  color: #1e293b;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
-  flex: 1;
-  min-width: 0;
+}
+
+.ntp-gantt-assignee {
+  font-size: 10px;
+  color: #94a3b8;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 /* 바 */
 .ntp-gantt-bar {
   position: absolute;
-  height: 14px;
+  height: 20px;
   top: 50%;
   transform: translateY(-50%);
-  border-radius: 4px;
+  border-radius: 6px;
   display: flex;
   align-items: center;
-  padding: 0 4px;
+  padding: 0 6px;
   overflow: hidden;
-  min-width: 4px;
+  min-width: 6px;
+  z-index: 1;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.12);
 }
 
-.bar-bottleneck { background: #fcd34d; border: 1px solid #f59e0b; }
-.bar-affected   { background: #fdba74; border: 1px solid #f97316; }
-.bar-normal     { background: #93c5fd; border: 1px solid #60a5fa; }
-.bar-done       { background: #86efac; border: 1px solid #4ade80; }
+.bar-bottleneck { background: linear-gradient(90deg, #fbbf24, #f59e0b); border: 1.5px solid #d97706; }
+.bar-affected   { background: linear-gradient(90deg, #fb923c, #f97316); border: 1.5px solid #ea580c; }
+.bar-normal     { background: linear-gradient(90deg, #60a5fa, #3b82f6); border: 1.5px solid #2563eb; }
+.bar-done       { background: linear-gradient(90deg, #34d399, #10b981); border: 1.5px solid #059669; }
 
 .ntp-gantt-bar-label {
-  font-size: 9px;
-  font-weight: 700;
-  color: #78350f;
+  font-size: 10px;
+  font-weight: 800;
+  color: #fff;
   white-space: nowrap;
+  text-shadow: 0 1px 2px rgba(0,0,0,0.3);
 }
 
 .ntp-gantt-delay-ext {
   position: absolute;
-  height: 6px;
+  height: 10px;
   top: 50%;
   transform: translateY(-50%);
   background: repeating-linear-gradient(
     90deg,
     #f87171 0px,
-    #f87171 4px,
-    transparent 4px,
-    transparent 8px
+    #f87171 5px,
+    transparent 5px,
+    transparent 10px
   );
-  border-radius: 2px;
-  min-width: 4px;
+  border-radius: 3px;
+  min-width: 6px;
+  z-index: 1;
+  opacity: 0.85;
 }
 
 .ntp-gantt-empty {
-  padding: 18px;
+  padding: 24px;
   font-size: 13px;
-  color: #9ca3af;
+  color: #94a3b8;
   text-align: center;
 }
 

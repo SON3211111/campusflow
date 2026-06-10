@@ -329,6 +329,9 @@ export default function NotificationPage() {
     const sorted = [...ganttTasks].sort((a, b) => orderOf(a) - orderOf(b));
     const fmt = (d: Date) => `${d.getMonth() + 1}/${d.getDate()}`;
 
+    const NAME_COL_PX = 200;
+    const todayCalc = `calc(${NAME_COL_PX}px + ${(todayPct / 100).toFixed(4)} * (100% - ${NAME_COL_PX}px))`;
+
     return (
       <div className="ntp-gantt">
         <div className="ntp-gantt-heading">
@@ -344,7 +347,7 @@ export default function NotificationPage() {
           <div className="ntp-gantt-inner">
             {/* 날짜 눈금 */}
             <div className="ntp-gantt-ruler">
-              <div className="ntp-gantt-name-col" />
+              <div className="ntp-gantt-name-col"><span className="ntp-gantt-ruler-label">업무</span></div>
               <div className="ntp-gantt-track-area">
                 {markers.map((d) => (
                   <span key={d.toISOString()} className="ntp-gantt-tick" style={{ left: `${pct(d.getTime())}%` }}>
@@ -354,13 +357,19 @@ export default function NotificationPage() {
                 <span className="ntp-gantt-today-tick" style={{ left: `${todayPct}%` }}>오늘</span>
               </div>
             </div>
-            {/* 태스크 행들 + 오늘 기준선 */}
+            {/* 태스크 행들 */}
             <div className="ntp-gantt-body">
-              <div
-                className="ntp-gantt-today-line"
-                style={{ left: `calc(180px + ${(todayPct / 100).toFixed(4)} * (100% - 180px))` }}
-              />
-              {sorted.map((task) => {
+              {/* 수직 그리드 라인 */}
+              {markers.map((d) => (
+                <div
+                  key={`gl-${d.toISOString()}`}
+                  className="ntp-gantt-grid-line"
+                  style={{ left: `calc(${NAME_COL_PX}px + ${(pct(d.getTime()) / 100).toFixed(4)} * (100% - ${NAME_COL_PX}px))` }}
+                />
+              ))}
+              {/* 오늘 기준선 */}
+              <div className="ntp-gantt-today-line" style={{ left: todayCalc }} />
+              {sorted.map((task, idx) => {
                 const startMs = task.startDate
                   ? new Date(task.startDate).getTime()
                   : task.dueDate ? new Date(task.dueDate).getTime() : null;
@@ -371,7 +380,7 @@ export default function NotificationPage() {
 
                 const left  = pct(startMs);
                 const right = pct(endMs);
-                const width = Math.max(1.2, right - left);
+                const width = Math.max(2, right - left);
                 const delayDays = bottleneckMap.get(task.taskId) ?? affectedMap.get(task.taskId) ?? 0;
                 const isBottleneck = bottleneckMap.has(task.taskId);
                 const isAffected   = affectedMap.has(task.taskId);
@@ -381,14 +390,17 @@ export default function NotificationPage() {
                 const dotCls = isDone ? "dot-done" : isBottleneck ? "dot-bottleneck" : isAffected ? "dot-affected" : "dot-normal";
 
                 return (
-                  <div key={task.taskId} className={`ntp-gantt-row${isBottleneck ? " row-bottleneck" : isAffected ? " row-affected" : ""}`}>
+                  <div key={task.taskId} className={`ntp-gantt-row${idx % 2 === 1 ? " row-stripe" : ""}${isBottleneck ? " row-bottleneck" : isAffected ? " row-affected" : ""}`}>
                     <div className="ntp-gantt-name-col">
                       <i className={`ntp-gantt-dot ${dotCls}`} />
-                      <span className="ntp-gantt-task-name" title={task.title}>{task.title}</span>
+                      <div className="ntp-gantt-name-wrap">
+                        <span className="ntp-gantt-task-name" title={task.title}>{task.title}</span>
+                        {task.assigneeName && <span className="ntp-gantt-assignee">{task.assigneeName}</span>}
+                      </div>
                     </div>
                     <div className="ntp-gantt-track-area">
                       <div className={barCls} style={{ left: `${left}%`, width: `${width}%` }}>
-                        {(isBottleneck || isAffected) && delayDays > 0 && (
+                        {(isBottleneck || isAffected) && delayDays > 0 && width > 6 && (
                           <span className="ntp-gantt-bar-label">+{delayDays}일</span>
                         )}
                       </div>
@@ -397,7 +409,7 @@ export default function NotificationPage() {
                           className="ntp-gantt-delay-ext"
                           style={{
                             left: `${right}%`,
-                            width: `${Math.max(0.8, (delayDays / totalDays) * 100)}%`,
+                            width: `${Math.max(1.5, (delayDays / totalDays) * 100)}%`,
                           }}
                         />
                       )}
