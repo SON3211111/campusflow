@@ -64,6 +64,7 @@ interface Props {
   onSendSignal?: (signal: string | null) => void;
   onStatusChange?: (newColName: string) => void;
   onChangeAssignee?: (userId: string, name: string) => void;
+  isBottleneck?: boolean;
   onClose: () => void;
 }
 
@@ -93,7 +94,7 @@ function formatSize(bytes: number) {
   return `${(bytes / (1024 * 1024)).toFixed(1)}MB`;
 }
 
-export default function CardDetailModal({ title, colName, taskId, workspaceId, initialDesc = "", initialStartDate = "", initialDueDate = "", initialComments = [], initialQuickSignal, assigneeId, assigneeName, availableTasks = [], members = [], onSaveTitle, onSaveDesc, onSaveStartDate, onSaveDueDate, onSaveComments, onSendSignal, onStatusChange, onChangeAssignee, onClose }: Props) {
+export default function CardDetailModal({ title, colName, taskId, workspaceId, initialDesc = "", initialStartDate = "", initialDueDate = "", initialComments = [], initialQuickSignal, assigneeId, assigneeName, availableTasks = [], members = [], onSaveTitle, onSaveDesc, onSaveStartDate, onSaveDueDate, onSaveComments, onSendSignal, onStatusChange, onChangeAssignee, isBottleneck = false, onClose }: Props) {
   const userName  = localStorage.getItem("userName") ?? "나";
   const userId    = localStorage.getItem("userId") ?? "";
   const [cardTitle, setCardTitle] = useState(title);
@@ -287,7 +288,9 @@ export default function CardDetailModal({ title, colName, taskId, workspaceId, i
     <div className="cdm-overlay" onClick={onClose}>
       <div
         className="cdm-modal"
-        style={quickSignal === "HELP_NEEDED"
+        style={isBottleneck
+          ? { border: "2px solid #f59e0b", boxShadow: "0 8px 40px rgba(245,158,11,0.25)" }
+          : quickSignal === "HELP_NEEDED"
           ? { border: "2px solid #f87171", boxShadow: "0 8px 40px rgba(248,113,113,0.25)" }
           : quickSignal === "FEEDBACK_NEEDED"
           ? { border: "2px solid #6ab4f8", boxShadow: "0 8px 40px rgba(106,180,248,0.25)" }

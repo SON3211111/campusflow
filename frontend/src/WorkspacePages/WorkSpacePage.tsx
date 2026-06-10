@@ -161,6 +161,16 @@ export default function WorkSpacePage() {
   }, [workspace?.id]);
 
   useEffect(() => {
+    if (!workspace?.id) return;
+    client.get(`/workspaces/${workspace.id}/tasks/bottleneck?days=3`)
+      .then((res) => {
+        const ids = new Set<string>((res.data.data ?? []).map((t: any) => t.taskId as string));
+        setBottleneckTaskIds(ids);
+      })
+      .catch(() => {});
+  }, [workspace?.id]);
+
+  useEffect(() => {
     if (!workspace?.id) {
       setShowLanding(true);
       setLoading(false);
@@ -385,9 +395,10 @@ export default function WorkSpacePage() {
     }
   };
 
-  const [addingCol, setAddingCol]         = useState<string | null>(null);
-  const [inputVal, setInputVal]           = useState("");
-  const [selectedCard, setSelectedCard]   = useState<{ card: CardItem; col: string } | null>(null);
+  const [addingCol, setAddingCol]           = useState<string | null>(null);
+  const [inputVal, setInputVal]             = useState("");
+  const [bottleneckTaskIds, setBottleneckTaskIds] = useState<Set<string>>(new Set());
+  const [selectedCard, setSelectedCard]     = useState<{ card: CardItem; col: string } | null>(null);
   const [slideCard, setSlideCard]         = useState<{ title: string; desc: string; dueDate?: string; comments: any[] } | null>(null);
   const [draggingCard, setDraggingCard]   = useState<{ card: CardItem; col: string } | null>(null);
   const [dragOverCol, setDragOverCol]     = useState<string | null>(null);
@@ -979,6 +990,7 @@ export default function WorkSpacePage() {
           onStatusChange={(newColName) => handleStatusChangeFromModal(selectedCard.col, selectedCard.card.id, newColName)}
           members={wsMembers}
           onChangeAssignee={(userId, name) => handleChangeAssignee(selectedCard.col, selectedCard.card.id, userId, name)}
+          isBottleneck={bottleneckTaskIds.has(selectedCard.card.id)}
           onClose={() => setSelectedCard(null)}
         />
       )}

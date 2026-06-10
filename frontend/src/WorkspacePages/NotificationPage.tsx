@@ -263,12 +263,15 @@ export default function NotificationPage() {
 
         {/* 병목 태스크 카드 목록 */}
         {report.bottlenecks.map((item) => (
-          <div key={item.taskId} className="ntp-bottleneck-card">
+          <div key={item.taskId} className={`ntp-bottleneck-card ${item.delayDays > 0 ? "ntp-bottleneck-card--delayed" : ""}`}>
             <div className="ntp-bottleneck-header" onClick={() => setExpandedId(expandedId === item.taskId ? null : item.taskId)}>
               <div className="ntp-bottleneck-left">
-                <span className={`ntp-status-badge ntp-status-badge--${item.status.toLowerCase()}`}>
-                  {item.status === "ISSUE" ? "🔴 보류" : "🟡 진행중"}
-                </span>
+                <div className="ntp-bottleneck-labels">
+                  <span className="ntp-item-type ntp-item-type--delay">지연</span>
+                  <span className={`ntp-status-badge ntp-status-badge--${item.status.toLowerCase()}`}>
+                    {item.status === "ISSUE" ? "🔴 보류" : "🟡 진행중"}
+                  </span>
+                </div>
                 <div>
                   <p className="ntp-bottleneck-title">{item.title}</p>
                   <p className="ntp-bottleneck-meta">
