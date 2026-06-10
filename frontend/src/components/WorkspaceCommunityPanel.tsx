@@ -53,6 +53,7 @@ export default function WorkspaceCommunityPanel({ visible, workspaceId }: Props)
   const [addingChannel, setAddingChannel]   = useState(false);
   const [newChannelName, setNewChannelName] = useState("");
   const [deleteChannelTarget, setDeleteChannelTarget] = useState<Channel | null>(null);
+  const [deleteMessageTarget, setDeleteMessageTarget] = useState<Message | null>(null);
   const [unreadChannels, setUnreadChannels] = useState<Set<string>>(new Set());
 
   const getLastSeenKey = (ch: string) => `community_last_seen_${workspaceId}_${ch}`;
@@ -189,11 +190,11 @@ export default function WorkspaceCommunityPanel({ visible, workspaceId }: Props)
   };
 
   const deleteMessage = async (msg: Message) => {
-    if (!confirm("메시지를 삭제할까요?")) return;
     try {
       await client.delete(`/workspaces/${workspaceId}/messages/${msg.messageId}`);
       setMessages((prev) => prev.filter((m) => m.messageId !== msg.messageId));
     } catch (err) { console.error("삭제 실패:", err); }
+    setDeleteMessageTarget(null);
   };
 
   const renderContent = (content: string) =>
@@ -327,7 +328,7 @@ export default function WorkspaceCommunityPanel({ visible, workspaceId }: Props)
                 수정
               </button>
               <button className="wsp-ctx-delete" onClick={() => {
-                deleteMessage(contextMenu.message);
+                setDeleteMessageTarget(contextMenu.message);
                 setContextMenu(null);
               }}>
                 <Trash2 size={13} />
@@ -348,6 +349,19 @@ export default function WorkspaceCommunityPanel({ visible, workspaceId }: Props)
             <div className="wsp-confirm-actions">
               <button className="wsp-confirm-cancel" onClick={() => setDeleteChannelTarget(null)}>취소</button>
               <button className="wsp-confirm-delete" onClick={() => handleDeleteChannel(deleteChannelTarget)}>삭제</button>
+            </div>
+          </div>
+        </div>
+      )}
+      {deleteMessageTarget && (
+        <div className="wsp-confirm-overlay" onClick={() => setDeleteMessageTarget(null)}>
+          <div className="wsp-confirm-modal" onClick={(e) => e.stopPropagation()}>
+            <div className="wsp-confirm-icon"><Trash2 size={20} /></div>
+            <h3 className="wsp-confirm-title">메시지 삭제</h3>
+            <p className="wsp-confirm-msg">이 메시지를 삭제할까요?</p>
+            <div className="wsp-confirm-actions">
+              <button className="wsp-confirm-cancel" onClick={() => setDeleteMessageTarget(null)}>취소</button>
+              <button className="wsp-confirm-delete" onClick={() => deleteMessage(deleteMessageTarget)}>삭제</button>
             </div>
           </div>
         </div>

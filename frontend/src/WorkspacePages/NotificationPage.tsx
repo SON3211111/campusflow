@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
-import { Bell, Calendar, AlertTriangle, HelpCircle, MessageCircle, AtSign, CheckCheck, Inbox, TrendingDown, Clock, BarChart2 } from "lucide-react";
+import { Bell, Calendar, AlertTriangle, HelpCircle, MessageCircle, AtSign, CheckCheck, Inbox, TrendingDown, Clock, BarChart2, GitBranch, Zap, ArrowRight } from "lucide-react";
 import Header from "../components/Header";
 import BoardSubHeader from "../components/BoardSubHeader";
 import WorkspaceTabBar from "../components/WorkspaceTabBar";
@@ -466,46 +466,57 @@ export default function NotificationPage() {
         {report.bottlenecks.map((item) => (
           <div key={item.taskId} className={`ntp-bottleneck-card ${item.delayDays > 0 ? "ntp-bottleneck-card--delayed" : ""}`}>
             <div className="ntp-bottleneck-header" onClick={() => setExpandedId(expandedId === item.taskId ? null : item.taskId)}>
+              {/* 왼쪽: 태스크 정보 */}
               <div className="ntp-bottleneck-left">
-                <div className="ntp-bottleneck-labels">
-                  <span className="ntp-item-type ntp-item-type--delay">지연</span>
-                  <span className={`ntp-status-badge ntp-status-badge--${item.status.toLowerCase()}`}>
-                    {item.status === "ISSUE" ? "🔴 보류" : "🟡 진행중"}
+                <div className="ntp-bottleneck-title-row">
+                  <span className={`ntp-status-dot-label ntp-status-dot-label--${item.status.toLowerCase()}`}>
+                    <span className="ntp-sdl-dot" />
+                    {item.status === "ISSUE" ? "보류" : "진행중"}
                   </span>
-                </div>
-                <div>
                   <p className="ntp-bottleneck-title">{item.title}</p>
-                  <p className="ntp-bottleneck-meta">
-                    {item.assigneeName && <span>담당: {item.assigneeName}</span>}
-                    {item.dueDate && <span> · 마감 {item.dueDate}</span>}
-                  </p>
                 </div>
+                <p className="ntp-bottleneck-meta">
+                  {item.assigneeName && <span>{item.assigneeName}</span>}
+                  {item.dueDate && <span>마감 {item.dueDate}</span>}
+                </p>
               </div>
+              {/* 오른쪽: 수치 배지들 */}
               <div className="ntp-bottleneck-right">
-                <div className="ntp-stuck-badge">
-                  <Clock size={13} />
-                  {item.daysStuck}일째 정체
+                <div className="ntp-metric-chip ntp-metric-chip--stuck">
+                  <Clock size={12} />
+                  <span>{item.daysStuck}일 정체</span>
                 </div>
                 {item.delayDays > 0 && (
-                  <div className="ntp-delay-badge">+{item.delayDays}일 지연</div>
+                  <div className="ntp-metric-chip ntp-metric-chip--delay">
+                    <Zap size={12} />
+                    <span>+{item.delayDays}일</span>
+                  </div>
                 )}
-                <div className="ntp-affected-badge">{item.affectedTaskCount}개 영향</div>
-                <span className="ntp-expand-arrow">{expandedId === item.taskId ? "▲" : "▼"}</span>
+                {item.affectedTaskCount > 0 && (
+                  <div className="ntp-metric-chip ntp-metric-chip--affected">
+                    <GitBranch size={12} />
+                    <span>{item.affectedTaskCount}개</span>
+                  </div>
+                )}
+                <span className={`ntp-expand-chevron ${expandedId === item.taskId ? "open" : ""}`}>
+                  ›
+                </span>
               </div>
             </div>
 
             {expandedId === item.taskId && (
               <div className="ntp-affected-list">
-                <p className="ntp-affected-title">
-                  전체 영향 연쇄 <span className="ntp-affected-count">{item.affectedTasks.length}개 업무</span>
-                </p>
+                <div className="ntp-affected-title-row">
+                  <GitBranch size={13} />
+                  <span>영향 연쇄</span>
+                  <span className="ntp-affected-count-chip">{item.affectedTasks.length}개 업무</span>
+                </div>
                 {item.affectedTasks.length === 0 ? (
                   <div className="ntp-affected-empty">
                     <span>연결된 후속 업무가 없습니다.</span>
                     <span className="ntp-affected-empty-hint">선후행 관계가 설정된 업무가 있으면 영향 분석이 가능합니다.</span>
                   </div>
                 ) : (() => {
-                  // depth별 그룹핑
                   const byDepth = new Map<number, AffectedTask[]>();
                   for (const a of item.affectedTasks) {
                     const d = a.depth ?? 1;
@@ -516,24 +527,26 @@ export default function NotificationPage() {
                   return depths.map((depth) => (
                     <div key={depth} className="ntp-affected-depth-group">
                       <div className="ntp-affected-depth-header">
-                        <span className={`ntp-depth-badge ${depth === 1 ? "depth-direct" : "depth-indirect"}`}>
-                          {depth === 1 ? "직접 영향" : `${depth}단계 간접 영향`}
+                        <span className={`ntp-depth-tag ${depth === 1 ? "depth-direct" : "depth-indirect"}`}>
+                          {depth === 1 ? "직접 영향" : `${depth}단계 영향`}
                         </span>
-                        <span className="ntp-affected-depth-arrow">
-                          {"→".repeat(depth)}
-                        </span>
+                        <div className="ntp-depth-arrows">
+                          {Array.from({ length: Math.min(depth, 3) }).map((_, i) => (
+                            <ArrowRight key={i} size={11} />
+                          ))}
+                        </div>
                       </div>
                       {byDepth.get(depth)!.map((a) => (
-                        <div key={a.taskId} className="ntp-affected-item" style={{ paddingLeft: `${(depth - 1) * 12 + 12}px` }}>
+                        <div key={a.taskId} className="ntp-affected-item" style={{ paddingLeft: `${(depth - 1) * 14 + 14}px` }}>
                           <div className="ntp-affected-item-left">
                             <span className={`ntp-affected-status-dot status-${a.status.toLowerCase()}`} />
                             <span className="ntp-affected-name">{a.title}</span>
                           </div>
                           <div className="ntp-affected-meta">
                             {a.assigneeName && <span>{a.assigneeName}</span>}
-                            {a.dueDate && <span> · {a.dueDate} 마감</span>}
+                            {a.dueDate && <span>{a.dueDate}</span>}
                             {a.estimatedDelayDays != null && a.estimatedDelayDays > 0 && (
-                              <span className="ntp-affected-delay">+{a.estimatedDelayDays}일 지연 예상</span>
+                              <span className="ntp-affected-delay">+{a.estimatedDelayDays}일</span>
                             )}
                           </div>
                         </div>
