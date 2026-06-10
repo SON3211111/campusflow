@@ -1,6 +1,6 @@
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
-import './MailCode.css';
+import './Mailcode.css';
 import logoImg from '../assets/Logo.png'; 
 
 const MailCode: React.FC = () => {
