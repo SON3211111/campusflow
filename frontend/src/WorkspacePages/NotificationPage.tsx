@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
-import { Bell, Calendar, AlertTriangle, HelpCircle, MessageCircle, AtSign, CheckCheck, Inbox, TrendingDown, Clock } from "lucide-react";
+import { Bell, Calendar, AlertTriangle, HelpCircle, MessageCircle, AtSign, CheckCheck, Inbox, TrendingDown, Clock, BarChart2 } from "lucide-react";
 import Header from "../components/Header";
 import BoardSubHeader from "../components/BoardSubHeader";
 import WorkspaceTabBar from "../components/WorkspaceTabBar";
@@ -51,6 +51,15 @@ interface BottleneckReport {
   totalDelayDays: number;
   projectDeadline?: string;
   estimatedNewDeadline?: string;
+}
+
+interface AllTask {
+  taskId: string;
+  title: string;
+  status: string;
+  startDate?: string;
+  dueDate?: string;
+  assigneeName?: string;
 }
 
 function timeAgo(iso?: string) {
@@ -127,6 +136,7 @@ export default function NotificationPage() {
   const [loading, setLoading]   = useState(true);
   const [report, setReport]     = useState<BottleneckReport | null>(null);
   const [reportLoading, setReportLoading] = useState(false);
+  const [allTasks, setAllTasks] = useState<AllTask[]>([]);
   const [taskSignals, setTaskSignals] = useState<Record<string, string>>({});
   const [taskSignalsLoaded, setTaskSignalsLoaded] = useState(false);
   const [expandedId, setExpandedId] = useState<string | null>(null);
@@ -169,12 +179,21 @@ export default function NotificationPage() {
     setTaskSignalsLoaded(false);
     try {
       const res = await client.get(`/workspaces/${workspace.id}/tasks`);
+      const data: any[] = res.data.data ?? [];
       const next: Record<string, string> = {};
-      for (const task of (res.data.data ?? [])) {
+      for (const task of data) {
         if (task.taskId) next[task.taskId] = task.quickSignal ?? "";
       }
       setTaskSignals(next);
       setTaskSignalsLoaded(true);
+      setAllTasks(data.map((t) => ({
+        taskId: t.taskId,
+        title: t.title,
+        status: t.status,
+        startDate: t.startDate,
+        dueDate: t.dueDate,
+        assigneeName: t.assigneeName,
+      })));
     } catch (err) {
       console.error("태스크 요청 상태 조회 실패:", err);
       setTaskSignals({});
@@ -231,6 +250,168 @@ export default function NotificationPage() {
     return Number(isRequestResolved(a)) - Number(isRequestResolved(b));
   });
 
+  const renderProjectImpact = () => {
+    if (!report || allTasks.length === 0) return null;
+    const total = allTasks.length;
+    const done  = allTasks.filter((t) => t.status === "DONE").length;
+    const stuck = allTasks.filter((t) => ["DOING", "ISSUE"].includes(t.status)).length;
+    const affectedIds = new Set(report.bottlenecks.flatMap((b) => b.affectedTasks.map((a) => a.taskId)));
+    const donePct = total === 0 ? 0 : Math.round((done / total) * 100);
+    return (
+      <div className="ntp-impact-summary">
+        <div className="ntp-impact-title">전체 프로젝트 영향 현황</div>
+        <div className="ntp-impact-stats">
+          <div className="ntp-impact-stat"><strong>{total}</strong><span>전체</span></div>
+          <div className="ntp-impact-stat"><strong className="stat-done">{done}</strong><span>완료</span></div>
+          <div className="ntp-impact-stat"><strong className="stat-doing">{stuck}</strong><span>진행중</span></div>
+          <div className="ntp-impact-stat"><strong className="stat-bottleneck">{report.bottlenecks.length}</strong><span>병목</span></div>
+          <div className="ntp-impact-stat"><strong className="stat-affected">{affectedIds.size}</strong><span>지연 영향</span></div>
+          {report.totalDelayDays > 0 && (
+            <div className="ntp-impact-stat"><strong className="stat-delay">+{report.totalDelayDays}일</strong><span>최대 지연</span></div>
+          )}
+        </div>
+        <div className="ntp-impact-progress">
+          <div className="ntp-impact-progress-label"><span>전체 진행률</span><span>{donePct}%</span></div>
+          <div className="ntp-impact-progress-bar">
+            <div className="ntp-impact-progress-fill" style={{ width: `${donePct}%` }} />
+            {report.bottlenecks.length > 0 && total > 0 && (
+              <div className="ntp-impact-progress-risk" style={{ width: `${Math.min(30, Math.round((affectedIds.size / total) * 100))}%` }} />
+            )}
+          </div>
+        </div>
+      </div>
+    );
+  };
+
+  const renderGanttChart = () => {
+    if (!report) return null;
+    const ganttTasks = allTasks.filter((t) => t.startDate || t.dueDate);
+    if (ganttTasks.length === 0) return (
+      <div className="ntp-gantt-empty">날짜가 설정된 업무가 없어 간트 차트를 표시할 수 없습니다.</div>
+    );
+
+    const bottleneckMap = new Map<string, number>();
+    const affectedMap   = new Map<string, number>();
+    for (const b of report.bottlenecks) {
+      bottleneckMap.set(b.taskId, b.delayDays);
+      for (const a of b.affectedTasks) {
+        affectedMap.set(a.taskId, Math.max(affectedMap.get(a.taskId) ?? 0, a.estimatedDelayDays ?? 0));
+      }
+    }
+
+    const MS = 86400000;
+    const allMs: number[] = [Date.now()];
+    for (const t of ganttTasks) {
+      if (t.startDate) allMs.push(new Date(t.startDate).getTime());
+      if (t.dueDate)   allMs.push(new Date(t.dueDate).getTime());
+    }
+    const minMs = Math.min(...allMs) - MS;
+    const rawMax = Math.max(...allMs) + (report.totalDelayDays + 5) * MS;
+    const totalDays = Math.max(14, (rawMax - minMs) / MS);
+    const maxMs = minMs + totalDays * MS;
+
+    const pct = (ms: number) =>
+      Math.max(0, Math.min(100, ((ms - minMs) / (totalDays * MS)) * 100));
+
+    const todayPct = pct(Date.now());
+    const interval = Math.max(1, Math.ceil(totalDays / 8));
+    const markers: Date[] = [];
+    const cur = new Date(minMs); cur.setHours(0, 0, 0, 0);
+    while (cur.getTime() <= maxMs) { markers.push(new Date(cur)); cur.setDate(cur.getDate() + interval); }
+
+    const orderOf = (t: AllTask) => {
+      if (bottleneckMap.has(t.taskId)) return 0;
+      if (affectedMap.has(t.taskId))   return 1;
+      if (["DOING", "ISSUE"].includes(t.status)) return 2;
+      if (t.status === "DONE") return 4;
+      return 3;
+    };
+    const sorted = [...ganttTasks].sort((a, b) => orderOf(a) - orderOf(b));
+    const fmt = (d: Date) => `${d.getMonth() + 1}/${d.getDate()}`;
+
+    return (
+      <div className="ntp-gantt">
+        <div className="ntp-gantt-heading">
+          <BarChart2 size={14} /> 프로젝트 간트 차트
+          <span className="ntp-gantt-legend">
+            <i className="ntp-gantt-dot dot-bottleneck" />병목
+            <i className="ntp-gantt-dot dot-affected" />지연영향
+            <i className="ntp-gantt-dot dot-normal" />진행중
+            <i className="ntp-gantt-dot dot-done" />완료
+          </span>
+        </div>
+        <div className="ntp-gantt-scroll">
+          <div className="ntp-gantt-inner">
+            {/* 날짜 눈금 */}
+            <div className="ntp-gantt-ruler">
+              <div className="ntp-gantt-name-col" />
+              <div className="ntp-gantt-track-area">
+                {markers.map((d) => (
+                  <span key={d.toISOString()} className="ntp-gantt-tick" style={{ left: `${pct(d.getTime())}%` }}>
+                    {fmt(d)}
+                  </span>
+                ))}
+                <span className="ntp-gantt-today-tick" style={{ left: `${todayPct}%` }}>오늘</span>
+              </div>
+            </div>
+            {/* 태스크 행들 + 오늘 기준선 */}
+            <div className="ntp-gantt-body">
+              <div
+                className="ntp-gantt-today-line"
+                style={{ left: `calc(180px + ${(todayPct / 100).toFixed(4)} * (100% - 180px))` }}
+              />
+              {sorted.map((task) => {
+                const startMs = task.startDate
+                  ? new Date(task.startDate).getTime()
+                  : task.dueDate ? new Date(task.dueDate).getTime() : null;
+                const endMs = task.dueDate
+                  ? new Date(task.dueDate).getTime()
+                  : startMs;
+                if (!startMs || !endMs) return null;
+
+                const left  = pct(startMs);
+                const right = pct(endMs);
+                const width = Math.max(1.2, right - left);
+                const delayDays = bottleneckMap.get(task.taskId) ?? affectedMap.get(task.taskId) ?? 0;
+                const isBottleneck = bottleneckMap.has(task.taskId);
+                const isAffected   = affectedMap.has(task.taskId);
+                const isDone       = task.status === "DONE";
+
+                const barCls = `ntp-gantt-bar ${isDone ? "bar-done" : isBottleneck ? "bar-bottleneck" : isAffected ? "bar-affected" : "bar-normal"}`;
+                const dotCls = isDone ? "dot-done" : isBottleneck ? "dot-bottleneck" : isAffected ? "dot-affected" : "dot-normal";
+
+                return (
+                  <div key={task.taskId} className={`ntp-gantt-row${isBottleneck ? " row-bottleneck" : isAffected ? " row-affected" : ""}`}>
+                    <div className="ntp-gantt-name-col">
+                      <i className={`ntp-gantt-dot ${dotCls}`} />
+                      <span className="ntp-gantt-task-name" title={task.title}>{task.title}</span>
+                    </div>
+                    <div className="ntp-gantt-track-area">
+                      <div className={barCls} style={{ left: `${left}%`, width: `${width}%` }}>
+                        {(isBottleneck || isAffected) && delayDays > 0 && (
+                          <span className="ntp-gantt-bar-label">+{delayDays}일</span>
+                        )}
+                      </div>
+                      {delayDays > 0 && (
+                        <div
+                          className="ntp-gantt-delay-ext"
+                          style={{
+                            left: `${right}%`,
+                            width: `${Math.max(0.8, (delayDays / totalDays) * 100)}%`,
+                          }}
+                        />
+                      )}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  };
+
   const renderBottleneckReport = () => {
     if (reportLoading) return <div className="ntp-empty"><Clock size={24} /><strong>리포트 생성 중...</strong></div>;
     if (!report) return <div className="ntp-empty"><Inbox size={24} /><strong>데이터를 불러올 수 없습니다</strong></div>;
@@ -243,6 +424,12 @@ export default function NotificationPage() {
 
     return (
       <div className="ntp-report">
+        {/* 전체 프로젝트 영향 요약 */}
+        {renderProjectImpact()}
+
+        {/* 간트 차트 */}
+        {renderGanttChart()}
+
         {/* 프로젝트 지연 요약 배너 */}
         {report.totalDelayDays > 0 && (
           <div className="ntp-delay-banner">
@@ -261,7 +448,8 @@ export default function NotificationPage() {
           </div>
         )}
 
-        {/* 병목 태스크 카드 목록 */}
+        {/* 병목 태스크 상세 */}
+        <div className="ntp-section-heading"><AlertTriangle size={14} /> 병목 태스크 상세</div>
         {report.bottlenecks.map((item) => (
           <div key={item.taskId} className={`ntp-bottleneck-card ${item.delayDays > 0 ? "ntp-bottleneck-card--delayed" : ""}`}>
             <div className="ntp-bottleneck-header" onClick={() => setExpandedId(expandedId === item.taskId ? null : item.taskId)}>

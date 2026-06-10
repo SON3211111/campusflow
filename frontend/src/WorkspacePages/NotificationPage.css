@@ -165,6 +165,280 @@
   gap: 14px;
 }
 
+/* ── 전체 영향 요약 ── */
+.ntp-impact-summary {
+  background: #fff;
+  border: 1px solid #e5e7eb;
+  border-radius: 14px;
+  padding: 18px 20px;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+}
+
+.ntp-impact-title {
+  font-size: 13px;
+  font-weight: 700;
+  color: #374151;
+  margin-bottom: 14px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.ntp-impact-stats {
+  display: flex;
+  gap: 18px;
+  flex-wrap: wrap;
+  margin-bottom: 14px;
+}
+
+.ntp-impact-stat {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  min-width: 44px;
+}
+
+.ntp-impact-stat strong {
+  font-size: 22px;
+  font-weight: 800;
+  color: #1f2937;
+  line-height: 1;
+}
+
+.ntp-impact-stat span {
+  font-size: 11px;
+  color: #9ca3af;
+}
+
+.stat-done       { color: #16a34a; }
+.stat-doing      { color: #2563eb; }
+.stat-bottleneck { color: #d97706; }
+.stat-affected   { color: #ea580c; }
+.stat-delay      { color: #dc2626; }
+
+.ntp-impact-progress {}
+
+.ntp-impact-progress-label {
+  display: flex;
+  justify-content: space-between;
+  font-size: 11px;
+  color: #6b7280;
+  margin-bottom: 5px;
+}
+
+.ntp-impact-progress-bar {
+  height: 8px;
+  background: #f3f4f6;
+  border-radius: 999px;
+  overflow: hidden;
+  display: flex;
+}
+
+.ntp-impact-progress-fill {
+  height: 100%;
+  background: #22c55e;
+  border-radius: 999px;
+  transition: width 0.4s ease;
+}
+
+.ntp-impact-progress-risk {
+  height: 100%;
+  background: #fca5a5;
+  border-radius: 999px;
+}
+
+/* ── 간트 차트 ── */
+.ntp-gantt {
+  background: #fff;
+  border: 1px solid #e5e7eb;
+  border-radius: 14px;
+  overflow: hidden;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+}
+
+.ntp-gantt-heading {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 13px;
+  font-weight: 700;
+  color: #374151;
+  padding: 14px 18px 10px;
+  border-bottom: 1px solid #f3f4f6;
+}
+
+.ntp-gantt-legend {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-left: auto;
+  font-size: 11px;
+  font-weight: 500;
+  color: #6b7280;
+}
+
+.ntp-gantt-dot {
+  display: inline-block;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  flex-shrink: 0;
+  font-style: normal;
+}
+.dot-bottleneck { background: #f59e0b; }
+.dot-affected   { background: #f97316; }
+.dot-normal     { background: #60a5fa; }
+.dot-done       { background: #4ade80; }
+
+.ntp-gantt-scroll {
+  overflow-x: auto;
+}
+
+.ntp-gantt-inner {
+  min-width: 600px;
+}
+
+/* 날짜 눈금 */
+.ntp-gantt-ruler {
+  display: flex;
+  height: 28px;
+  border-bottom: 1px solid #f3f4f6;
+  position: relative;
+}
+
+.ntp-gantt-name-col {
+  width: 180px;
+  min-width: 180px;
+  flex-shrink: 0;
+  padding: 0 10px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  border-right: 1px solid #f3f4f6;
+  overflow: hidden;
+}
+
+.ntp-gantt-track-area {
+  flex: 1;
+  position: relative;
+  overflow: hidden;
+}
+
+.ntp-gantt-tick {
+  position: absolute;
+  top: 6px;
+  font-size: 10px;
+  color: #9ca3af;
+  transform: translateX(-50%);
+  white-space: nowrap;
+}
+
+.ntp-gantt-today-tick {
+  position: absolute;
+  top: 6px;
+  font-size: 10px;
+  font-weight: 700;
+  color: #ef4444;
+  transform: translateX(-50%);
+  white-space: nowrap;
+}
+
+/* 태스크 행 */
+.ntp-gantt-body {
+  position: relative;
+}
+
+.ntp-gantt-today-line {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: 1.5px;
+  background: rgba(239,68,68,0.45);
+  pointer-events: none;
+  z-index: 2;
+}
+
+.ntp-gantt-row {
+  display: flex;
+  align-items: center;
+  height: 32px;
+  border-bottom: 1px solid #f9fafb;
+}
+
+.ntp-gantt-row.row-bottleneck { background: #fffbeb; }
+.ntp-gantt-row.row-affected   { background: #fff7ed; }
+
+.ntp-gantt-task-name {
+  font-size: 11px;
+  color: #374151;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  flex: 1;
+  min-width: 0;
+}
+
+/* 바 */
+.ntp-gantt-bar {
+  position: absolute;
+  height: 14px;
+  top: 50%;
+  transform: translateY(-50%);
+  border-radius: 4px;
+  display: flex;
+  align-items: center;
+  padding: 0 4px;
+  overflow: hidden;
+  min-width: 4px;
+}
+
+.bar-bottleneck { background: #fcd34d; border: 1px solid #f59e0b; }
+.bar-affected   { background: #fdba74; border: 1px solid #f97316; }
+.bar-normal     { background: #93c5fd; border: 1px solid #60a5fa; }
+.bar-done       { background: #86efac; border: 1px solid #4ade80; }
+
+.ntp-gantt-bar-label {
+  font-size: 9px;
+  font-weight: 700;
+  color: #78350f;
+  white-space: nowrap;
+}
+
+.ntp-gantt-delay-ext {
+  position: absolute;
+  height: 6px;
+  top: 50%;
+  transform: translateY(-50%);
+  background: repeating-linear-gradient(
+    90deg,
+    #f87171 0px,
+    #f87171 4px,
+    transparent 4px,
+    transparent 8px
+  );
+  border-radius: 2px;
+  min-width: 4px;
+}
+
+.ntp-gantt-empty {
+  padding: 18px;
+  font-size: 13px;
+  color: #9ca3af;
+  text-align: center;
+}
+
+/* 섹션 헤딩 */
+.ntp-section-heading {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 13px;
+  font-weight: 700;
+  color: #c2410c;
+  padding: 4px 0 0;
+}
+
 .ntp-delay-banner {
   display: flex;
   align-items: center;
