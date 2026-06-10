@@ -1,3 +1,27 @@
+/* ===== 애니메이션 키프레임 ===== */
+@keyframes dbp-fadeInUp {
+  from { opacity: 0; transform: translateY(18px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+@keyframes dbp-slideInLeft {
+  from { opacity: 0; transform: translateX(-14px); }
+  to   { opacity: 1; transform: translateX(0); }
+}
+@keyframes dbp-barGrow {
+  from { transform: scaleY(0); transform-origin: bottom; }
+  to   { transform: scaleY(1); transform-origin: bottom; }
+}
+@keyframes dbp-fillBar {
+  from { width: 0 !important; }
+}
+@keyframes dbp-donutDraw {
+  from { stroke-dashoffset: 360; }
+}
+@keyframes dbp-pulse {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.3); }
+  50%       { box-shadow: 0 0 0 6px rgba(239, 68, 68, 0); }
+}
+
 .dbp-page {
   display: flex;
   flex-direction: column;
@@ -23,6 +47,15 @@
   border-radius: 16px;
   padding: 20px;
   box-shadow: 0 2px 10px rgba(0,0,0,0.06);
+  animation: dbp-fadeInUp 0.45s ease both;
+}
+.dbp-card:nth-child(1) { animation-delay: 0.05s; }
+.dbp-card:nth-child(2) { animation-delay: 0.1s; }
+.dbp-card:nth-child(3) { animation-delay: 0.15s; }
+.dbp-card:hover {
+  box-shadow: 0 6px 24px rgba(0,0,0,0.1);
+  transform: translateY(-1px);
+  transition: box-shadow 0.2s, transform 0.2s;
 }
 
 .dbp-card-title {
@@ -120,7 +153,14 @@
   gap: 10px;
   padding-bottom: 16px;
   align-items: flex-start;
+  animation: dbp-slideInLeft 0.35s ease both;
 }
+.dbp-timeline-item:nth-child(1) { animation-delay: 0.1s; }
+.dbp-timeline-item:nth-child(2) { animation-delay: 0.17s; }
+.dbp-timeline-item:nth-child(3) { animation-delay: 0.24s; }
+.dbp-timeline-item:nth-child(4) { animation-delay: 0.31s; }
+.dbp-timeline-item:nth-child(5) { animation-delay: 0.38s; }
+.dbp-timeline-item:nth-child(6) { animation-delay: 0.45s; }
 
 .dbp-timeline-item:last-child {
   padding-bottom: 0;
@@ -309,6 +349,8 @@
 
 .dbp-bar-seg {
   width: 100%;
+  animation: dbp-barGrow 0.7s cubic-bezier(0.34, 1.3, 0.64, 1) both;
+  animation-delay: 0.3s;
 }
 
 .dbp-bar-seg.done     { background: #7de89a; }
@@ -385,12 +427,6 @@
   overflow: hidden;
 }
 
-.dbp-dl-fill {
-  height: 100%;
-  background: #6ab4f8;
-  border-radius: 6px;
-}
-
 .dbp-dl-fill.urgent {
   background: #f87171;
 }
@@ -441,7 +477,29 @@
   background: linear-gradient(to right, var(--ws-theme-primary, #6ab4f8), var(--ws-theme-secondary, #a89cf8));
   border-radius: 20px;
   transition: width 0.5s;
+  animation: dbp-fillBar 1.0s cubic-bezier(0.25, 0.46, 0.45, 0.94) both;
+  animation-delay: 0.4s;
 }
+
+.dbp-dl-fill {
+  height: 100%;
+  background: #6ab4f8;
+  border-radius: 6px;
+  animation: dbp-fillBar 0.8s ease both;
+  animation-delay: 0.3s;
+}
+
+.dbp-graph-row { animation: dbp-slideInLeft 0.3s ease both; }
+.dbp-graph-row:nth-child(1) { animation-delay: 0.15s; }
+.dbp-graph-row:nth-child(2) { animation-delay: 0.22s; }
+.dbp-graph-row:nth-child(3) { animation-delay: 0.29s; }
+.dbp-graph-row:nth-child(4) { animation-delay: 0.36s; }
+
+.dbp-upcoming-item { animation: dbp-fadeInUp 0.3s ease both; }
+.dbp-upcoming-item:nth-child(1) { animation-delay: 0.1s; }
+.dbp-upcoming-item:nth-child(2) { animation-delay: 0.18s; }
+.dbp-upcoming-item:nth-child(3) { animation-delay: 0.26s; }
+.dbp-upcoming-item:nth-child(4) { animation-delay: 0.34s; }
 
 /* ===== 마감 임박 / 병목 리스트 ===== */
 .dbp-upcoming-list {
