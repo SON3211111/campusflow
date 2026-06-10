@@ -31,6 +31,7 @@ interface AffectedTask {
   dueDate?: string;
   status: string;
   assigneeName?: string;
+  estimatedDelayDays?: number;
 }
 
 interface BottleneckItem {
@@ -247,12 +248,12 @@ export default function NotificationPage() {
           <div className="ntp-delay-banner">
             <TrendingDown size={20} />
             <div className="ntp-delay-banner-text">
-              <strong>프로젝트 {report.totalDelayDays}일 지연 위험</strong>
+              <strong>최대 {report.totalDelayDays}일 지연 가능</strong>
               {report.projectDeadline && (
                 <span>
                   현재 마감 {report.projectDeadline}
                   {report.estimatedNewDeadline && report.estimatedNewDeadline !== report.projectDeadline
-                    ? ` → 예상 연기 ${report.estimatedNewDeadline}`
+                    ? ` → 최악 시나리오 ${report.estimatedNewDeadline}`
                     : ""}
                 </span>
               )}
@@ -289,15 +290,23 @@ export default function NotificationPage() {
               </div>
             </div>
 
-            {expandedId === item.taskId && item.affectedTasks.length > 0 && (
+            {expandedId === item.taskId && (
               <div className="ntp-affected-list">
                 <p className="ntp-affected-title">영향받는 후속 업무</p>
-                {item.affectedTasks.map((a) => (
+                {item.affectedTasks.length === 0 ? (
+                  <div className="ntp-affected-empty">
+                    <span>연결된 후속 업무가 없습니다.</span>
+                    <span className="ntp-affected-empty-hint">카드 상세에서 선후행 업무를 연결하면 영향 분석이 가능합니다.</span>
+                  </div>
+                ) : item.affectedTasks.map((a) => (
                   <div key={a.taskId} className="ntp-affected-item">
                     <span className="ntp-affected-name">{a.title}</span>
                     <div className="ntp-affected-meta">
                       {a.assigneeName && <span>{a.assigneeName}</span>}
                       {a.dueDate && <span> · {a.dueDate} 마감</span>}
+                      {a.estimatedDelayDays != null && a.estimatedDelayDays > 0 && (
+                        <span className="ntp-affected-delay">+{a.estimatedDelayDays}일 지연 예상</span>
+                      )}
                     </div>
                   </div>
                 ))}

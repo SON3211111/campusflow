@@ -31,6 +31,7 @@ public record BottleneckReportDto(
             String title,
             String dueDate,
             String status,
-            String assigneeName
+            String assigneeName,
+            int estimatedDelayDays
     ) {}
 }

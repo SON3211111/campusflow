@@ -35,11 +35,13 @@ import org.springframework.data.domain.PageRequest;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.util.ArrayDeque;
 import java.util.List;
 import java.util.Map;
 import java.util.HashSet;
 import java.util.ArrayList;
 import java.util.Comparator;
+import java.util.Queue;
 import java.util.Set;
 import java.util.stream.Collectors;
 
@@ -297,8 +299,9 @@ public class TaskService {
 
     /**
      * 병목 영향 리포트
-     * - 병목 태스크별 정체 일수, 후속 영향 업무 목록, 예상 지연일 계산
-     * - task_dependencies 없이 dueDate 기준으로 후속 업무를 휴리스틱하게 추정
+     * - task_dependencies 기반으로만 후속 영향 업무를 산출 (날짜 휴리스틱 제거)
+     * - 병목 태스크의 delayDays를 직·간접 후속 업무 전체에 동일하게 상속
+     * - totalDelayDays = 병목들 중 최대 지연일 (최악 시나리오)
      */
     @Transactional(readOnly = true)
     public BottleneckReportDto getBottleneckReport(String workspaceId, int thresholdDays) {
@@ -308,7 +311,6 @@ public class TaskService {
         Map<String, Task> taskById = allActive.stream()
                 .collect(Collectors.toMap(Task::getTaskId, t -> t));
 
-        // 태스크별 마지막 상태 변경 시각 맵핑
         Map<String, java.time.LocalDateTime> lastChangedMap = taskStatusHistoryRepository
                 .findAllByWorkspace_WorkspaceIdOrderByOccurredAtDesc(workspaceId)
                 .stream()
@@ -320,7 +322,6 @@ public class TaskService {
 
         java.time.LocalDateTime threshold = java.time.LocalDateTime.now().minusDays(thresholdDays);
 
-        // 전체 태스크 중 가장 늦은 dueDate (프로젝트 마감일 기준)
         java.time.LocalDate projectDeadline = allActive.stream()
                 .filter(t -> t.getDueDate() != null && t.getStatus() != TaskStatus.DONE)
                 .map(Task::getDueDate)
@@ -328,40 +329,30 @@ public class TaskService {
                 .orElse(null);
 
         int maxDelayDays = 0;
-
-        List<BottleneckReportDto.BottleneckItem> items = new java.util.ArrayList<>();
+        List<BottleneckReportDto.BottleneckItem> items = new ArrayList<>();
 
         for (Task t : allActive) {
             if (!stuckStatuses.contains(t.getStatus())) continue;
             java.time.LocalDateTime lastChanged = lastChangedMap.get(t.getTaskId());
             if (lastChanged == null || !lastChanged.isBefore(threshold)) continue;
 
-            // 정체 일수 계산
             long daysStuck = java.time.temporal.ChronoUnit.DAYS.between(lastChanged, java.time.LocalDateTime.now());
             int delayDays = calculateWeightedDelayDays(t, daysStuck, thresholdDays);
             maxDelayDays = Math.max(maxDelayDays, delayDays);
 
-            // 후속 영향 업무: dueDate가 이 태스크 이후이거나, dueDate 없는 미완료 태스크
-            List<BottleneckReportDto.AffectedTask> affected = allActive.stream()
-                    .filter(a -> !a.getTaskId().equals(t.getTaskId()))
+            // 실제 dependency 그래프만 사용 — 직·간접 후속 전부 수집
+            Set<String> downstreamIds = collectAllDownstream(t.getTaskId(), dependencies);
+            List<BottleneckReportDto.AffectedTask> affected = downstreamIds.stream()
+                    .filter(taskById::containsKey)
+                    .map(taskById::get)
                     .filter(a -> a.getStatus() != TaskStatus.DONE)
-                    .filter(a -> {
-                        if (isDownstreamTask(t.getTaskId(), a.getTaskId(), dependencies)) return true;
-                        if (t.getDueDate() == null) return false;
-                        if (a.getStartDate() != null) return !a.getStartDate().isBefore(t.getDueDate());
-                        return a.getDueDate() != null;
-                    })
-                    .filter(a -> {
-                        if (t.getDueDate() == null) return true; // 병목에 마감일 없으면 전체 영향
-                        if (a.getDueDate() == null) return true; // 후속도 마감일 없으면 영향받을 수 있음
-                        return !a.getDueDate().isBefore(t.getDueDate()); // 병목 이후 마감이면 영향
-                    })
                     .map(a -> new BottleneckReportDto.AffectedTask(
                             a.getTaskId(),
                             a.getTitle(),
                             a.getDueDate() != null ? a.getDueDate().toString() : null,
                             a.getStatus().name(),
-                            a.getAssignee() != null ? a.getAssignee().getName() : null
+                            a.getAssignee() != null ? a.getAssignee().getName() : null,
+                            delayDays
                     ))
                     .toList();
 
@@ -378,13 +369,30 @@ public class TaskService {
             ));
         }
 
-        // 예상 새 마감일 계산
         String deadlineStr = projectDeadline != null ? projectDeadline.toString() : null;
         String newDeadlineStr = (projectDeadline != null && maxDelayDays > 0)
                 ? projectDeadline.plusDays(maxDelayDays).toString()
                 : deadlineStr;
 
         return new BottleneckReportDto(items, maxDelayDays, deadlineStr, newDeadlineStr);
+    }
+
+    /** BFS로 taskId의 모든 직·간접 후속 태스크 ID를 수집 */
+    private Set<String> collectAllDownstream(String startTaskId, List<TaskDependency> dependencies) {
+        Set<String> result = new HashSet<>();
+        Queue<String> queue = new ArrayDeque<>();
+        queue.add(startTaskId);
+        Set<String> visited = new HashSet<>();
+        while (!queue.isEmpty()) {
+            String current = queue.poll();
+            if (!visited.add(current)) continue;
+            for (TaskDependency dep : dependencies) {
+                if (!dep.getPredecessor().getTaskId().equals(current)) continue;
+                String next = dep.getSuccessor().getTaskId();
+                if (result.add(next)) queue.add(next);
+            }
+        }
+        return result;
     }
 
     private boolean hasDependencyPath(String fromTaskId, String targetTaskId, String workspaceId) {
