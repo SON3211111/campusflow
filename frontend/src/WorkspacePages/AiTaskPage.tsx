@@ -264,7 +264,7 @@ export default function AiTaskPage() {
         sessionData: JSON.stringify(payload),
         userId: currentUserId,
       }).catch((err) => console.error("AI 세션 DB 저장 실패:", err));
-    }, 2000);
+    }, 300);
   }, [categories, tasks, origPrompt, sessionKey, memberBaskets, sessions]);
 
   useEffect(() => {
