@@ -7,7 +7,7 @@
  */
 import { useState, useEffect, useRef } from "react";
 import type { MouseEvent } from "react";
-import { Sparkles, Plus, CalendarDays, AlertCircle, MessageCircle, Calendar } from "lucide-react";
+import { Sparkles, Plus, CalendarDays, AlertCircle, MessageCircle, Calendar, TrendingDown } from "lucide-react";
 import { useLocation } from "react-router-dom";
 import Header from "../components/Header";
 import BoardSubHeader from "../components/BoardSubHeader";
@@ -862,6 +862,10 @@ export default function WorkSpacePage() {
                           {card.quickSignal === "HELP_NEEDED"
                             ? <><AlertCircle size={11} /> 도움 요청</>
                             : <><MessageCircle size={11} /> 피드백 요청</>}
+                        </div>
+                      ) : bottleneckTaskIds.has(card.id) ? (
+                        <div className="wsp-card-signal signal-delay">
+                          <TrendingDown size={11} /> 지연
                         </div>
                       ) : (
                         <div className="wsp-card-signal-spacer" aria-hidden="true" />
