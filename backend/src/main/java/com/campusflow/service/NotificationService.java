@@ -64,7 +64,7 @@ public class NotificationService {
 
         String requesterName = resolveUserName(task.getWorkspace().getWorkspaceId(), requesterId);
         String signalLabel = "HELP_NEEDED".equals(signal) ? "도움을 요청" : "피드백을 요청";
-        String message = requesterName + "이(가) [" + task.getTitle() + "]에서 " + signalLabel + "했습니다 🆘";
+        String message = requesterName + "이(가) [" + task.getTitle() + "]에서 " + signalLabel + "했습니다";
 
         String wsId = task.getWorkspace().getWorkspaceId();
         List<String> memberIds = workspaceMemberRepository

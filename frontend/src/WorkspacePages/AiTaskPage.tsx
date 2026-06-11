@@ -9,9 +9,9 @@ import { useLocation, useNavigate } from "react-router-dom";
 import Header from "../components/Header";
 import PixelAvatar from "../components/PixelAvatar";
 import client from "../api/client";
+import { useWorkspaceSocket } from "../hooks/useWorkspaceSocket";
 import { getAppendBuffer, clearAppendBuffer, hasAppendBuffer } from "../store/aiTaskBuffer";
 import { createWorkspaceThemeStyle, withStoredGradient, withStoredGradients } from "../utils/workspaceTheme";
-import { useWorkspaceSocket } from "../hooks/useWorkspaceSocket";
 import "./AiTaskPage.css";
 
 interface Task {
@@ -20,6 +20,7 @@ interface Task {
   categoryIdx: number;
   desc?: string;
   priority?: string;
+  estimatedHours?: number;
   backendId?: string;
 }
 
@@ -27,6 +28,7 @@ interface CategoryTaskItem {
   name: string;
   desc: string;
   priority: string;
+  estimatedHours?: number;
 }
 
 interface Category {
@@ -52,11 +54,13 @@ interface WorkspaceItem {
   id: string;
   name: string;
   gradient: string;
+  type?: string;
 }
 
 interface AiResult {
   title: string;
   categories: { id: string; name: string; tasks: CategoryTaskItem[] }[];
+  fallback?: boolean;
 }
 
 interface AiTaskSession {
@@ -64,9 +68,175 @@ interface AiTaskSession {
   categories: Category[];
   tasks: Task[];
   prompt: string;
-  result: AiResult;
+  result?: AiResult;
+  fallback?: boolean;
   memberBaskets?: Record<string, Task[]>;
   sessions?: Session[];
+}
+
+type RawAiTaskSession = Partial<AiTaskSession> & Record<string, unknown>;
+
+
+function readStoredWorkspace(): WorkspaceItem | undefined {
+  try {
+    return JSON.parse(localStorage.getItem("clickedWorkspace") ?? "null") ?? undefined;
+  } catch {
+    return undefined;
+  }
+}
+
+function asArray<T = unknown>(value: unknown): T[] {
+  if (Array.isArray(value)) return value as T[];
+  if (value && typeof value === "object") return Object.values(value as Record<string, T>);
+  return [];
+}
+
+function normalizeRawTasks(value: unknown): Task[] {
+  return asArray<Record<string, unknown>>(value).map((task, index) => ({
+    id: String(task.id ?? task.taskId ?? `restored-task-${index}`),
+    name: String(task.name ?? task.title ?? task.taskName ?? ""),
+    categoryIdx: Number(task.categoryIdx ?? task.categoryIndex ?? task.category ?? 0),
+    desc: typeof task.desc === "string" ? task.desc : typeof task.description === "string" ? task.description : "",
+    priority: typeof task.priority === "string" ? task.priority : "",
+    estimatedHours: typeof task.estimatedHours === "number" ? task.estimatedHours : undefined,
+    backendId: task.backendId ? String(task.backendId) : undefined,
+  })).filter((task) => task.name.trim());
+}
+
+function normalizeSavedBaskets(value: unknown): Record<string, Task[]> {
+  if (!value || typeof value !== "object") return {};
+  return Object.fromEntries(
+    Object.entries(value as Record<string, unknown>).map(([key, basket]) => [key, normalizeRawTasks(basket)])
+  );
+}
+
+function normalizeRawCategories(value: unknown, tasks: Task[]): Category[] {
+  const rawCategories = asArray<Record<string, unknown>>(value);
+  if (rawCategories.length > 0) {
+    return rawCategories.map((category, index) => ({
+      name: String(category.name ?? category.title ?? `Category ${index + 1}`),
+      color: typeof category.color === "string" ? category.color : CAT_COLORS[index % CAT_COLORS.length].color,
+      taskColor: typeof category.taskColor === "string" ? category.taskColor : CAT_COLORS[index % CAT_COLORS.length].taskColor,
+      sessionId: typeof category.sessionId === "string" ? category.sessionId : "",
+    }));
+  }
+
+  const maxCategoryIdx = tasks.reduce((max, task) => Math.max(max, task.categoryIdx), -1);
+  return Array.from({ length: maxCategoryIdx + 1 }, (_, index) => ({
+    name: `Category ${index + 1}`,
+    color: CAT_COLORS[index % CAT_COLORS.length].color,
+    taskColor: CAT_COLORS[index % CAT_COLORS.length].taskColor,
+    sessionId: "",
+  }));
+}
+
+function coerceAiTaskSession(raw: RawAiTaskSession | null): AiTaskSession | null {
+  if (!raw) return null;
+  const result = raw.result as AiResult | undefined;
+  const resultTasks = result?.categories?.flatMap((category, categoryIdx) =>
+    (category.tasks ?? []).map((task, taskIdx) => ({
+      id: `result-c${categoryIdx}-t${taskIdx}`,
+      name: task.name,
+      categoryIdx,
+      desc: task.desc,
+      priority: task.priority,
+      estimatedHours: task.estimatedHours,
+    }))
+  ) ?? [];
+
+  const tasks = normalizeRawTasks(raw.tasks ?? raw.taskList ?? raw.items ?? resultTasks);
+  const categories = normalizeRawCategories(raw.categories ?? result?.categories, tasks);
+
+  return {
+    title: String(raw.title ?? result?.title ?? raw.prompt ?? "AI Task"),
+    categories,
+    tasks,
+    prompt: String(raw.prompt ?? raw.title ?? result?.title ?? "AI Task"),
+    result,
+    fallback: Boolean(raw.fallback ?? result?.fallback),
+    memberBaskets: normalizeSavedBaskets(raw.memberBaskets),
+    sessions: asArray<Session>(raw.sessions),
+  };
+}
+
+function countBasketTasks(memberBaskets?: Record<string, Task[]>) {
+  return Object.values(memberBaskets ?? {}).reduce((sum, basket) => sum + (Array.isArray(basket) ? basket.length : 0), 0);
+}
+
+function getSessionPayloadScore(session: Partial<AiTaskSession> | null) {
+  if (!session) return 0;
+  const resultTaskCount = session.result?.categories?.reduce((sum, category) => sum + (category.tasks?.length ?? 0), 0) ?? 0;
+  return (
+    (session.categories?.length ?? 0) +
+    (session.tasks?.length ?? 0) +
+    resultTaskCount +
+    countBasketTasks(session.memberBaskets)
+  );
+}
+
+function normalizeSessionRefs(session: AiTaskSession): AiTaskSession {
+  const categories = Array.isArray(session.categories) ? session.categories : [];
+  const existingSessions = Array.isArray(session.sessions) ? session.sessions : [];
+  const fallbackId = existingSessions[0]?.id ?? "session-restored";
+  const normalizedCategories = categories.map((category) => ({
+    ...category,
+    sessionId: category.sessionId || fallbackId,
+  }));
+
+  const categorySessionIds = [...new Set(normalizedCategories.map((category) => category.sessionId))];
+  const existingById = new Map(existingSessions.map((entry) => [entry.id, entry]));
+  const sessions = categorySessionIds.length > 0
+    ? categorySessionIds.map((id, index) => existingById.get(id) ?? {
+        id,
+        prompt: index === 0 ? (session.prompt || session.title || "AI Task") : `AI Task ${index + 1}`,
+        collapsed: false,
+      })
+    : existingSessions;
+
+  return {
+    ...session,
+    categories: normalizedCategories,
+    sessions,
+  };
+}
+
+function normalizeAiTaskSession(rawSession: RawAiTaskSession | null): AiTaskSession | null {
+  const session = coerceAiTaskSession(rawSession);
+  if (!session) return null;
+  if (session.result) {
+    const normalized = normalizeSessionRefs(session);
+    return getSessionPayloadScore(normalized) > 0 ? normalized : null;
+  }
+  if (!Array.isArray(session.categories) || !Array.isArray(session.tasks)) return null;
+
+  const result: AiResult = {
+    title: session.title || session.prompt || "AI Task",
+    fallback: session.fallback,
+    categories: session.categories.map((category, index) => ({
+      id: `c${index + 1}`,
+      name: category.name,
+      tasks: session.tasks
+        .filter((task) => task.categoryIdx === index)
+        .map((task) => ({
+          name: task.name,
+          desc: task.desc ?? "",
+          priority: task.priority ?? "",
+          estimatedHours: task.estimatedHours,
+        })),
+    })),
+  };
+
+  const normalized = normalizeSessionRefs({ ...session, result });
+  return getSessionPayloadScore(normalized) > 0 ? normalized : null;
+}
+
+function readAiTaskSession(preferredKey: string): AiTaskSession | null {
+  try {
+    const session = JSON.parse(localStorage.getItem(preferredKey) ?? "null") as RawAiTaskSession | null;
+    return normalizeAiTaskSession(session);
+  } catch {
+    return null;
+  }
 }
 
 const CAT_COLORS = [
@@ -76,6 +246,16 @@ const CAT_COLORS = [
   { color: "#c4a8f8", taskColor: "#c4a8f8" },
   { color: "#f8d08a", taskColor: "#f8d08a" },
 ];
+
+function normalizeMember(raw: any): Member {
+  const userId = raw?.userId ?? raw?.id ?? raw?.memberId ?? raw?.user?.userId ?? raw?.user?.id ?? "";
+  return {
+    userId: String(userId),
+    name: raw?.name ?? raw?.userName ?? raw?.username ?? raw?.user?.name ?? "팀원",
+    role: raw?.role ?? "MEMBER",
+  };
+}
+
 
 export default function AiTaskPage() {
   const { state } = useLocation() as {
@@ -88,17 +268,16 @@ export default function AiTaskPage() {
     };
   };
   const navigate = useNavigate();
-  const workspaces = withStoredGradients(state?.workspaces ?? []);
-  const rawWorkspace = state?.workspace ?? workspaces[0];
+  const savedWorkspace = readStoredWorkspace();
+  const workspaces = withStoredGradients(state?.workspaces ?? (savedWorkspace ? [savedWorkspace] : []));
+  const rawWorkspace = state?.workspace ?? workspaces[0] ?? savedWorkspace;
   const workspace = rawWorkspace ? withStoredGradient(rawWorkspace) : undefined;
   const themeStyle = createWorkspaceThemeStyle(workspace?.gradient);
   const sessionKey = `ai_task_session_${workspace?.id ?? "default"}`;
   const currentUserId = localStorage.getItem("userId") ?? "me";
+  const isPersonal = workspace?.type === "PERSONAL";
 
-  const storedSession: AiTaskSession | null = (() => {
-    try { return JSON.parse(localStorage.getItem(sessionKey) ?? "null"); }
-    catch { return null; }
-  })();
+  const storedSession = readAiTaskSession(sessionKey);
 
   // DB에서 로드한 세션 (팀원이 "이어가기"로 진입할 때 사용)
   const [dbSession, setDbSession] = useState<AiTaskSession | null>(null);
@@ -143,6 +322,7 @@ export default function AiTaskPage() {
         categoryIdx: ci + offset,
         desc: t.desc,
         priority: t.priority,
+        estimatedHours: t.estimatedHours,
       }))
     );
 
@@ -179,7 +359,16 @@ export default function AiTaskPage() {
       const offset = (buffer.categories as Category[]).length;
       return [...(buffer.tasks as Task[]), ...buildTasks(state.result!, offset)];
     }
-    if (shouldRestoreSession) return storedSession?.tasks ?? [];
+    if (shouldRestoreSession) {
+      const poolTasks = storedSession?.tasks ?? [];
+      // 장바구니에 이미 있는 태스크를 풀에서 제거 (새로고침 시 중복 방지)
+      const basketNames = new Set(
+        Object.values(storedSession?.memberBaskets ?? {})
+          .flat()
+          .map((t: Task) => t.name.trim().toLowerCase())
+      );
+      return poolTasks.filter((t) => !basketNames.has(t.name.trim().toLowerCase()));
+    }
     return buildTasks(aiResult);
   };
 
@@ -187,6 +376,7 @@ export default function AiTaskPage() {
   const [categories, setCategories] = useState<Category[]>(initCategories);
   const [tasks, setTasks]           = useState<Task[]>(initTasks);
   const [title, setTitle]           = useState(shouldRestoreSession ? storedSession?.title ?? "" : aiResult?.title ?? "");
+  const [isFallbackResult]          = useState(Boolean(shouldRestoreSession ? storedSession?.fallback : aiResult?.fallback));
   const [confirmSessionId, setConfirmSessionId] = useState<string | null>(null);
 
   const [members, setMembers]                       = useState<Member[]>([]);
@@ -204,23 +394,58 @@ export default function AiTaskPage() {
   // 삭제 undo — 최근 삭제된 태스크와 원래 위치(categoryIdx) 보관
   const [undoStack, setUndoStack]   = useState<Task[]>([]);
   const undoTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const basketReconciledRef = useRef(false); // reconciliation은 마운트 시 한 번만 실행
 
   useEffect(() => {
     if (!workspace?.id || isDbLoading) return;
     client.get(`/workspaces/${workspace.id}/members`)
-      .then((res) => {
-        const list: Member[] = (res.data.data ?? []).map((m: any) => ({
-          userId: m.userId, name: m.name, role: m.role,
-        }));
+      .then(async (res) => {
+        const list: Member[] = (res.data.data ?? []).map(normalizeMember);
         setMembers(list);
-        const savedBaskets = storedSession?.memberBaskets ?? dbSession?.memberBaskets ?? {};
-        setMemberBaskets(Object.fromEntries(list.map((m) => [m.userId, savedBaskets[m.userId] ?? []])));
+        const savedBaskets = storedSession?.memberBaskets ?? dbSession?.memberBaskets;
+
+        let nextBaskets: Record<string, Task[]> = Object.fromEntries(
+          list.map((member) => [member.userId, savedBaskets?.[member.userId] ?? savedBaskets?.[member.name] ?? []])
+        );
+
+        const allBasketTasks = Object.values(nextBaskets).flat();
+        const hasBackendIds = allBasketTasks.some((t) => !!t.backendId);
+        if (hasBackendIds && !basketReconciledRef.current) {
+          basketReconciledRef.current = true;
+          try {
+            const tasksRes = await client.get(`/workspaces/${workspace.id}/tasks`);
+            const boardAssignees: Record<string, string> = {};
+            for (const t of (tasksRes.data.data ?? [])) {
+              if (t.taskId) boardAssignees[t.taskId] = t.assigneeId ?? "";
+            }
+            const reconciled: Record<string, Task[]> = Object.fromEntries(list.map((m) => [m.userId, []]));
+            for (const [slotId, basket] of Object.entries(nextBaskets)) {
+              for (const task of basket) {
+                const currentAssigneeId = task.backendId ? boardAssignees[task.backendId] : undefined;
+                const targetId =
+                  currentAssigneeId !== undefined && reconciled[currentAssigneeId] !== undefined
+                    ? currentAssigneeId
+                    : slotId;
+                if (reconciled[targetId] !== undefined) reconciled[targetId].push(task);
+              }
+            }
+            nextBaskets = reconciled;
+          } catch {
+            // 백엔드 조회 실패 시 현재 상태 유지
+          }
+        }
+
+        setMemberBaskets(nextBaskets);
+        const basketNames = new Set(
+          Object.values(nextBaskets).flat().map((t) => t.name.trim().toLowerCase())
+        );
+        setTasks((prev) => prev.filter((t) => !basketNames.has(t.name.trim().toLowerCase())));
       })
       .catch(() => {
         const userId = localStorage.getItem("userId") ?? "me";
         const userName = localStorage.getItem("userName") ?? "나";
         setMembers([{ userId, name: userName, role: "MEMBER" }]);
-        setMemberBaskets({ [userId]: [] });
+        setMemberBaskets({ [userId]: storedSession?.memberBaskets?.[userId] ?? [] });
       });
   }, [workspace?.id, isDbLoading]); // isDbLoading이 false가 되면 멤버 로딩 실행
 
@@ -253,8 +478,8 @@ export default function AiTaskPage() {
   }, []); // 마운트 시 1회만 실행
 
   useEffect(() => {
-    if (isDbLoading) return; // DB 로딩 중에는 저장 안 함
-    const payload = { title, categories, tasks, prompt: origPrompt, result: aiResult, memberBaskets, sessions };
+    if (isDbLoading) return;
+    const payload = { title, categories, tasks, prompt: origPrompt, result: aiResult, fallback: isFallbackResult, memberBaskets, sessions };
     localStorage.setItem(sessionKey, JSON.stringify(payload));
 
     if (!workspace?.id) return;
@@ -282,7 +507,7 @@ export default function AiTaskPage() {
     return () => window.clearInterval(timer);
   }, [basketCooldownUntil]);
 
-  // AI 세션 WebSocket 동기화 — 다른 팀원이 세션을 변경하면 DB에서 리로드
+  // WebSocket: AI 세션 동기화 + 보드 담당자 변경 실시간 반영
   useWorkspaceSocket(workspace?.id, {
     onAiSessionUpdate: (msg) => {
       if (msg.updatedBy === currentUserId) return;
@@ -305,13 +530,10 @@ export default function AiTaskPage() {
         });
       };
 
-      // WS 메시지에 sessionData 포함된 경우 DB 재조회 없이 즉시 적용
       if (msg.sessionData) {
         applySession(msg.sessionData as unknown as AiTaskSession);
         return;
       }
-
-      // fallback: DB에서 조회
       client.get(`/workspaces/${workspace.id}/ai-session`)
         .then((res) => {
           const dbData = res.data?.data;
@@ -324,7 +546,69 @@ export default function AiTaskPage() {
       localStorage.removeItem(sessionKey);
       navigate("/workspace-board", { state: { workspace, workspaces } });
     },
+    onTaskUpdated: ({ taskId, field, value }) => {
+      if (field !== "assigneeId") return;
+      setMemberBaskets((prev) => {
+        let found: Task | null = null;
+        let fromUserId = "";
+        for (const [uid, basket] of Object.entries(prev)) {
+          const t = basket.find((b) => b.backendId === taskId);
+          if (t) { found = t; fromUserId = uid; break; }
+        }
+        if (!found) return prev;
+        const next = { ...prev };
+        next[fromUserId] = next[fromUserId].filter((b) => b.backendId !== taskId);
+        if (value) next[value] = [...(next[value] ?? []), found];
+        return next;
+      });
+    },
   });
+
+  // 탭 복귀 시 보드 담당자 변경사항 재조정
+  useEffect(() => {
+    if (!workspace?.id) return;
+    const wsId = workspace.id;
+    let cancelled = false;
+
+    const syncOnVisible = async () => {
+      if (document.visibilityState !== "visible") return;
+      try {
+        const [membersRes, tasksRes] = await Promise.all([
+          client.get(`/workspaces/${wsId}/members`),
+          client.get(`/workspaces/${wsId}/tasks`),
+        ]);
+        if (cancelled) return;
+        const list: Member[] = (membersRes.data.data ?? []).map(normalizeMember);
+        const boardAssignees: Record<string, string> = {};
+        for (const t of (tasksRes.data.data ?? [])) {
+          if (t.taskId) boardAssignees[t.taskId] = t.assigneeId ?? "";
+        }
+        setMemberBaskets((prev) => {
+          const allTasks = Object.values(prev).flat();
+          if (!allTasks.some((t) => !!t.backendId)) return prev;
+          const reconciled: Record<string, Task[]> = Object.fromEntries(list.map((m) => [m.userId, []]));
+          let moved = false;
+          for (const [slotId, basket] of Object.entries(prev)) {
+            for (const task of basket) {
+              const boardAssigneeId = task.backendId ? boardAssignees[task.backendId] : undefined;
+              const targetId =
+                boardAssigneeId !== undefined && reconciled[boardAssigneeId] !== undefined
+                  ? boardAssigneeId : slotId;
+              if (reconciled[targetId] !== undefined) {
+                reconciled[targetId].push(task);
+                if (targetId !== slotId) moved = true;
+              }
+            }
+          }
+          return moved ? reconciled : prev;
+        });
+      } catch { /* 네트워크 오류 시 현재 상태 유지 */ }
+    };
+
+    document.addEventListener("visibilitychange", syncOnVisible);
+    return () => { cancelled = true; document.removeEventListener("visibilitychange", syncOnVisible); };
+  }, [workspace?.id]);
+
 
   const toggleSession = (id: string) =>
     setSessions((prev) => prev.map((s) => s.id === id ? { ...s, collapsed: !s.collapsed } : s));
@@ -401,6 +685,7 @@ export default function AiTaskPage() {
         name: t.title,
         categoryIdx: task.categoryIdx,
         priority: task.priority,
+        estimatedHours: task.estimatedHours,
         desc: t.description,
       }));
       setTasks((prev) => {
@@ -434,7 +719,6 @@ export default function AiTaskPage() {
     const task = tasks.find((t) => t.id === draggingId);
     if (!task) return;
 
-    // 낙관적 UI 업데이트
     setMemberBaskets((prev) => {
       const basket = prev[userId] ?? [];
       if (basket.some((item) => item.id === task.id)) return prev;
@@ -443,51 +727,23 @@ export default function AiTaskPage() {
     setTasks((prev) => prev.filter((t) => t.id !== draggingId));
     setDraggingId(null);
     setDragOverUserId(null);
-    setBasketCooldownUntil(Date.now() + 3000);
-
-    // 즉시 보드에 생성
-    if (workspace?.id) {
-      client.post(`/workspaces/${workspace.id}/tasks`, {
-        title: task.name,
-        description: categories[task.categoryIdx]?.name ?? "",
-        status: "TODO",
-        assigneeId: userId,
-        priority: task.priority ?? null,
-      }).then((res) => {
-        const backendId = String(res.data.data?.taskId ?? "");
-        if (backendId) {
-          setMemberBaskets((prev) => ({
-            ...prev,
-            [userId]: (prev[userId] ?? []).map((t) =>
-              t.id === task.id ? { ...t, backendId } : t
-            ),
-          }));
-        }
-      }).catch((err) => {
-        console.error("태스크 생성 실패:", err);
-        // 롤백
-        setTasks((prev) => [...prev, task]);
-        setMemberBaskets((prev) => ({
-          ...prev,
-          [userId]: (prev[userId] ?? []).filter((t) => t.id !== task.id),
-        }));
-        alert("보드 저장에 실패했습니다.");
-      });
-    }
+    if (!isPersonal) setBasketCooldownUntil(Date.now() + 3000);
   };
 
   const handleReturnDragStart = (id: string, userId: string) => { setDraggingId(id); setDraggingFromUserId(userId); };
 
-  const handleReturnDrop = (e: React.DragEvent) => {
+  const handleReturnDrop = async (e: React.DragEvent) => {
     e.preventDefault();
     if (!draggingId || !draggingFromUserId) return;
     const task = memberBaskets[draggingFromUserId]?.find((t) => t.id === draggingId);
     if (!task) return;
 
-    // 즉시 보드에서 삭제
     if (task.backendId && workspace?.id) {
-      client.delete(`/workspaces/${workspace.id}/tasks/${task.backendId}`)
-        .catch((err) => console.error("태스크 삭제 실패:", err));
+      try {
+        await client.delete(`/workspaces/${workspace.id}/tasks/${task.backendId}`);
+      } catch (err) {
+        console.error("보드 태스크 삭제 실패:", err);
+      }
     }
 
     setTasks((prev) => [...prev, { ...task, backendId: undefined }]);
@@ -499,31 +755,85 @@ export default function AiTaskPage() {
     setDraggingFromUserId(null);
   };
 
+  const handleReturnAll = async () => {
+    const basket = memberBaskets[currentUserId] ?? [];
+    if (basket.length === 0) return;
+
+    if (workspace?.id) {
+      for (const task of basket) {
+        if (task.backendId) {
+          try {
+            await client.delete(`/workspaces/${workspace.id}/tasks/${task.backendId}`);
+          } catch (err) {
+            console.error("보드 태스크 삭제 실패:", err);
+          }
+        }
+      }
+    }
+
+    setTasks((prev) => [...prev, ...basket.map((t) => ({ ...t, backendId: undefined }))]);
+    setMemberBaskets((prev) => ({ ...prev, [currentUserId]: [] }));
+  };
+
+  const handleTakeAll = () => {
+    if (tasks.length === 0) return;
+    setMemberBaskets((prev) => ({
+      ...prev,
+      [currentUserId]: [...(prev[currentUserId] ?? []), ...tasks],
+    }));
+    setTasks([]);
+  };
+
   const sendBasketToWorkspace = async () => {
     if (!workspace?.id) { alert("워크스페이스 정보가 없습니다."); return; }
 
-    // backendId 없는 태스크(드래그 중 API 실패 등) 혹시 있으면 저장
-    const unsaved: Array<[string, Task]> = [];
-    for (const [userId, basket] of Object.entries(memberBaskets)) {
-      for (const task of basket) {
-        if (!task.backendId) unsaved.push([userId, task]);
-      }
-    }
-    if (unsaved.length > 0) {
-      try {
-        for (const [userId, task] of unsaved) {
-          await client.post(`/workspaces/${workspace.id}/tasks`, {
+    // POST 후 backendId 수집 — 이후 장바구니에서 빼면 보드에서도 삭제할 수 있도록
+    try {
+      const nextBaskets: typeof memberBaskets = {};
+      for (const [userId, basket] of Object.entries(memberBaskets)) {
+        const updated = [...basket];
+        for (let i = 0; i < updated.length; i++) {
+          const task = updated[i];
+          const res = await client.post(`/workspaces/${workspace.id}/tasks`, {
             title: task.name,
             description: task.desc || categories[task.categoryIdx]?.name || "",
             status: "TODO",
             assigneeId: userId,
             priority: task.priority ?? null,
+            estimatedHours: task.estimatedHours ?? null,
           });
+          const backendId: string | undefined = res.data?.data?.taskId;
+          if (backendId) updated[i] = { ...task, backendId };
         }
-      } catch (err: any) {
-        alert(`업무 저장에 실패했습니다: ${err?.response?.data?.message ?? err?.message ?? err}`);
-        return;
+        nextBaskets[userId] = updated;
       }
+      // navigate 전에 backendId 포함된 basket을 localStorage에 직접 저장
+      const createdTasks = Object.values(nextBaskets).flat().filter((task) => task.backendId);
+      const tasksByCategory = new Map<number, Task[]>();
+      createdTasks.forEach((task) => {
+        const bucket = tasksByCategory.get(task.categoryIdx) ?? [];
+        bucket.push(task);
+        tasksByCategory.set(task.categoryIdx, bucket);
+      });
+      for (const bucket of tasksByCategory.values()) {
+        const ordered = [...bucket].sort((a, b) => a.id.localeCompare(b.id));
+        for (let i = 0; i < ordered.length - 1; i++) {
+          const predecessorId = ordered[i].backendId;
+          const successorId = ordered[i + 1].backendId;
+          if (!predecessorId || !successorId) continue;
+          try {
+            await client.post(`/workspaces/${workspace.id}/tasks/${predecessorId}/successors`, { successorTaskId: successorId });
+          } catch (err) {
+            console.warn("AI task dependency auto-link failed:", err);
+          }
+        }
+      }
+      localStorage.setItem(sessionKey, JSON.stringify({
+        title, categories, tasks, prompt: origPrompt, result: aiResult, memberBaskets: nextBaskets, sessions,
+      }));
+    } catch (err: any) {
+      alert(`업무 저장에 실패했습니다: ${err?.response?.data?.message ?? err?.message ?? err}`);
+      return;
     }
 
     // DB 세션 삭제 (보드 배정 완료 → 팀원들에게 AI_SESSION_DELETED 브로드캐스트)
@@ -604,8 +914,12 @@ export default function AiTaskPage() {
 
       <div className="atp-topbar">
         <button className="atp-back-btn" onClick={() => navigate("/workspace")}>뒤로가기</button>
-        {title && <span className="atp-project-title">{title}</span>}
-        <button className="atp-workspace-btn" onClick={sendBasketToWorkspace}>시작하기</button>
+        {title && (
+          <span className={`atp-project-title ${isFallbackResult ? "atp-project-title--fallback" : ""}`}>
+            {title}
+          </span>
+        )}
+        <button className="atp-workspace-btn" onClick={sendBasketToWorkspace}>보드로 시작하기</button>
       </div>
 
       <div className="atp-body">
@@ -670,7 +984,7 @@ export default function AiTaskPage() {
         </div>
 
         {/* 팀원별 장바구니 슬롯 */}
-        <div className="atp-basket-bar">
+        <div className={`atp-basket-bar ${isPersonal ? "atp-basket-bar--personal" : ""}`}>
           {basketCooldownLeft > 0 && (
             <div className="atp-basket-toolbar">
               <span className="atp-basket-cooldown">{basketCooldownLeft}초 후 추가 가능</span>
@@ -720,7 +1034,24 @@ export default function AiTaskPage() {
                       );
                     })}
                   </div>
-                  <PixelAvatar userId={member.userId} name={member.name} size="sm" className="atp-pixel-avatar" />
+                  {(() => {
+                    const isMe = member.userId === currentUserId;
+                    const myBasket = memberBaskets[member.userId] ?? [];
+                    const canTake = isMe && tasks.length > 0 && isPersonal;
+                    const canReturn = isMe && tasks.length === 0 && myBasket.length > 0;
+                    const interactive = canTake || canReturn;
+                    return (
+                      <div
+                        className={`atp-avatar-wrap ${interactive ? (canTake ? "atp-avatar-takeable" : "atp-avatar-returnable") : ""}`}
+                        onClick={() => { if (canTake) handleTakeAll(); else if (canReturn) handleReturnAll(); }}
+                        title={canTake ? `모두 가져오기 (${tasks.length}개)` : canReturn ? `모두 내보내기 (${myBasket.length}개)` : undefined}
+                      >
+                        <PixelAvatar userId={member.userId} name={member.name} size="sm" className="atp-pixel-avatar" />
+                        {canTake && <span className="atp-avatar-take-hint">{tasks.length}</span>}
+                        {canReturn && <span className="atp-avatar-take-hint atp-avatar-return-hint">{myBasket.length}</span>}
+                      </div>
+                    );
+                  })()}
                   <span className="atp-user-name">{member.name}</span>
                 </div>
               );
@@ -734,10 +1065,10 @@ export default function AiTaskPage() {
     {confirmSessionId && (
       <div className="atp-confirm-overlay" onClick={() => setConfirmSessionId(null)}>
         <div className="atp-confirm-modal" onClick={(e) => e.stopPropagation()}>
-          <div className="atp-confirm-icon">🗑️</div>
+          <div className="atp-confirm-icon">🗑</div>
           <h3 className="atp-confirm-title">작업 섹션 삭제</h3>
           <p className="atp-confirm-msg">
-            이 작업과 연결된 모든 태스크가 삭제됩니다.<br />정말 삭제할까요?
+            이 작업과 연결된 모든 태스크가<br />삭제됩니다. 계속할까요?
           </p>
           <div className="atp-confirm-btns">
             <button className="atp-confirm-cancel" onClick={() => setConfirmSessionId(null)}>취소</button>

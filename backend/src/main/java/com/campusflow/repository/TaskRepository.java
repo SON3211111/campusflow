@@ -24,6 +24,10 @@ public interface TaskRepository extends JpaRepository<Task, String> {
     // 칸반 보드용: 삭제되지 않은 태스크만 조회
     List<Task> findAllByWorkspace_WorkspaceIdAndDeletedFalse(String workspaceId);
 
+    // 중복 방지: 같은 워크스페이스 + 제목 + 담당자 조합으로 활성 태스크 존재 여부 확인
+    java.util.Optional<Task> findFirstByWorkspace_WorkspaceIdAndTitleAndAssignee_UserIdAndDeletedFalse(
+        String workspaceId, String title, String assigneeId);
+
     // 휴지통용: 소프트 삭제된 태스크만 조회
     List<Task> findAllByWorkspace_WorkspaceIdAndDeletedTrue(String workspaceId);
 
@@ -36,4 +40,8 @@ public interface TaskRepository extends JpaRepository<Task, String> {
     @Modifying
     @Query("UPDATE Task t SET t.parentTask = null WHERE t.workspace.workspaceId = :workspaceId")
     void updateParentTaskNullByWorkspace(@Param("workspaceId") String workspaceId);
+
+    @Modifying
+    @Query("UPDATE Task t SET t.parentTask = null WHERE t.parentTask.taskId = :taskId")
+    void updateParentTaskNullByParentTaskId(@Param("taskId") String taskId);
 }

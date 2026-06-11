@@ -30,7 +30,10 @@ const Signup: React.FC = () => {
       <section className="auth-visual signup-visual">
         <button className="auth-logo-button auth-logo-brand" onClick={() => navigate("/")} aria-label="C'FLOW 랜딩페이지로 이동">
           <span className="auth-logo-mark">C</span>
-          <span className="auth-logo-text">C'FLOW</span>
+          <span className="auth-logo-wordmark">
+            <span>CAMPUS</span>
+            <strong>FLOW</strong>
+          </span>
         </button>
         <div className="auth-hero-copy">
           <p className="auth-eyebrow">

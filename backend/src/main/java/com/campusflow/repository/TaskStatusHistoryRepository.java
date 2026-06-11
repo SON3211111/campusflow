@@ -13,6 +13,11 @@ public interface TaskStatusHistoryRepository extends JpaRepository<TaskStatusHis
 
     List<TaskStatusHistory> findAllByTask_TaskIdOrderByOccurredAtDesc(String taskId);
 
+    void deleteAllByTask_TaskId(String taskId);
+
     org.springframework.data.domain.Page<TaskStatusHistory> findAllByWorkspace_WorkspaceIdOrderByOccurredAtDesc(
             String workspaceId, org.springframework.data.domain.Pageable pageable);
+
+    // 워크스페이스 삭제 시 전체 제거
+    void deleteAllByWorkspace_WorkspaceId(String workspaceId);
 }

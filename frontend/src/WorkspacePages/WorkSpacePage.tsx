@@ -7,7 +7,7 @@
  */
 import { useState, useEffect, useRef } from "react";
 import type { MouseEvent } from "react";
-import { Sparkles, Plus, CalendarDays, AlertCircle, MessageCircle, Calendar } from "lucide-react";
+import { Sparkles, Plus, CalendarDays, AlertCircle, MessageCircle, Calendar, TrendingDown } from "lucide-react";
 import { useLocation } from "react-router-dom";
 import Header from "../components/Header";
 import BoardSubHeader from "../components/BoardSubHeader";
@@ -158,6 +158,16 @@ export default function WorkSpacePage() {
         .then((res) => setWsMembers(res.data.data ?? []))
         .catch(() => {});
     }
+  }, [workspace?.id]);
+
+  useEffect(() => {
+    if (!workspace?.id) return;
+    client.get(`/workspaces/${workspace.id}/tasks/bottleneck?days=3`)
+      .then((res) => {
+        const ids = new Set<string>((res.data.data ?? []).map((t: any) => t.taskId as string));
+        setBottleneckTaskIds(ids);
+      })
+      .catch(() => {});
   }, [workspace?.id]);
 
   useEffect(() => {
@@ -317,10 +327,12 @@ export default function WorkSpacePage() {
         for (const col of Object.keys(next)) {
           next[col] = next[col].map((c) => {
             if (c.id !== taskId) return c;
-            if (field === "title")       return { ...c, title: value };
-            if (field === "description") return { ...c, desc: value };
-            if (field === "startDate")   return { ...c, startDate: value };
-            if (field === "dueDate")     return { ...c, dueDate: value };
+            if (field === "title")        return { ...c, title: value };
+            if (field === "description")  return { ...c, desc: value };
+            if (field === "startDate")    return { ...c, startDate: value };
+            if (field === "dueDate")      return { ...c, dueDate: value };
+            if (field === "assigneeName") return { ...c, assigneeName: value || undefined };
+            if (field === "assigneeId")   return { ...c, assigneeId: value || undefined };
             return c;
           });
         }
@@ -383,9 +395,10 @@ export default function WorkSpacePage() {
     }
   };
 
-  const [addingCol, setAddingCol]         = useState<string | null>(null);
-  const [inputVal, setInputVal]           = useState("");
-  const [selectedCard, setSelectedCard]   = useState<{ card: CardItem; col: string } | null>(null);
+  const [addingCol, setAddingCol]           = useState<string | null>(null);
+  const [inputVal, setInputVal]             = useState("");
+  const [bottleneckTaskIds, setBottleneckTaskIds] = useState<Set<string>>(new Set());
+  const [selectedCard, setSelectedCard]     = useState<{ card: CardItem; col: string } | null>(null);
   const [slideCard, setSlideCard]         = useState<{ title: string; desc: string; dueDate?: string; comments: any[] } | null>(null);
   const [draggingCard, setDraggingCard]   = useState<{ card: CardItem; col: string } | null>(null);
   const [dragOverCol, setDragOverCol]     = useState<string | null>(null);
@@ -497,6 +510,16 @@ export default function WorkSpacePage() {
       setDeletedCards((prev) => prev.filter((c) => c.id !== card.id));
       setShowLanding(false);
     } catch {}
+  };
+
+  const handleHardDeleteCard = async (card: CardItem) => {
+    if (!workspace?.id) return;
+    try {
+      await client.delete(`/workspaces/${workspace.id}/tasks/${card.id}/hard`);
+      setDeletedCards((prev) => prev.filter((c) => c.id !== card.id));
+    } catch (err: any) {
+      alert(`영구 삭제에 실패했습니다: ${err?.response?.data?.message ?? err?.message ?? "알 수 없는 오류"}`);
+    }
   };
 
   const openTrash = async () => {
@@ -840,6 +863,10 @@ export default function WorkSpacePage() {
                             ? <><AlertCircle size={11} /> 도움 요청</>
                             : <><MessageCircle size={11} /> 피드백 요청</>}
                         </div>
+                      ) : bottleneckTaskIds.has(card.id) ? (
+                        <div className="wsp-card-signal signal-delay">
+                          <TrendingDown size={11} /> 지연
+                        </div>
                       ) : (
                         <div className="wsp-card-signal-spacer" aria-hidden="true" />
                       )}
@@ -957,6 +984,7 @@ export default function WorkSpacePage() {
           initialQuickSignal={selectedCard.card.quickSignal}
           assigneeId={selectedCard.card.assigneeId}
           assigneeName={selectedCard.card.assigneeName}
+          availableTasks={Object.values(cards).flat().map((card) => ({ id: card.id, title: card.title }))}
           onSaveTitle={(t) => handleSaveTitle(selectedCard.col, selectedCard.card.id, t)}
           onSaveDesc={(desc) => handleSaveDesc(selectedCard.col, selectedCard.card.id, desc)}
           onSaveStartDate={(startDate) => handleSaveStartDate(selectedCard.col, selectedCard.card.id, startDate)}
@@ -966,6 +994,7 @@ export default function WorkSpacePage() {
           onStatusChange={(newColName) => handleStatusChangeFromModal(selectedCard.col, selectedCard.card.id, newColName)}
           members={wsMembers}
           onChangeAssignee={(userId, name) => handleChangeAssignee(selectedCard.col, selectedCard.card.id, userId, name)}
+          isBottleneck={bottleneckTaskIds.has(selectedCard.card.id)}
           onClose={() => setSelectedCard(null)}
         />
       )}
@@ -993,9 +1022,14 @@ export default function WorkSpacePage() {
                       <strong>{card.title}</strong>
                       {card.desc && <p>{card.desc}</p>}
                     </div>
-                    <button className="wsp-restore-btn" onClick={() => handleRestoreCard(card)}>
-                      복구
-                    </button>
+                    <div className="wsp-trash-actions">
+                      <button className="wsp-restore-btn" onClick={() => handleRestoreCard(card)}>
+                        복구
+                      </button>
+                      <button className="wsp-hard-delete-btn" onClick={() => handleHardDeleteCard(card)}>
+                        영구 삭제
+                      </button>
+                    </div>
                   </div>
                 ))}
               </div>

@@ -4,19 +4,26 @@ import com.campusflow.dto.ActivityFeedItemDto;
 import com.campusflow.dto.BottleneckReportDto;
 import com.campusflow.dto.ProjectProgressDto;
 import com.campusflow.dto.TaskCreateRequest;
+import com.campusflow.dto.TaskDependencyResponse;
+import com.campusflow.dto.TaskDependencySummary;
 import com.campusflow.dto.TaskResponse;
 import com.campusflow.entity.ContributionMetrics;
 import com.campusflow.entity.Project;
 import com.campusflow.entity.Task;
+import com.campusflow.entity.TaskDependency;
 import com.campusflow.entity.TaskStatusHistory;
+import com.campusflow.entity.TeamCommunication;
 import com.campusflow.entity.User;
 import com.campusflow.entity.Workspace;
 import com.campusflow.entity.enums.TaskPriority;
 import com.campusflow.entity.enums.TaskStatus;
 import com.campusflow.repository.ContributionMetricsRepository;
 import com.campusflow.repository.ProjectRepository;
+import com.campusflow.repository.TaskAttachmentRepository;
+import com.campusflow.repository.TaskDependencyRepository;
 import com.campusflow.repository.TaskRepository;
 import com.campusflow.repository.TaskStatusHistoryRepository;
+import com.campusflow.repository.TeamCommunicationRepository;
 import com.campusflow.repository.UserRepository;
 import com.campusflow.repository.WorkspaceRepository;
 import com.campusflow.websocket.TaskWebSocketHandler;
@@ -28,8 +35,15 @@ import org.springframework.data.domain.PageRequest;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.util.ArrayDeque;
+import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.HashSet;
+import java.util.ArrayList;
+import java.util.Comparator;
+import java.util.Queue;
 import java.util.Set;
 import java.util.stream.Collectors;
 
@@ -42,6 +56,9 @@ public class TaskService {
     private final UserRepository userRepository;
     private final WorkspaceRepository workspaceRepository;
     private final TaskStatusHistoryRepository taskStatusHistoryRepository;
+    private final TeamCommunicationRepository teamCommunicationRepository;
+    private final TaskAttachmentRepository taskAttachmentRepository;
+    private final TaskDependencyRepository taskDependencyRepository;
     private final ContributionMetricsRepository contributionMetricsRepository;
     private final NotificationService notificationService;
     private final TaskWebSocketHandler taskWebSocketHandler;
@@ -97,6 +114,21 @@ public class TaskService {
             try { startDate = LocalDate.parse(req.startDate()); } catch (Exception ignored) {}
         }
 
+        LocalDate dueDate = null;
+        if (req.dueDate() != null && !req.dueDate().isBlank()) {
+            try { dueDate = LocalDate.parse(req.dueDate()); } catch (Exception ignored) {}
+        }
+
+        // 같은 제목 + 같은 담당자 태스크가 이미 있으면 기존 태스크 반환 (중복 저장 방지)
+        if (assignee != null) {
+            java.util.Optional<Task> existing = taskRepository
+                .findFirstByWorkspace_WorkspaceIdAndTitleAndAssignee_UserIdAndDeletedFalse(
+                    workspaceId, req.title(), assignee.getUserId());
+            if (existing.isPresent()) {
+                return TaskResponse.from(existing.get());
+            }
+        }
+
         Task task = Task.builder()
                 .workspace(workspace)
                 .title(req.title())
@@ -104,7 +136,9 @@ public class TaskService {
                 .status(status)
                 .assignee(assignee)
                 .priority(priority)
+                .estimatedHours(req.estimatedHours())
                 .startDate(startDate)
+                .dueDate(dueDate)
                 .boardColumn(req.boardColumn())
                 .deleted(false)
                 .build();
@@ -125,6 +159,57 @@ public class TaskService {
         );
         taskWebSocketHandler.broadcast(workspaceId, createJson);
         return TaskResponse.from(saved);
+    }
+
+    @Transactional(readOnly = true)
+    public TaskDependencySummary getTaskDependencies(String taskId) {
+        List<TaskDependencyResponse> predecessors = taskDependencyRepository
+                .findAllBySuccessor_TaskId(taskId)
+                .stream()
+                .map(TaskDependencyResponse::from)
+                .toList();
+        List<TaskDependencyResponse> successors = taskDependencyRepository
+                .findAllByPredecessor_TaskId(taskId)
+                .stream()
+                .map(TaskDependencyResponse::from)
+                .toList();
+        return new TaskDependencySummary(predecessors, successors);
+    }
+
+    @Transactional
+    public TaskDependencyResponse addTaskSuccessor(String workspaceId, String predecessorTaskId, String successorTaskId) {
+        if (predecessorTaskId.equals(successorTaskId)) {
+            throw new IllegalArgumentException("A task cannot depend on itself.");
+        }
+
+        Task predecessor = taskRepository.findById(predecessorTaskId)
+                .orElseThrow(() -> new IllegalArgumentException("Predecessor task not found: " + predecessorTaskId));
+        Task successor = taskRepository.findById(successorTaskId)
+                .orElseThrow(() -> new IllegalArgumentException("Successor task not found: " + successorTaskId));
+
+        if (predecessor.getWorkspace() == null || successor.getWorkspace() == null
+                || !workspaceId.equals(predecessor.getWorkspace().getWorkspaceId())
+                || !workspaceId.equals(successor.getWorkspace().getWorkspaceId())) {
+            throw new IllegalArgumentException("Tasks must belong to the same workspace.");
+        }
+
+        if (hasDependencyPath(successorTaskId, predecessorTaskId, workspaceId)) {
+            throw new IllegalArgumentException("Dependency cycle is not allowed.");
+        }
+
+        return taskDependencyRepository
+                .findByPredecessor_TaskIdAndSuccessor_TaskId(predecessorTaskId, successorTaskId)
+                .map(TaskDependencyResponse::from)
+                .orElseGet(() -> TaskDependencyResponse.from(taskDependencyRepository.save(TaskDependency.builder()
+                        .workspace(predecessor.getWorkspace())
+                        .predecessor(predecessor)
+                        .successor(successor)
+                        .build())));
+    }
+
+    @Transactional
+    public void removeTaskSuccessor(String predecessorTaskId, String successorTaskId) {
+        taskDependencyRepository.deleteByPredecessor_TaskIdAndSuccessor_TaskId(predecessorTaskId, successorTaskId);
     }
 
     @Transactional
@@ -182,10 +267,9 @@ public class TaskService {
                 .toList();
     }
 
-    /** 병목 태스크 — DOING/ISSUE 상태로 N일 이상 변경 없는 태스크 */
+    /** 병목 태스크 — 기한 초과 또는 계획 기간 + 버퍼 이상 정체 */
     @Transactional(readOnly = true)
-    public List<TaskResponse> getBottleneckTasks(String workspaceId, int days) {
-        LocalDateTime threshold = LocalDateTime.now().minusDays(days);
+    public List<TaskResponse> getBottleneckTasks(String workspaceId, int thresholdDays) {
         List<TaskStatus> stuckStatuses = List.of(TaskStatus.DOING, TaskStatus.ISSUE);
 
         List<Task> candidates = taskRepository
@@ -194,37 +278,40 @@ public class TaskService {
                 .filter(t -> stuckStatuses.contains(t.getStatus()))
                 .toList();
 
-        // 히스토리가 있는 태스크 중 마지막 변경이 threshold 이전인 것만 반환
-        Set<String> stuckIds = taskStatusHistoryRepository
+        Map<String, LocalDateTime> lastChangedMap = taskStatusHistoryRepository
                 .findAllByWorkspace_WorkspaceIdOrderByOccurredAtDesc(workspaceId)
                 .stream()
                 .collect(Collectors.toMap(
                         h -> h.getTask().getTaskId(),
-                        h -> h,
-                        (a, b) -> a   // 가장 최근 것만 유지
-                ))
-                .entrySet().stream()
-                .filter(e -> e.getValue().getOccurredAt().isBefore(threshold))
-                .map(Map.Entry::getKey)
-                .collect(Collectors.toSet());
+                        h -> h.getOccurredAt(),
+                        (a, b) -> a
+                ));
 
         return candidates.stream()
-                .filter(t -> stuckIds.contains(t.getTaskId()))
+                .filter(t -> {
+                    LocalDateTime lastChanged = lastChangedMap.get(t.getTaskId());
+                    if (lastChanged == null) return false;
+                    long daysStuck = java.time.temporal.ChronoUnit.DAYS.between(lastChanged, LocalDateTime.now());
+                    return isBottleneckCondition(t, daysStuck, thresholdDays);
+                })
                 .map(TaskResponse::from)
                 .toList();
     }
 
     /**
      * 병목 영향 리포트
-     * - 병목 태스크별 정체 일수, 후속 영향 업무 목록, 예상 지연일 계산
-     * - task_dependencies 없이 dueDate 기준으로 후속 업무를 휴리스틱하게 추정
+     * - task_dependencies 기반으로만 후속 영향 업무를 산출 (날짜 휴리스틱 제거)
+     * - 병목 태스크의 delayDays를 직·간접 후속 업무 전체에 동일하게 상속
+     * - totalDelayDays = 병목들 중 최대 지연일 (최악 시나리오)
      */
     @Transactional(readOnly = true)
     public BottleneckReportDto getBottleneckReport(String workspaceId, int thresholdDays) {
         List<Task> allActive = taskRepository.findAllByWorkspace_WorkspaceIdAndDeletedFalse(workspaceId);
         List<TaskStatus> stuckStatuses = List.of(TaskStatus.DOING, TaskStatus.ISSUE);
+        List<TaskDependency> dependencies = taskDependencyRepository.findAllByWorkspace_WorkspaceId(workspaceId);
+        Map<String, Task> taskById = allActive.stream()
+                .collect(Collectors.toMap(Task::getTaskId, t -> t));
 
-        // 태스크별 마지막 상태 변경 시각 맵핑
         Map<String, java.time.LocalDateTime> lastChangedMap = taskStatusHistoryRepository
                 .findAllByWorkspace_WorkspaceIdOrderByOccurredAtDesc(workspaceId)
                 .stream()
@@ -234,9 +321,6 @@ public class TaskService {
                         (a, b) -> a
                 ));
 
-        java.time.LocalDateTime threshold = java.time.LocalDateTime.now().minusDays(thresholdDays);
-
-        // 전체 태스크 중 가장 늦은 dueDate (프로젝트 마감일 기준)
         java.time.LocalDate projectDeadline = allActive.stream()
                 .filter(t -> t.getDueDate() != null && t.getStatus() != TaskStatus.DONE)
                 .map(Task::getDueDate)
@@ -244,35 +328,37 @@ public class TaskService {
                 .orElse(null);
 
         int maxDelayDays = 0;
-
-        List<BottleneckReportDto.BottleneckItem> items = new java.util.ArrayList<>();
+        List<BottleneckReportDto.BottleneckItem> items = new ArrayList<>();
 
         for (Task t : allActive) {
             if (!stuckStatuses.contains(t.getStatus())) continue;
             java.time.LocalDateTime lastChanged = lastChangedMap.get(t.getTaskId());
-            if (lastChanged == null || !lastChanged.isBefore(threshold)) continue;
+            if (lastChanged == null) continue;
 
-            // 정체 일수 계산
             long daysStuck = java.time.temporal.ChronoUnit.DAYS.between(lastChanged, java.time.LocalDateTime.now());
-            int delayDays = (int) Math.max(daysStuck - thresholdDays, 0);
+            if (!isBottleneckCondition(t, daysStuck, thresholdDays)) continue;
+
+            int delayDays = calculateWeightedDelayDays(t, daysStuck, thresholdDays);
             maxDelayDays = Math.max(maxDelayDays, delayDays);
 
-            // 후속 영향 업무: dueDate가 이 태스크 이후이거나, dueDate 없는 미완료 태스크
-            List<BottleneckReportDto.AffectedTask> affected = allActive.stream()
-                    .filter(a -> !a.getTaskId().equals(t.getTaskId()))
-                    .filter(a -> a.getStatus() != TaskStatus.DONE)
-                    .filter(a -> {
-                        if (t.getDueDate() == null) return true; // 병목에 마감일 없으면 전체 영향
-                        if (a.getDueDate() == null) return true; // 후속도 마감일 없으면 영향받을 수 있음
-                        return !a.getDueDate().isBefore(t.getDueDate()); // 병목 이후 마감이면 영향
+            // BFS로 모든 직·간접 후속 수집 + 각 태스크의 depth(거리) 포함
+            Map<String, Integer> downstreamWithDepth = collectAllDownstreamWithDepth(t.getTaskId(), dependencies);
+            List<BottleneckReportDto.AffectedTask> affected = downstreamWithDepth.entrySet().stream()
+                    .filter(e -> taskById.containsKey(e.getKey()))
+                    .map(e -> {
+                        Task a = taskById.get(e.getKey());
+                        return new BottleneckReportDto.AffectedTask(
+                                a.getTaskId(),
+                                a.getTitle(),
+                                a.getDueDate() != null ? a.getDueDate().toString() : null,
+                                a.getStatus().name(),
+                                a.getAssignee() != null ? a.getAssignee().getName() : null,
+                                delayDays,
+                                e.getValue()
+                        );
                     })
-                    .map(a -> new BottleneckReportDto.AffectedTask(
-                            a.getTaskId(),
-                            a.getTitle(),
-                            a.getDueDate() != null ? a.getDueDate().toString() : null,
-                            a.getStatus().name(),
-                            a.getAssignee() != null ? a.getAssignee().getName() : null
-                    ))
+                    .filter(a -> !a.status().equals("DONE"))
+                    .sorted(java.util.Comparator.comparingInt(BottleneckReportDto.AffectedTask::depth))
                     .toList();
 
             items.add(new BottleneckReportDto.BottleneckItem(
@@ -288,13 +374,114 @@ public class TaskService {
             ));
         }
 
-        // 예상 새 마감일 계산
         String deadlineStr = projectDeadline != null ? projectDeadline.toString() : null;
         String newDeadlineStr = (projectDeadline != null && maxDelayDays > 0)
                 ? projectDeadline.plusDays(maxDelayDays).toString()
                 : deadlineStr;
 
         return new BottleneckReportDto(items, maxDelayDays, deadlineStr, newDeadlineStr);
+    }
+
+    /** BFS로 모든 직·간접 후속 태스크 ID와 depth(거리)를 수집 */
+    private Map<String, Integer> collectAllDownstreamWithDepth(String startTaskId, List<TaskDependency> dependencies) {
+        Map<String, Integer> result = new LinkedHashMap<>();
+        Queue<String> queue = new ArrayDeque<>();
+        queue.add(startTaskId);
+        Map<String, Integer> depthMap = new HashMap<>();
+        depthMap.put(startTaskId, 0);
+
+        while (!queue.isEmpty()) {
+            String current = queue.poll();
+            int currentDepth = depthMap.get(current);
+            for (TaskDependency dep : dependencies) {
+                if (!dep.getPredecessor().getTaskId().equals(current)) continue;
+                String next = dep.getSuccessor().getTaskId();
+                if (!depthMap.containsKey(next)) {
+                    depthMap.put(next, currentDepth + 1);
+                    result.put(next, currentDepth + 1);
+                    queue.add(next);
+                }
+            }
+        }
+        return result;
+    }
+
+    /** 병목 발동 조건 3단계:
+     * 1순위. dueDate < 오늘 → 기한 초과 (무조건 병목)
+     * 2순위. daysStuck > plannedDuration + buffer → 계획 기간 초과
+     * 3순위. 날짜 정보 없으면 daysStuck > thresholdDays
+     */
+    private boolean isBottleneckCondition(Task task, long daysStuck, int thresholdDays) {
+        java.time.LocalDate today = java.time.LocalDate.now();
+        if (task.getDueDate() != null && task.getDueDate().isBefore(today)) return true;
+        long planned = plannedDurationDays(task);
+        if (planned > 0) return daysStuck > planned + thresholdDays;
+        return daysStuck > thresholdDays;
+    }
+
+    private long plannedDurationDays(Task task) {
+        if (task.getStartDate() != null && task.getDueDate() != null) {
+            return Math.max(0, java.time.temporal.ChronoUnit.DAYS.between(task.getStartDate(), task.getDueDate()));
+        }
+        if (task.getEstimatedHours() != null && task.getEstimatedHours() > 0) {
+            return (long) Math.ceil(task.getEstimatedHours() / 8.0);
+        }
+        return 0;
+    }
+
+    private boolean hasDependencyPath(String fromTaskId, String targetTaskId, String workspaceId) {
+        return isDownstreamTask(fromTaskId, targetTaskId, taskDependencyRepository.findAllByWorkspace_WorkspaceId(workspaceId));
+    }
+
+    private boolean isDownstreamTask(String fromTaskId, String targetTaskId, List<TaskDependency> dependencies) {
+        Set<String> visited = new HashSet<>();
+        return hasDependencyPath(fromTaskId, targetTaskId, dependencies, visited);
+    }
+
+    private boolean hasDependencyPath(String currentTaskId, String targetTaskId, List<TaskDependency> dependencies, Set<String> visited) {
+        if (!visited.add(currentTaskId)) return false;
+        for (TaskDependency dependency : dependencies) {
+            if (!dependency.getPredecessor().getTaskId().equals(currentTaskId)) continue;
+            String nextTaskId = dependency.getSuccessor().getTaskId();
+            if (nextTaskId.equals(targetTaskId)) return true;
+            if (hasDependencyPath(nextTaskId, targetTaskId, dependencies, visited)) return true;
+        }
+        return false;
+    }
+
+    private int calculateWeightedDelayDays(Task task, long daysStuck, int thresholdDays) {
+        java.time.LocalDate today = java.time.LocalDate.now();
+        long baseOverrunDays;
+
+        if (task.getDueDate() != null && task.getDueDate().isBefore(today)) {
+            // 기한 초과: 마감일로부터 경과일
+            baseOverrunDays = java.time.temporal.ChronoUnit.DAYS.between(task.getDueDate(), today);
+        } else {
+            long planned = plannedDurationDays(task);
+            long buffer = planned > 0 ? planned + thresholdDays : thresholdDays;
+            baseOverrunDays = Math.max(daysStuck - buffer, 0);
+        }
+
+        if (baseOverrunDays <= 0) return 0;
+        double weight = priorityWeight(task.getPriority()) * estimatedHoursWeight(task.getEstimatedHours()) * statusWeight(task.getStatus());
+        return Math.max(1, (int) Math.ceil(baseOverrunDays * weight));
+    }
+
+    private double priorityWeight(TaskPriority priority) {
+        if (priority == TaskPriority.HIGH) return 1.3;
+        if (priority == TaskPriority.LOW) return 0.7;
+        return 1.0;
+    }
+
+    private double estimatedHoursWeight(Integer estimatedHours) {
+        if (estimatedHours == null) return 1.0;
+        if (estimatedHours <= 2) return 0.8;
+        if (estimatedHours >= 6) return 1.2;
+        return 1.0;
+    }
+
+    private double statusWeight(TaskStatus status) {
+        return status == TaskStatus.ISSUE ? 1.3 : 1.0;
     }
 
     private void updateContributionMetrics(Project project, User user, boolean issueSolved) {
@@ -355,7 +542,24 @@ public class TaskService {
         return TaskResponse.from(task);
     }
 
-    /** 마감일 업데이트 (yyyy-MM-dd 형식 문자열) */
+    /** 휴지통의 태스크를 DB에서 영구 삭제 */
+    @Transactional
+    public void hardDeleteTask(String taskId) {
+        Task task = taskRepository.findById(taskId)
+                .orElseThrow(() -> new IllegalArgumentException("태스크를 찾을 수 없습니다. ID: " + taskId));
+        if (!task.isDeleted()) {
+            throw new IllegalStateException("휴지통에 있는 태스크만 영구 삭제할 수 있습니다.");
+        }
+        taskStatusHistoryRepository.deleteAllByTask_TaskId(taskId);
+        List<TeamCommunication> taskMessages = teamCommunicationRepository.findAllByTask_TaskIdOrderByCreatedAtAsc(taskId);
+        taskMessages.forEach((message) -> teamCommunicationRepository.deleteAllByParentMessage_MessageId(message.getMessageId()));
+        teamCommunicationRepository.deleteAllByTask_TaskId(taskId);
+        taskAttachmentRepository.deleteAllByTaskId(taskId);
+        taskDependencyRepository.deleteAllByTaskId(taskId);
+        taskRepository.updateParentTaskNullByParentTaskId(taskId);
+        taskRepository.delete(task);
+    }
+
     @Transactional
     public void updateDueDate(String taskId, String dueDate) {
         Task task = taskRepository.findById(taskId)
@@ -387,7 +591,9 @@ public class TaskService {
         }
         Task saved = taskRepository.save(task);
         String newAssigneeName = saved.getAssignee() != null ? saved.getAssignee().getName() : "";
+        String newAssigneeId   = saved.getAssignee() != null ? saved.getAssignee().getUserId() : "";
         broadcastTaskUpdated(task, "assigneeName", newAssigneeName);
+        broadcastTaskUpdated(task, "assigneeId",   newAssigneeId);
         return TaskResponse.from(saved);
     }
 

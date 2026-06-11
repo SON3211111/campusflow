@@ -118,6 +118,12 @@ export default function Header({ workspaces = [], showSearch = true, onLogout }:
     setInvitations((prev) => prev.filter((i) => i.invitationId !== invitationId));
   };
 
+  const handleReadAllNotifications = async () => {
+    if (kickNotis.length === 0) return;
+    await Promise.all(kickNotis.map((n) => client.post(`/notifications/${n.notificationId}/read`).catch(() => {})));
+    setKickNotis([]);
+  };
+
   const filtered = query.trim()
     ? workspaces.filter((ws) => ws.name.includes(query))
     : [];
@@ -198,7 +204,14 @@ export default function Header({ workspaces = [], showSearch = true, onLogout }:
               </button>
               {notiOpen && (
                 <div className="noti-dropdown">
-                  <p className="noti-title">알림</p>
+                  <div className="noti-header">
+                    <p className="noti-title">알림</p>
+                    {kickNotis.length > 0 && (
+                      <button className="noti-read-all-btn" onClick={handleReadAllNotifications}>
+                        모두 확인
+                      </button>
+                    )}
+                  </div>
                   {invitations.length === 0 && kickNotis.length === 0 ? (
                     <p className="noti-empty">새 알림이 없습니다.</p>
                   ) : (

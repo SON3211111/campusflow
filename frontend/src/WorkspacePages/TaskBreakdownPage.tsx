@@ -102,6 +102,7 @@ interface CategoryTaskItem {
   name: string;
   desc: string;
   priority: string;
+  estimatedHours?: number;
 }
 
 interface Category {
@@ -113,6 +114,7 @@ interface Category {
 interface BreakdownResult {
   title: string;
   categories: Category[];
+  fallback?: boolean;
 }
 
 interface DraggedTask {
@@ -150,10 +152,12 @@ function convertToBreakdownResult(data: any, prompt: string): BreakdownResult {
       name: task.title ?? "",
       desc: task.description ?? "",
       priority: task.priority ?? "MEDIUM",
+      estimatedHours: task.estimatedHours,
     });
   });
   return {
     title: prompt.slice(0, 30),
+    fallback: Boolean(data.fallback),
     categories: Array.from(categoryMap.entries()).map(([name, tasks], i) => ({
       id: `c${i + 1}`,
       name,

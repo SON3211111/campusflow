@@ -33,6 +33,49 @@ const DOMAIN_OPTIONS = [
   { value: "research_science",label: "실험 / 데이터 분석" },
 ];
 
+function readStoredWorkspace(): WsItem | undefined {
+  try {
+    return JSON.parse(localStorage.getItem("clickedWorkspace") ?? "null") ?? undefined;
+  } catch {
+    return undefined;
+  }
+}
+
+function hasStoredAiTaskPayload(key: string) {
+  try {
+    const session = JSON.parse(localStorage.getItem(key) ?? "null");
+    const resultTaskCount = session?.result?.categories?.reduce(
+      (sum: number, category: { tasks?: unknown[] }) => sum + (category.tasks?.length ?? 0),
+      0
+    ) ?? 0;
+    const basketTaskCount = Object.values(session?.memberBaskets ?? {}).reduce(
+      (sum: number, basket) => sum + (Array.isArray(basket) ? basket.length : 0),
+      0
+    );
+    const objectTaskCount = (value: unknown) => {
+      if (Array.isArray(value)) return value.length;
+      if (value && typeof value === "object") return Object.keys(value).length;
+      return 0;
+    };
+    return (
+      objectTaskCount(session?.categories) > 0 ||
+      objectTaskCount(session?.tasks) > 0 ||
+      objectTaskCount(session?.taskList) > 0 ||
+      objectTaskCount(session?.items) > 0 ||
+      resultTaskCount > 0 ||
+      basketTaskCount > 0
+    );
+  } catch {
+    return false;
+  }
+}
+
+function hasAiTaskSession(workspaceId?: string) {
+  // 현재 워크스페이스 세션만 확인 — 다른 워크스페이스 세션은 무시
+  const key = workspaceId ? `ai_task_session_${workspaceId}` : "ai_task_session_default";
+  return hasStoredAiTaskPayload(key);
+}
+
 export default function AITaskModal({ onClose, workspaces = [], workspace }: Props) {
   const navigate = useNavigate();
   const [screen, setScreen] = useState<Screen>("home");
@@ -42,7 +85,8 @@ export default function AITaskModal({ onClose, workspaces = [], workspace }: Pro
   const [deadline, setDeadline]   = useState("");
   const [hasSession, setHasSession] = useState(false);
 
-  const activeWs = workspace ?? workspaces[0];
+  const activeWs = workspace ?? workspaces[0] ?? readStoredWorkspace();
+  const navWorkspaces = workspaces.length > 0 ? workspaces : activeWs ? [activeWs] : [];
 
   // DB에서 진행 중인 세션 여부 확인
   useEffect(() => {
@@ -83,7 +127,7 @@ export default function AITaskModal({ onClose, workspaces = [], workspace }: Pro
         domain: domain || undefined,
         teamSize: teamSize ? parseInt(teamSize) : undefined,
         deadline: deadline || undefined,
-        workspaces,
+        workspaces: navWorkspaces,
         workspace: activeWs,
       },
     });
@@ -130,7 +174,7 @@ export default function AITaskModal({ onClose, workspaces = [], workspace }: Pro
         domain: domain || undefined,
         teamSize: teamSize ? parseInt(teamSize) : undefined,
         deadline: deadline || undefined,
-        workspaces,
+        workspaces: navWorkspaces,
         workspace: activeWs,
         append: true,
       },
@@ -149,7 +193,7 @@ export default function AITaskModal({ onClose, workspaces = [], workspace }: Pro
               {hasSession && (
                 <div className="ai-option-card" onClick={() => {
                   onClose();
-                  navigate("/ai-task", { state: { workspace: activeWs, workspaces } });
+                  navigate("/ai-task", { state: { workspace: activeWs, workspaces: navWorkspaces } });
                 }}>
                   <div className="ai-option-icon purple">▶</div>
                   <div className="ai-option-info">
@@ -179,7 +223,7 @@ export default function AITaskModal({ onClose, workspaces = [], workspace }: Pro
 
               <div className="ai-option-card" onClick={() => {
                 onClose();
-                navigate("/workspace-board", { state: { workspace: activeWs, workspaces } });
+                navigate("/workspace-board", { state: { workspace: activeWs, workspaces: navWorkspaces } });
               }}>
                 <div className="ai-option-icon orange"><Rocket size={20} /></div>
                 <div className="ai-option-info">

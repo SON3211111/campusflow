@@ -6,4 +6,6 @@ import java.util.List;
 
 public interface TaskAttachmentRepository extends JpaRepository<TaskAttachment, String> {
     List<TaskAttachment> findByTaskIdOrderByCreatedAtDesc(String taskId);
+
+    void deleteAllByTaskId(String taskId);
 }

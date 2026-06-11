@@ -12,9 +12,16 @@ public interface TeamCommunicationRepository extends JpaRepository<TeamCommunica
     // 태스크 댓글 조회
     List<TeamCommunication> findAllByTask_TaskIdOrderByCreatedAtAsc(String taskId);
 
+    void deleteAllByTask_TaskId(String taskId);
+
     // 워크스페이스 채팅 — 채널별 최상위 메시지 (parent 없는 것)
     List<TeamCommunication> findAllByWorkspace_WorkspaceIdAndTaskIsNullAndChannelAndParentMessageIsNullOrderByCreatedAtAsc(String workspaceId, String channel);
 
     // 스레드 답글 조회
     List<TeamCommunication> findAllByParentMessage_MessageIdOrderByCreatedAtAsc(String parentMessageId);
+
+    void deleteAllByParentMessage_MessageId(String parentMessageId);
+
+    // 워크스페이스 삭제 시 전체 제거
+    void deleteAllByWorkspace_WorkspaceId(String workspaceId);
 }

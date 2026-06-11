@@ -4,6 +4,8 @@ import com.campusflow.dto.ActivityFeedItemDto;
 import com.campusflow.dto.BottleneckReportDto;
 import com.campusflow.dto.ApiResponse;
 import com.campusflow.dto.TaskCreateRequest;
+import com.campusflow.dto.TaskDependencyResponse;
+import com.campusflow.dto.TaskDependencySummary;
 import com.campusflow.dto.TaskResponse;
 import com.campusflow.entity.enums.TaskStatus;
 import com.campusflow.service.TaskService;
@@ -61,6 +63,12 @@ public class WorkspaceTaskController {
         return ResponseEntity.ok(ApiResponse.success(200, "삭제 완료"));
     }
 
+    @DeleteMapping("/{taskId}/hard")
+    public ResponseEntity<ApiResponse<Void>> hardDelete(@PathVariable String taskId) {
+        taskService.hardDeleteTask(taskId);
+        return ResponseEntity.ok(ApiResponse.success(200, "영구 삭제 완료"));
+    }
+
     @PatchMapping("/{taskId}/restore")
     public ResponseEntity<ApiResponse<TaskResponse>> restore(@PathVariable String taskId) {
         TaskResponse restored = taskService.restoreTask(taskId);
@@ -113,6 +121,28 @@ public class WorkspaceTaskController {
             @RequestBody Map<String, String> body) {
         taskService.updateBoardColumn(taskId, body.getOrDefault("boardColumn", ""));
         return ResponseEntity.ok(ApiResponse.success(200, "컬럼 위치 저장 완료"));
+    }
+
+    @GetMapping("/{taskId}/dependencies")
+    public ResponseEntity<ApiResponse<TaskDependencySummary>> getDependencies(@PathVariable String taskId) {
+        return ResponseEntity.ok(ApiResponse.success(200, "조회 성공", taskService.getTaskDependencies(taskId)));
+    }
+
+    @PostMapping("/{taskId}/successors")
+    public ResponseEntity<ApiResponse<TaskDependencyResponse>> addSuccessor(
+            @PathVariable String workspaceId,
+            @PathVariable String taskId,
+            @RequestBody Map<String, String> body) {
+        TaskDependencyResponse saved = taskService.addTaskSuccessor(workspaceId, taskId, body.getOrDefault("successorTaskId", ""));
+        return ResponseEntity.ok(ApiResponse.success(200, "저장 성공", saved));
+    }
+
+    @DeleteMapping("/{taskId}/successors/{successorTaskId}")
+    public ResponseEntity<ApiResponse<Void>> removeSuccessor(
+            @PathVariable String taskId,
+            @PathVariable String successorTaskId) {
+        taskService.removeTaskSuccessor(taskId, successorTaskId);
+        return ResponseEntity.ok(ApiResponse.success(200, "삭제 성공"));
     }
 
     @PatchMapping("/{taskId}/quick-signal")

@@ -18,6 +18,7 @@ public record TaskResponse(
         String assigneeId,
         String assigneeName,
         String priority,
+        Integer estimatedHours,
         String quickSignal,
         String boardColumn
 ) {
@@ -34,6 +35,7 @@ public record TaskResponse(
                 task.getAssignee() != null ? task.getAssignee().getUserId() : null,
                 task.getAssignee() != null ? task.getAssignee().getName() : null,
                 task.getPriority() != null ? task.getPriority().name() : null,
+                task.getEstimatedHours(),
                 task.getQuickSignal(),
                 task.getBoardColumn()
         );

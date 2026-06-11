@@ -4,7 +4,7 @@
  * 설명/마감일 인라인 편집, 댓글 작성, 파일 첨부 기능 포함
  */
 import { useState, useEffect, useRef } from "react";
-import { CalendarDays, Paperclip, Trash2, Download } from "lucide-react";
+import { CalendarDays, Paperclip, Trash2, Download, File, FileImage, FileText, FileSpreadsheet, FileArchive } from "lucide-react";
 import PixelAvatar from "./PixelAvatar";
 import client from "../api/client";
 import "./CardDetailModal.css";
@@ -19,6 +19,12 @@ interface Attachment {
   uploaderName: string;
   createdAt: string;
 }
+
+interface TaskOption {
+  id: string;
+  title: string;
+}
+
 
 const COL_OPTIONS = ["상태 없음", "시작하지 않음", "진행 중", "보류 중", "완료"] as const;
 const COL_COLOR: Record<string, string> = {
@@ -41,6 +47,7 @@ interface Props {
   initialQuickSignal?: string;
   assigneeId?: string;
   assigneeName?: string;
+  availableTasks?: TaskOption[];
   members?: { userId: string; name: string }[];
   onSaveTitle?: (title: string) => void;
   onSaveDesc?: (desc: string) => void;
@@ -50,6 +57,7 @@ interface Props {
   onSendSignal?: (signal: string | null) => void;
   onStatusChange?: (newColName: string) => void;
   onChangeAssignee?: (userId: string, name: string) => void;
+  isBottleneck?: boolean;
   onClose: () => void;
 }
 
@@ -62,15 +70,15 @@ function timeAgo(iso: string) {
 }
 
 function fileIcon(fileType: string) {
-  if (!fileType) return "📎";
-  if (fileType.startsWith("image/")) return "🖼️";
-  if (fileType === "application/pdf") return "📄";
-  if (fileType.includes("excel") || fileType.includes("spreadsheet")) return "📊";
-  if (fileType.includes("word") || fileType.includes("wordprocessing")) return "📝";
-  if (fileType.includes("hwp") || fileType.includes("hangul")) return "📋";
-  if (fileType.includes("powerpoint") || fileType.includes("presentation")) return "📊";
-  if (fileType.includes("zip") || fileType.includes("compressed")) return "🗜️";
-  return "📎";
+  if (!fileType) return <File size={20} />;
+  if (fileType.startsWith("image/")) return <FileImage size={20} />;
+  if (fileType === "application/pdf") return <FileText size={20} />;
+  if (fileType.includes("excel") || fileType.includes("spreadsheet")) return <FileSpreadsheet size={20} />;
+  if (fileType.includes("word") || fileType.includes("wordprocessing")) return <FileText size={20} />;
+  if (fileType.includes("hwp") || fileType.includes("hangul")) return <FileText size={20} />;
+  if (fileType.includes("powerpoint") || fileType.includes("presentation")) return <FileSpreadsheet size={20} />;
+  if (fileType.includes("zip") || fileType.includes("compressed")) return <FileArchive size={20} />;
+  return <File size={20} />;
 }
 
 function formatSize(bytes: number) {
@@ -79,7 +87,7 @@ function formatSize(bytes: number) {
   return `${(bytes / (1024 * 1024)).toFixed(1)}MB`;
 }
 
-export default function CardDetailModal({ title, colName, taskId, workspaceId, initialDesc = "", initialStartDate = "", initialDueDate = "", initialComments = [], initialQuickSignal, assigneeId, assigneeName, members = [], onSaveTitle, onSaveDesc, onSaveStartDate, onSaveDueDate, onSaveComments, onSendSignal, onStatusChange, onChangeAssignee, onClose }: Props) {
+export default function CardDetailModal({ title, colName, taskId, workspaceId, initialDesc = "", initialStartDate = "", initialDueDate = "", initialComments = [], initialQuickSignal, assigneeId, assigneeName, availableTasks: _availableTasks = [], members = [], onSaveTitle, onSaveDesc, onSaveStartDate, onSaveDueDate, onSaveComments, onSendSignal, onStatusChange, onChangeAssignee, isBottleneck = false, onClose }: Props) {
   const userName  = localStorage.getItem("userName") ?? "나";
   const userId    = localStorage.getItem("userId") ?? "";
   const [cardTitle, setCardTitle] = useState(title);
@@ -106,6 +114,14 @@ export default function CardDetailModal({ title, colName, taskId, workspaceId, i
   const [uploading, setUploading] = useState(false);
   const [dragging, setDragging] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    const handler = (e: KeyboardEvent) => {
+      if (e.key === "Escape") onClose();
+    };
+    document.addEventListener("keydown", handler);
+    return () => document.removeEventListener("keydown", handler);
+  }, [onClose]);
 
   useEffect(() => {
     if (!statusDropOpen) return;
@@ -146,6 +162,7 @@ export default function CardDetailModal({ title, colName, taskId, workspaceId, i
       .then((res) => setAttachments(res.data.data ?? []))
       .catch((err) => console.error("첨부파일 조회 실패:", err));
   }, [taskId, workspaceId]);
+
 
   const appendComment = (newComment: Comment) => {
     const nextComments = [...comments, newComment];
@@ -217,7 +234,9 @@ export default function CardDetailModal({ title, colName, taskId, workspaceId, i
     <div className="cdm-overlay" onClick={onClose}>
       <div
         className="cdm-modal"
-        style={quickSignal === "HELP_NEEDED"
+        style={isBottleneck
+          ? { border: "2px solid #f59e0b", boxShadow: "0 8px 40px rgba(245,158,11,0.25)" }
+          : quickSignal === "HELP_NEEDED"
           ? { border: "2px solid #f87171", boxShadow: "0 8px 40px rgba(248,113,113,0.25)" }
           : quickSignal === "FEEDBACK_NEEDED"
           ? { border: "2px solid #6ab4f8", boxShadow: "0 8px 40px rgba(106,180,248,0.25)" }
@@ -440,7 +459,6 @@ export default function CardDetailModal({ title, colName, taskId, workspaceId, i
               )}
             </div>
 
-            {/* 파일 첨부 섹션 */}
             <div className="cdm-section">
               <div className="cdm-section-title">
                 <Paperclip size={15} />

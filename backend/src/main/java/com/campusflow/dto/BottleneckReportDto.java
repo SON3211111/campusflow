@@ -31,6 +31,8 @@ public record BottleneckReportDto(
             String title,
             String dueDate,
             String status,
-            String assigneeName
+            String assigneeName,
+            int estimatedDelayDays,
+            int depth    // 병목 태스크로부터의 거리 (1=직접, 2+=간접)
     ) {}
 }

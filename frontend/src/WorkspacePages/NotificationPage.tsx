@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
-import { Bell, Calendar, AlertTriangle, HelpCircle, MessageCircle, AtSign, CheckCheck, Inbox, TrendingDown, Clock } from "lucide-react";
+import { Bell, Calendar, AlertTriangle, HelpCircle, MessageCircle, AtSign, CheckCheck, Inbox, TrendingDown, Clock, BarChart2, GitBranch, Zap, ArrowRight } from "lucide-react";
 import Header from "../components/Header";
 import BoardSubHeader from "../components/BoardSubHeader";
 import WorkspaceTabBar from "../components/WorkspaceTabBar";
@@ -23,12 +23,16 @@ interface Noti {
   createdAt?: string;
 }
 
+type QuickSignal = "HELP_NEEDED" | "FEEDBACK_NEEDED";
+
 interface AffectedTask {
   taskId: string;
   title: string;
   dueDate?: string;
   status: string;
   assigneeName?: string;
+  estimatedDelayDays?: number;
+  depth?: number;  // 병목으로부터의 거리 (1=직접, 2+=간접)
 }
 
 interface BottleneckItem {
@@ -50,6 +54,15 @@ interface BottleneckReport {
   estimatedNewDeadline?: string;
 }
 
+interface AllTask {
+  taskId: string;
+  title: string;
+  status: string;
+  startDate?: string;
+  dueDate?: string;
+  assigneeName?: string;
+}
+
 function timeAgo(iso?: string) {
   if (!iso) return "";
   const diff = Math.floor((Date.now() - new Date(iso).getTime()) / 1000);
@@ -57,6 +70,28 @@ function timeAgo(iso?: string) {
   if (diff < 3600) return `${Math.floor(diff / 60)}분 전`;
   if (diff < 86400) return `${Math.floor(diff / 3600)}시간 전`;
   return `${Math.floor(diff / 86400)}일 전`;
+}
+
+function getNotificationTypeLabel(n: Noti) {
+  if (n.type === "QUICK_SIGNAL" || n.type === "QUICK_SIGNAL_SENT") {
+    return n.message.includes("피드백") ? "피드백 요청" : "도움 요청";
+  }
+  return TYPE_LABEL[n.type] ?? "알림";
+}
+
+function getNotificationTypeClass(n: Noti) {
+  if (n.type !== "QUICK_SIGNAL" && n.type !== "QUICK_SIGNAL_SENT") return "";
+  return n.message.includes("피드백") ? "ntp-item-type--feedback" : "ntp-item-type--help";
+}
+
+function getNotificationSignal(n: Noti): QuickSignal | null {
+  if (n.type !== "QUICK_SIGNAL" && n.type !== "QUICK_SIGNAL_SENT") return null;
+  return n.message.includes("피드백") ? "FEEDBACK_NEEDED" : "HELP_NEEDED";
+}
+
+function formatNotificationMessage(n: Noti) {
+  if (n.type !== "QUICK_SIGNAL" && n.type !== "QUICK_SIGNAL_SENT") return n.message;
+  return n.message.replace(/(?:\s*(?:🆘|SOS))+$/gi, "");
 }
 
 const TYPE_LABEL: Record<string, string> = {
@@ -102,6 +137,9 @@ export default function NotificationPage() {
   const [loading, setLoading]   = useState(true);
   const [report, setReport]     = useState<BottleneckReport | null>(null);
   const [reportLoading, setReportLoading] = useState(false);
+  const [allTasks, setAllTasks] = useState<AllTask[]>([]);
+  const [taskSignals, setTaskSignals] = useState<Record<string, string>>({});
+  const [taskSignalsLoaded, setTaskSignalsLoaded] = useState(false);
   const [expandedId, setExpandedId] = useState<string | null>(null);
   const [showPlanner,   setShowPlanner]   = useState(false);
   const [showCommunity, setShowCommunity] = useState(false);
@@ -137,14 +175,46 @@ export default function NotificationPage() {
     }
   };
 
+  const fetchTaskSignals = async () => {
+    if (!workspace?.id) return;
+    setTaskSignalsLoaded(false);
+    try {
+      const res = await client.get(`/workspaces/${workspace.id}/tasks`);
+      const data: any[] = res.data.data ?? [];
+      const next: Record<string, string> = {};
+      for (const task of data) {
+        if (task.taskId) next[task.taskId] = task.quickSignal ?? "";
+      }
+      setTaskSignals(next);
+      setTaskSignalsLoaded(true);
+      setAllTasks(data.map((t) => ({
+        taskId: t.taskId,
+        title: t.title,
+        status: t.status,
+        startDate: t.startDate,
+        dueDate: t.dueDate,
+        assigneeName: t.assigneeName,
+      })));
+    } catch (err) {
+      console.error("태스크 요청 상태 조회 실패:", err);
+      setTaskSignals({});
+      setTaskSignalsLoaded(false);
+    }
+  };
+
+  const isRequestResolved = (n: Noti) => {
+    const expectedSignal = getNotificationSignal(n);
+    if (!taskSignalsLoaded || !expectedSignal || !n.taskId) return false;
+    return taskSignals[n.taskId] !== expectedSignal;
+  };
+
   const unreadCount = notis.filter((n) => !n.read).length;
   const dueDateCount    = notis.filter((n) => n.type === "DUE_DATE").length;
-  const requestCount    = notis.filter((n) => ["QUICK_SIGNAL", "COMMENT", "MENTION"].includes(n.type)).length;
+  const requestCount    = notis.filter((n) => ["QUICK_SIGNAL", "QUICK_SIGNAL_SENT"].includes(n.type) && !isRequestResolved(n)).length;
 
-  useEffect(() => { fetchNotis(); }, [userId]);
-  useEffect(() => {
-    if (filter === "BOTTLENECK") fetchReport();
-  }, [filter, workspace?.id]);
+  useEffect(() => { fetchNotis(); }, [userId, workspace?.id]);
+  useEffect(() => { fetchTaskSignals(); }, [workspace?.id]);
+  useEffect(() => { fetchReport(); }, [workspace?.id]);
 
   const handleRead = async (notificationId: string) => {
     try {
@@ -176,14 +246,190 @@ export default function NotificationPage() {
     if (activeFilter?.key === "BOTTLENECK")  return false; // 리포트 탭엔 알림 대신 리포트 렌더
     if (activeFilter?.types) return activeFilter.types.includes(noti.type);
     return true;
+  }).sort((a, b) => {
+    if (activeFilter?.key !== "REQUEST") return 0;
+    return Number(isRequestResolved(a)) - Number(isRequestResolved(b));
   });
+
+  const renderProjectImpact = () => {
+    if (!report || allTasks.length === 0) return null;
+    const total = allTasks.length;
+    const done  = allTasks.filter((t) => t.status === "DONE").length;
+    const stuck = allTasks.filter((t) => ["DOING", "ISSUE"].includes(t.status)).length;
+    const affectedIds = new Set(report.bottlenecks.flatMap((b) => b.affectedTasks.map((a) => a.taskId)));
+    const donePct = total === 0 ? 0 : Math.round((done / total) * 100);
+    return (
+      <div className="ntp-impact-summary">
+        <div className="ntp-impact-title">전체 프로젝트 영향 현황</div>
+        <div className="ntp-impact-stats">
+          <div className="ntp-impact-stat"><strong>{total}</strong><span>전체</span></div>
+          <div className="ntp-impact-stat"><strong className="stat-done">{done}</strong><span>완료</span></div>
+          <div className="ntp-impact-stat"><strong className="stat-doing">{stuck}</strong><span>진행중</span></div>
+          <div className="ntp-impact-stat"><strong className="stat-bottleneck">{report.bottlenecks.length}</strong><span>병목</span></div>
+          <div className="ntp-impact-stat"><strong className="stat-affected">{affectedIds.size}</strong><span>지연 영향</span></div>
+          {report.totalDelayDays > 0 && (
+            <div className="ntp-impact-stat"><strong className="stat-delay">+{report.totalDelayDays}일</strong><span>최대 지연</span></div>
+          )}
+        </div>
+        <div className="ntp-impact-progress">
+          <div className="ntp-impact-progress-label"><span>전체 진행률</span><span>{donePct}%</span></div>
+          <div className="ntp-impact-progress-bar">
+            <div className="ntp-impact-progress-fill" style={{ width: `${donePct}%` }} />
+            {report.bottlenecks.length > 0 && total > 0 && (
+              <div className="ntp-impact-progress-risk" style={{ width: `${Math.min(30, Math.round((affectedIds.size / total) * 100))}%` }} />
+            )}
+          </div>
+        </div>
+      </div>
+    );
+  };
+
+  const renderGanttChart = () => {
+    if (!report) return null;
+    const ganttTasks = allTasks.filter((t) => t.startDate || t.dueDate);
+    if (ganttTasks.length === 0) return (
+      <div className="ntp-gantt-empty">날짜가 설정된 업무가 없어 간트 차트를 표시할 수 없습니다.</div>
+    );
+
+    const bottleneckMap = new Map<string, number>();
+    const affectedMap   = new Map<string, number>();
+    for (const b of report.bottlenecks) {
+      bottleneckMap.set(b.taskId, b.delayDays);
+      for (const a of b.affectedTasks) {
+        affectedMap.set(a.taskId, Math.max(affectedMap.get(a.taskId) ?? 0, a.estimatedDelayDays ?? 0));
+      }
+    }
+
+    const MS = 86400000;
+    const allMs: number[] = [Date.now()];
+    for (const t of ganttTasks) {
+      if (t.startDate) allMs.push(new Date(t.startDate).getTime());
+      if (t.dueDate)   allMs.push(new Date(t.dueDate).getTime());
+    }
+    const minMs = Math.min(...allMs) - MS;
+    const rawMax = Math.max(...allMs) + (report.totalDelayDays + 5) * MS;
+    const totalDays = Math.max(14, (rawMax - minMs) / MS);
+    const maxMs = minMs + totalDays * MS;
+
+    const pct = (ms: number) =>
+      Math.max(0, Math.min(100, ((ms - minMs) / (totalDays * MS)) * 100));
+
+    const todayPct = pct(Date.now());
+    const interval = Math.max(1, Math.ceil(totalDays / 8));
+    const markers: Date[] = [];
+    const cur = new Date(minMs); cur.setHours(0, 0, 0, 0);
+    while (cur.getTime() <= maxMs) { markers.push(new Date(cur)); cur.setDate(cur.getDate() + interval); }
+
+    const orderOf = (t: AllTask) => {
+      if (bottleneckMap.has(t.taskId)) return 0;
+      if (affectedMap.has(t.taskId))   return 1;
+      if (["DOING", "ISSUE"].includes(t.status)) return 2;
+      if (t.status === "DONE") return 4;
+      return 3;
+    };
+    const sorted = [...ganttTasks].sort((a, b) => orderOf(a) - orderOf(b));
+    const fmt = (d: Date) => `${d.getMonth() + 1}/${d.getDate()}`;
+
+    const NAME_COL_PX = 200;
+    const todayCalc = `calc(${NAME_COL_PX}px + ${(todayPct / 100).toFixed(4)} * (100% - ${NAME_COL_PX}px))`;
+
+    return (
+      <div className="ntp-gantt">
+        <div className="ntp-gantt-heading">
+          <BarChart2 size={14} /> 프로젝트 간트 차트
+          <span className="ntp-gantt-legend">
+            <i className="ntp-gantt-dot dot-bottleneck" />병목
+            <i className="ntp-gantt-dot dot-affected" />지연영향
+            <i className="ntp-gantt-dot dot-normal" />진행중
+            <i className="ntp-gantt-dot dot-done" />완료
+          </span>
+        </div>
+        <div className="ntp-gantt-scroll">
+          <div className="ntp-gantt-inner">
+            {/* 날짜 눈금 */}
+            <div className="ntp-gantt-ruler">
+              <div className="ntp-gantt-name-col"><span className="ntp-gantt-ruler-label">업무</span></div>
+              <div className="ntp-gantt-track-area">
+                {markers.map((d) => (
+                  <span key={d.toISOString()} className="ntp-gantt-tick" style={{ left: `${pct(d.getTime())}%` }}>
+                    {fmt(d)}
+                  </span>
+                ))}
+                <span className="ntp-gantt-today-tick" style={{ left: `${todayPct}%` }}>오늘</span>
+              </div>
+            </div>
+            {/* 태스크 행들 */}
+            <div className="ntp-gantt-body">
+              {/* 수직 그리드 라인 */}
+              {markers.map((d) => (
+                <div
+                  key={`gl-${d.toISOString()}`}
+                  className="ntp-gantt-grid-line"
+                  style={{ left: `calc(${NAME_COL_PX}px + ${(pct(d.getTime()) / 100).toFixed(4)} * (100% - ${NAME_COL_PX}px))` }}
+                />
+              ))}
+              {/* 오늘 기준선 */}
+              <div className="ntp-gantt-today-line" style={{ left: todayCalc }} />
+              {sorted.map((task, idx) => {
+                const startMs = task.startDate
+                  ? new Date(task.startDate).getTime()
+                  : task.dueDate ? new Date(task.dueDate).getTime() : null;
+                const endMs = task.dueDate
+                  ? new Date(task.dueDate).getTime()
+                  : startMs;
+                if (!startMs || !endMs) return null;
+
+                const left  = pct(startMs);
+                const right = pct(endMs);
+                const width = Math.max(2, right - left);
+                const delayDays = bottleneckMap.get(task.taskId) ?? affectedMap.get(task.taskId) ?? 0;
+                const isBottleneck = bottleneckMap.has(task.taskId);
+                const isAffected   = affectedMap.has(task.taskId);
+                const isDone       = task.status === "DONE";
+
+                const barCls = `ntp-gantt-bar ${isDone ? "bar-done" : isBottleneck ? "bar-bottleneck" : isAffected ? "bar-affected" : "bar-normal"}`;
+                const dotCls = isDone ? "dot-done" : isBottleneck ? "dot-bottleneck" : isAffected ? "dot-affected" : "dot-normal";
+
+                return (
+                  <div key={task.taskId} className={`ntp-gantt-row${idx % 2 === 1 ? " row-stripe" : ""}${isBottleneck ? " row-bottleneck" : isAffected ? " row-affected" : ""}`}>
+                    <div className="ntp-gantt-name-col">
+                      <i className={`ntp-gantt-dot ${dotCls}`} />
+                      <div className="ntp-gantt-name-wrap">
+                        <span className="ntp-gantt-task-name" title={task.title}>{task.title}</span>
+                        {task.assigneeName && <span className="ntp-gantt-assignee">{task.assigneeName}</span>}
+                      </div>
+                    </div>
+                    <div className="ntp-gantt-track-area">
+                      <div className={barCls} style={{ left: `${left}%`, width: `${width}%` }}>
+                        {(isBottleneck || isAffected) && delayDays > 0 && width > 6 && (
+                          <span className="ntp-gantt-bar-label">+{delayDays}일</span>
+                        )}
+                      </div>
+                      {delayDays > 0 && (
+                        <div
+                          className="ntp-gantt-delay-ext"
+                          style={{
+                            left: `${right}%`,
+                            width: `${Math.max(1.5, (delayDays / totalDays) * 100)}%`,
+                          }}
+                        />
+                      )}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  };
 
   const renderBottleneckReport = () => {
     if (reportLoading) return <div className="ntp-empty"><Clock size={24} /><strong>리포트 생성 중...</strong></div>;
     if (!report) return <div className="ntp-empty"><Inbox size={24} /><strong>데이터를 불러올 수 없습니다</strong></div>;
     if (report.bottlenecks.length === 0) return (
       <div className="ntp-empty">
-        <span style={{ fontSize: 32 }}>✅</span>
         <strong>현재 병목 태스크가 없습니다</strong>
         <span>모든 업무가 원활히 진행 중입니다</span>
       </div>
@@ -191,17 +437,23 @@ export default function NotificationPage() {
 
     return (
       <div className="ntp-report">
+        {/* 전체 프로젝트 영향 요약 */}
+        {renderProjectImpact()}
+
+        {/* 간트 차트 */}
+        {renderGanttChart()}
+
         {/* 프로젝트 지연 요약 배너 */}
         {report.totalDelayDays > 0 && (
           <div className="ntp-delay-banner">
             <TrendingDown size={20} />
             <div className="ntp-delay-banner-text">
-              <strong>프로젝트 {report.totalDelayDays}일 지연 위험</strong>
+              <strong>최대 {report.totalDelayDays}일 지연 가능</strong>
               {report.projectDeadline && (
                 <span>
                   현재 마감 {report.projectDeadline}
                   {report.estimatedNewDeadline && report.estimatedNewDeadline !== report.projectDeadline
-                    ? ` → 예상 연기 ${report.estimatedNewDeadline}`
+                    ? ` → 최악 시나리오 ${report.estimatedNewDeadline}`
                     : ""}
                 </span>
               )}
@@ -209,47 +461,99 @@ export default function NotificationPage() {
           </div>
         )}
 
-        {/* 병목 태스크 카드 목록 */}
+        {/* 병목 태스크 상세 */}
+        <div className="ntp-section-heading"><AlertTriangle size={14} /> 병목 태스크 상세</div>
         {report.bottlenecks.map((item) => (
-          <div key={item.taskId} className="ntp-bottleneck-card">
+          <div key={item.taskId} className={`ntp-bottleneck-card ${item.delayDays > 0 ? "ntp-bottleneck-card--delayed" : ""}`}>
             <div className="ntp-bottleneck-header" onClick={() => setExpandedId(expandedId === item.taskId ? null : item.taskId)}>
+              {/* 왼쪽: 태스크 정보 */}
               <div className="ntp-bottleneck-left">
-                <span className={`ntp-status-badge ntp-status-badge--${item.status.toLowerCase()}`}>
-                  {item.status === "ISSUE" ? "🔴 보류" : "🟡 진행중"}
-                </span>
-                <div>
+                <div className="ntp-bottleneck-title-row">
+                  <span className={`ntp-status-dot-label ntp-status-dot-label--${item.status.toLowerCase()}`}>
+                    <span className="ntp-sdl-dot" />
+                    {item.status === "ISSUE" ? "보류" : "진행중"}
+                  </span>
                   <p className="ntp-bottleneck-title">{item.title}</p>
-                  <p className="ntp-bottleneck-meta">
-                    {item.assigneeName && <span>담당: {item.assigneeName}</span>}
-                    {item.dueDate && <span> · 마감 {item.dueDate}</span>}
-                  </p>
                 </div>
+                <p className="ntp-bottleneck-meta">
+                  {item.assigneeName && <span>{item.assigneeName}</span>}
+                  {item.dueDate && <span>마감 {item.dueDate}</span>}
+                </p>
               </div>
+              {/* 오른쪽: 수치 배지들 */}
               <div className="ntp-bottleneck-right">
-                <div className="ntp-stuck-badge">
-                  <Clock size={13} />
-                  {item.daysStuck}일째 정체
+                <div className="ntp-metric-chip ntp-metric-chip--stuck">
+                  <Clock size={12} />
+                  <span>{item.daysStuck}일 정체</span>
                 </div>
                 {item.delayDays > 0 && (
-                  <div className="ntp-delay-badge">+{item.delayDays}일 지연</div>
+                  <div className="ntp-metric-chip ntp-metric-chip--delay">
+                    <Zap size={12} />
+                    <span>+{item.delayDays}일</span>
+                  </div>
                 )}
-                <div className="ntp-affected-badge">{item.affectedTaskCount}개 영향</div>
-                <span className="ntp-expand-arrow">{expandedId === item.taskId ? "▲" : "▼"}</span>
+                {item.affectedTaskCount > 0 && (
+                  <div className="ntp-metric-chip ntp-metric-chip--affected">
+                    <GitBranch size={12} />
+                    <span>{item.affectedTaskCount}개</span>
+                  </div>
+                )}
+                <span className={`ntp-expand-chevron ${expandedId === item.taskId ? "open" : ""}`}>
+                  ›
+                </span>
               </div>
             </div>
 
-            {expandedId === item.taskId && item.affectedTasks.length > 0 && (
+            {expandedId === item.taskId && (
               <div className="ntp-affected-list">
-                <p className="ntp-affected-title">⚠️ 영향받는 후속 업무</p>
-                {item.affectedTasks.map((a) => (
-                  <div key={a.taskId} className="ntp-affected-item">
-                    <span className="ntp-affected-name">{a.title}</span>
-                    <div className="ntp-affected-meta">
-                      {a.assigneeName && <span>{a.assigneeName}</span>}
-                      {a.dueDate && <span> · {a.dueDate} 마감</span>}
-                    </div>
+                <div className="ntp-affected-title-row">
+                  <GitBranch size={13} />
+                  <span>영향 연쇄</span>
+                  <span className="ntp-affected-count-chip">{item.affectedTasks.length}개 업무</span>
+                </div>
+                {item.affectedTasks.length === 0 ? (
+                  <div className="ntp-affected-empty">
+                    <span>연결된 후속 업무가 없습니다.</span>
+                    <span className="ntp-affected-empty-hint">선후행 관계가 설정된 업무가 있으면 영향 분석이 가능합니다.</span>
                   </div>
-                ))}
+                ) : (() => {
+                  const byDepth = new Map<number, AffectedTask[]>();
+                  for (const a of item.affectedTasks) {
+                    const d = a.depth ?? 1;
+                    if (!byDepth.has(d)) byDepth.set(d, []);
+                    byDepth.get(d)!.push(a);
+                  }
+                  const depths = [...byDepth.keys()].sort((x, y) => x - y);
+                  return depths.map((depth) => (
+                    <div key={depth} className="ntp-affected-depth-group">
+                      <div className="ntp-affected-depth-header">
+                        <span className={`ntp-depth-tag ${depth === 1 ? "depth-direct" : "depth-indirect"}`}>
+                          {depth === 1 ? "직접 영향" : `${depth}단계 영향`}
+                        </span>
+                        <div className="ntp-depth-arrows">
+                          {Array.from({ length: Math.min(depth, 3) }).map((_, i) => (
+                            <ArrowRight key={i} size={11} />
+                          ))}
+                        </div>
+                      </div>
+                      {byDepth.get(depth)!.map((a) => (
+                        <div key={a.taskId} className="ntp-affected-item" style={{ paddingLeft: `${(depth - 1) * 14 + 14}px` }}>
+                          <div className="ntp-affected-item-left">
+                            <span className={`ntp-affected-status-dot status-${a.status.toLowerCase()}`} />
+                            <span className="ntp-affected-name">{a.title}</span>
+                          </div>
+                          <div className="ntp-affected-meta">
+                            {a.assigneeName && <span>{a.assigneeName}</span>}
+                            {a.dueDate && <span>{a.dueDate}</span>}
+                            {a.estimatedDelayDays != null && a.estimatedDelayDays > 0 && (
+                              <span className="ntp-affected-delay">+{a.estimatedDelayDays}일</span>
+                            )}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  ));
+                })()}
               </div>
             )}
 
@@ -293,19 +597,19 @@ export default function NotificationPage() {
 
         {/* 요약 카드 4종 */}
         <section className="ntp-summary-grid">
-          <div className="ntp-summary-card ntp-summary-card--bottleneck" onClick={() => setFilter("BOTTLENECK")} style={{ cursor: "pointer" }}>
+          <div className={`ntp-summary-card ntp-summary-card--bottleneck ${filter === "BOTTLENECK" ? "active" : ""}`} onClick={() => setFilter("BOTTLENECK")} style={{ cursor: "pointer" }}>
             <span className="ntp-summary-icon bottleneck"><AlertTriangle size={17} /></span>
             <div><strong>{report?.bottlenecks.length ?? "—"}</strong><span>병목 태스크</span></div>
           </div>
-          <div className="ntp-summary-card ntp-summary-card--delay" onClick={() => setFilter("BOTTLENECK")} style={{ cursor: "pointer" }}>
+          <div className={`ntp-summary-card ntp-summary-card--delay ${filter === "BOTTLENECK" ? "active" : ""}`} onClick={() => setFilter("BOTTLENECK")} style={{ cursor: "pointer" }}>
             <span className="ntp-summary-icon delay"><TrendingDown size={17} /></span>
             <div><strong>{report ? `+${report.totalDelayDays}일` : "—"}</strong><span>예상 지연</span></div>
           </div>
-          <div className="ntp-summary-card">
+          <div className={`ntp-summary-card ${filter === "TASK" ? "active" : ""}`} onClick={() => setFilter("TASK")} style={{ cursor: "pointer" }}>
             <span className="ntp-summary-icon duedate"><Calendar size={17} /></span>
             <div><strong>{dueDateCount}</strong><span>마감 임박</span></div>
           </div>
-          <div className="ntp-summary-card">
+          <div className={`ntp-summary-card ${filter === "REQUEST" ? "active" : ""}`} onClick={() => setFilter("REQUEST")} style={{ cursor: "pointer" }}>
             <span className="ntp-summary-icon request"><HelpCircle size={17} /></span>
             <div><strong>{requestCount}</strong><span>도움 요청</span></div>
           </div>
@@ -343,13 +647,16 @@ export default function NotificationPage() {
               {filteredNotis.map((n) => (
                 <div
                   key={n.notificationId}
-                  className={`ntp-item ntp-item--${n.type?.toLowerCase() ?? "default"} ${n.taskId ? "ntp-item--clickable" : ""} ${n.read ? "ntp-item--read" : ""}`}
+                  className={`ntp-item ntp-item--${n.type?.toLowerCase() ?? "default"} ${n.taskId ? "ntp-item--clickable" : ""} ${n.read ? "ntp-item--read" : ""} ${isRequestResolved(n) ? "ntp-item--request-resolved" : ""}`}
                   onClick={() => n.taskId && handleClickNoti(n)}
                 >
                   <div className="ntp-item-icon">{TYPE_ICON[n.type] ?? <Bell size={20} color="#999" />}</div>
                   <div className="ntp-item-content">
-                    <span className="ntp-item-type">{TYPE_LABEL[n.type] ?? "알림"}</span>
-                    <span className="ntp-item-msg">{n.message}</span>
+                    <div className="ntp-item-label-row">
+                      <span className={`ntp-item-type ${getNotificationTypeClass(n)}`}>{getNotificationTypeLabel(n)}</span>
+                      {isRequestResolved(n) && <span className="ntp-item-resolved-badge">해결됨</span>}
+                    </div>
+                    <span className="ntp-item-msg">{formatNotificationMessage(n)}</span>
                     <span className="ntp-item-time">{timeAgo(n.createdAt)}</span>
                     {n.taskId && <span className="ntp-item-goto">태스크 보기 →</span>}
                   </div>

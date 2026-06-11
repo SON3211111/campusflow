@@ -55,7 +55,10 @@ const Login: React.FC = () => {
       <section className="auth-visual">
         <button className="auth-logo-button auth-logo-brand" onClick={() => navigate("/")} aria-label="C'FLOW 랜딩페이지로 이동">
           <span className="auth-logo-mark">C</span>
-          <span className="auth-logo-text">C'FLOW</span>
+          <span className="auth-logo-wordmark">
+            <span>CAMPUS</span>
+            <strong>FLOW</strong>
+          </span>
         </button>
         <div className="auth-hero-copy">
           <p className="auth-eyebrow">
@@ -64,8 +67,8 @@ const Login: React.FC = () => {
           </p>
           <h1>
             다시
-            <span>팀플을</span>
-            굴려볼까요
+            <span>팀의 흐름을</span>
+            이어가세요
           </h1>
           <p>진행 중인 보드, 팀 멤버, AI 업무 분해 흐름으로 바로 돌아갑니다.</p>
         </div>

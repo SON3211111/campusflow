@@ -20,7 +20,7 @@ interface Props {
   onAiTaskClick?: () => void;
 }
 
-const MENU_ITEMS = ["Board", "AI Task", "Dash Board", "Calender", "Notification", "Task Board", "Setting"];
+const MENU_ITEMS = ["Board", "AI Task", "Dash Board", "Calender", "Notification", "Setting"];
 
 export default function BoardSubHeader({ wsName = "워크스페이스", members = [], workspace, workspaces = [], initialSelected = "Board", onAiTaskClick }: Props) {
   const userName = localStorage.getItem("userName") ?? "나";
@@ -66,7 +66,6 @@ export default function BoardSubHeader({ wsName = "워크스페이스", members 
                     if (item === "Notification") navigate("/notifications", { state: { workspace, workspaces } });
                     if (item === "Setting") navigate("/settings", { state: { workspace, workspaces } });
                     if (item === "Calender") navigate("/calendar", { state: { workspace, workspaces } });
-                    if (item === "Task Board") navigate("/workspace-board", { state: { workspace, workspaces } });
                   }}
                 >
                   {item}
