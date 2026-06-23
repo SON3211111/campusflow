@@ -828,19 +828,17 @@ export default function AiTaskPage() {
           }
         }
       }
-      localStorage.setItem(sessionKey, JSON.stringify({
+      const finalSession = {
         title, categories, tasks, prompt: origPrompt, result: aiResult, memberBaskets: nextBaskets, sessions,
-      }));
+      };
+      localStorage.setItem(sessionKey, JSON.stringify(finalSession));
+      await client.put(`/workspaces/${workspace.id}/ai-session`, {
+        sessionData: JSON.stringify(finalSession),
+        userId: currentUserId,
+      });
     } catch (err: any) {
       alert(`업무 저장에 실패했습니다: ${err?.response?.data?.message ?? err?.message ?? err}`);
       return;
-    }
-
-    // DB 세션 삭제 (보드 배정 완료 → 팀원들에게 AI_SESSION_DELETED 브로드캐스트)
-    if (workspace?.id) {
-      client.delete(`/workspaces/${workspace.id}/ai-session`)
-        .catch((err) => console.error("세션 삭제 실패:", err));
-      localStorage.removeItem(sessionKey);
     }
 
     navigate("/workspace-board", { state: { workspaces, workspace } });
