@@ -239,6 +239,15 @@ function readAiTaskSession(preferredKey: string): AiTaskSession | null {
   }
 }
 
+function getTaskOrder(task: Task) {
+  const match = task.id.match(/c(\d+)-t(\d+)/);
+  return {
+    categoryIdx: task.categoryIdx,
+    taskIdx: match ? Number(match[2]) : Number.MAX_SAFE_INTEGER,
+    id: task.id,
+  };
+}
+
 const CAT_COLORS = [
   { color: "#1a1a1a", taskColor: "#f8b4b4" },
   { color: "#6ab4f8", taskColor: "#6ab4f8" },
@@ -815,18 +824,35 @@ export default function AiTaskPage() {
         bucket.push(task);
         tasksByCategory.set(task.categoryIdx, bucket);
       });
-      for (const bucket of tasksByCategory.values()) {
-        const ordered = [...bucket].sort((a, b) => a.id.localeCompare(b.id));
-        for (let i = 0; i < ordered.length - 1; i++) {
-          const predecessorId = ordered[i].backendId;
-          const successorId = ordered[i + 1].backendId;
-          if (!predecessorId || !successorId) continue;
-          try {
-            await client.post(`/workspaces/${workspace.id}/tasks/${predecessorId}/successors`, { successorTaskId: successorId });
-          } catch (err) {
-            console.warn("AI task dependency auto-link failed:", err);
-          }
+      const linkedPairs = new Set<string>();
+      const linkSuccessor = async (predecessorId?: string, successorId?: string) => {
+        if (!predecessorId || !successorId) return;
+        const key = `${predecessorId}->${successorId}`;
+        if (linkedPairs.has(key)) return;
+        linkedPairs.add(key);
+        try {
+          await client.post(`/workspaces/${workspace.id}/tasks/${predecessorId}/successors`, { successorTaskId: successorId });
+        } catch (err) {
+          console.warn("AI task dependency auto-link failed:", err);
         }
+      };
+      for (const bucket of tasksByCategory.values()) {
+        const ordered = [...bucket].sort((a, b) => {
+          const left = getTaskOrder(a);
+          const right = getTaskOrder(b);
+          return left.taskIdx - right.taskIdx || left.id.localeCompare(right.id);
+        });
+        for (let i = 0; i < ordered.length - 1; i++) {
+          await linkSuccessor(ordered[i].backendId, ordered[i + 1].backendId);
+        }
+      }
+      const orderedAll = [...createdTasks].sort((a, b) => {
+        const left = getTaskOrder(a);
+        const right = getTaskOrder(b);
+        return left.categoryIdx - right.categoryIdx || left.taskIdx - right.taskIdx || left.id.localeCompare(right.id);
+      });
+      for (let i = 0; i < orderedAll.length - 1; i++) {
+        await linkSuccessor(orderedAll[i].backendId, orderedAll[i + 1].backendId);
       }
       const finalSession = {
         title, categories, tasks, prompt: origPrompt, result: aiResult, memberBaskets: nextBaskets, sessions,

@@ -517,42 +517,65 @@ export default function NotificationPage() {
                     <span className="ntp-affected-empty-hint">선후행 관계가 설정된 업무가 있으면 영향 분석이 가능합니다.</span>
                   </div>
                 ) : (() => {
+                  const orderedAffected = [...item.affectedTasks].sort((a, b) =>
+                    (a.depth ?? 1) - (b.depth ?? 1) || a.title.localeCompare(b.title)
+                  );
                   const byDepth = new Map<number, AffectedTask[]>();
-                  for (const a of item.affectedTasks) {
+                  for (const a of orderedAffected) {
                     const d = a.depth ?? 1;
                     if (!byDepth.has(d)) byDepth.set(d, []);
                     byDepth.get(d)!.push(a);
                   }
                   const depths = [...byDepth.keys()].sort((x, y) => x - y);
-                  return depths.map((depth) => (
-                    <div key={depth} className="ntp-affected-depth-group">
-                      <div className="ntp-affected-depth-header">
-                        <span className={`ntp-depth-tag ${depth === 1 ? "depth-direct" : "depth-indirect"}`}>
-                          {depth === 1 ? "직접 영향" : `${depth}단계 영향`}
-                        </span>
-                        <div className="ntp-depth-arrows">
-                          {Array.from({ length: Math.min(depth, 3) }).map((_, i) => (
-                            <ArrowRight key={i} size={11} />
+                  return (
+                    <>
+                      <div className="ntp-impact-chain" aria-label="영향 연쇄 시각화">
+                        <div className="ntp-impact-node ntp-impact-node--root">
+                          <span className="ntp-impact-node-kicker">병목</span>
+                          <span className="ntp-impact-node-title">{item.title}</span>
+                        </div>
+                        {orderedAffected.map((a) => (
+                          <div key={`chain-${a.taskId}`} className="ntp-impact-step">
+                            <ArrowRight size={14} />
+                            <div className="ntp-impact-node">
+                              <span className="ntp-impact-node-kicker">{a.depth ?? 1}단계 영향</span>
+                              <span className="ntp-impact-node-title">{a.title}</span>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+
+                      {depths.map((depth) => (
+                        <div key={depth} className="ntp-affected-depth-group">
+                          <div className="ntp-affected-depth-header">
+                            <span className={`ntp-depth-tag ${depth === 1 ? "depth-direct" : "depth-indirect"}`}>
+                              {depth === 1 ? "직접 영향" : `${depth}단계 영향`}
+                            </span>
+                            <div className="ntp-depth-arrows">
+                              {Array.from({ length: Math.min(depth, 3) }).map((_, i) => (
+                                <ArrowRight key={i} size={11} />
+                              ))}
+                            </div>
+                          </div>
+                          {byDepth.get(depth)!.map((a) => (
+                            <div key={a.taskId} className="ntp-affected-item" style={{ paddingLeft: `${(depth - 1) * 14 + 14}px` }}>
+                              <div className="ntp-affected-item-left">
+                                <span className={`ntp-affected-status-dot status-${a.status.toLowerCase()}`} />
+                                <span className="ntp-affected-name">{a.title}</span>
+                              </div>
+                              <div className="ntp-affected-meta">
+                                {a.assigneeName && <span>{a.assigneeName}</span>}
+                                {a.dueDate && <span>{a.dueDate}</span>}
+                                {a.estimatedDelayDays != null && a.estimatedDelayDays > 0 && (
+                                  <span className="ntp-affected-delay">+{a.estimatedDelayDays}일</span>
+                                )}
+                              </div>
+                            </div>
                           ))}
                         </div>
-                      </div>
-                      {byDepth.get(depth)!.map((a) => (
-                        <div key={a.taskId} className="ntp-affected-item" style={{ paddingLeft: `${(depth - 1) * 14 + 14}px` }}>
-                          <div className="ntp-affected-item-left">
-                            <span className={`ntp-affected-status-dot status-${a.status.toLowerCase()}`} />
-                            <span className="ntp-affected-name">{a.title}</span>
-                          </div>
-                          <div className="ntp-affected-meta">
-                            {a.assigneeName && <span>{a.assigneeName}</span>}
-                            {a.dueDate && <span>{a.dueDate}</span>}
-                            {a.estimatedDelayDays != null && a.estimatedDelayDays > 0 && (
-                              <span className="ntp-affected-delay">+{a.estimatedDelayDays}일</span>
-                            )}
-                          </div>
-                        </div>
                       ))}
-                    </div>
-                  ));
+                    </>
+                  );
                 })()}
               </div>
             )}

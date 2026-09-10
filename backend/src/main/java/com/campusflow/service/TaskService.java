@@ -343,6 +343,9 @@ public class TaskService {
 
             // BFS로 모든 직·간접 후속 수집 + 각 태스크의 depth(거리) 포함
             Map<String, Integer> downstreamWithDepth = collectAllDownstreamWithDepth(t.getTaskId(), dependencies);
+            if (downstreamWithDepth.isEmpty()) {
+                downstreamWithDepth = collectFallbackDownstreamWithDepth(t, allActive);
+            }
             List<BottleneckReportDto.AffectedTask> affected = downstreamWithDepth.entrySet().stream()
                     .filter(e -> taskById.containsKey(e.getKey()))
                     .map(e -> {
@@ -411,6 +414,29 @@ public class TaskService {
      * 2순위. daysStuck > plannedDuration + buffer → 계획 기간 초과
      * 3순위. 날짜 정보 없으면 daysStuck > thresholdDays
      */
+    private Map<String, Integer> collectFallbackDownstreamWithDepth(Task bottleneck, List<Task> allActive) {
+        java.time.LocalDate anchor = bottleneck.getDueDate() != null ? bottleneck.getDueDate() : bottleneck.getStartDate();
+        if (anchor == null) return Map.of();
+
+        List<Task> laterTasks = allActive.stream()
+                .filter(t -> !t.getTaskId().equals(bottleneck.getTaskId()))
+                .filter(t -> t.getStatus() != TaskStatus.DONE)
+                .filter(t -> {
+                    java.time.LocalDate date = t.getStartDate() != null ? t.getStartDate() : t.getDueDate();
+                    return date != null && date.isAfter(anchor);
+                })
+                .sorted(java.util.Comparator
+                        .comparing((Task t) -> t.getStartDate() != null ? t.getStartDate() : t.getDueDate())
+                        .thenComparing(Task::getTitle))
+                .toList();
+
+        Map<String, Integer> result = new LinkedHashMap<>();
+        for (int i = 0; i < laterTasks.size(); i++) {
+            result.put(laterTasks.get(i).getTaskId(), i + 1);
+        }
+        return result;
+    }
+
     private boolean isBottleneckCondition(Task task, long daysStuck, int thresholdDays) {
         java.time.LocalDate today = java.time.LocalDate.now();
         if (task.getDueDate() != null && task.getDueDate().isBefore(today)) return true;
