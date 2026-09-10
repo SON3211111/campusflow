@@ -8,6 +8,7 @@ import com.campusflow.entity.User;
 import com.campusflow.entity.enums.UserStatus; // [추가] Enum 관리
 import com.campusflow.repository.UserRepository;
 import com.campusflow.service.WorkspaceService;
+import com.campusflow.service.EmailVerificationService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
@@ -28,10 +29,28 @@ public class AuthController {
     private final BCryptPasswordEncoder passwordEncoder;
     private final TokenProvider tokenProvider;
     private final WorkspaceService workspaceService;
+    private final EmailVerificationService emailVerificationService;
+
+    @PostMapping("/email/send")
+    public ResponseEntity<ApiResponse<?>> sendVerificationCode(@RequestBody Map<String, String> body) {
+        String email = body.get("email");
+        if (email == null || email.isBlank()) return ResponseEntity.badRequest().body(ApiResponse.error(400, "이메일을 입력해주세요."));
+        if (userRepository.existsByEmail(email)) return ResponseEntity.status(HttpStatus.CONFLICT).body(ApiResponse.error(409, "이미 존재하는 이메일입니다."));
+        try { emailVerificationService.send(email); return ResponseEntity.ok(ApiResponse.success(200, "인증 코드를 발송했습니다.")); }
+        catch (Exception e) { return ResponseEntity.status(HttpStatus.SERVICE_UNAVAILABLE).body(ApiResponse.error(503, "이메일 발송에 실패했습니다.")); }
+    }
+
+    @PostMapping("/email/verify")
+    public ResponseEntity<ApiResponse<?>> verifyEmail(@RequestBody Map<String, String> body) {
+        String email = body.get("email"), code = body.get("code");
+        if (email == null || code == null || !code.matches("\\d{6}")) return ResponseEntity.badRequest().body(ApiResponse.error(400, "6자리 인증 코드를 입력해주세요."));
+        return emailVerificationService.verify(email, code) ? ResponseEntity.ok(ApiResponse.success(200, "이메일 인증이 완료되었습니다.")) : ResponseEntity.badRequest().body(ApiResponse.error(400, "인증 코드가 올바르지 않거나 만료되었습니다."));
+    }
 
     // 1-1. 회원가입 (워크스페이스 자동 생성 로직 포함)
     @PostMapping("/signup")
     public ResponseEntity<ApiResponse<?>> signup(@Valid @RequestBody SignupRequest signupRequest) {
+        if (!emailVerificationService.isVerified(signupRequest.getEmail())) return ResponseEntity.status(HttpStatus.FORBIDDEN).body(ApiResponse.error(403, "이메일 인증이 필요합니다."));
         // 1. 이메일 중복 체크
         if (userRepository.findByEmail(signupRequest.getEmail()).isPresent()) {
             return ResponseEntity.status(HttpStatus.CONFLICT)
@@ -52,6 +71,7 @@ public class AuthController {
 
         // 3. 개인 워크스페이스 자동 생성
         workspaceService.createDefaultPersonalWorkspace(savedUser);
+        emailVerificationService.consume(savedUser.getEmail());
 
         return ResponseEntity.status(HttpStatus.CREATED)
                 .body(ApiResponse.success(201, "회원가입 및 개인 워크스페이스 생성 성공", null)); // 유저 비번 등 노출 방지를 위해 null 또는 전용 DTO
@@ -93,7 +113,7 @@ public class AuthController {
         }
 
         // 3. 비밀번호 일치 여부 확인
-        if (passwordEncoder.matches(loginRequest.getPassword(), user.getPassword())) {
+        if (user.getPassword() != null && passwordEncoder.matches(loginRequest.getPassword(), user.getPassword())) {
 
             // 마지막 로그인 시간 업데이트 로직 추가 가능 (DB 설계의 last_login_at 반영)
             // userService.updateLastLogin(user.getUserId());
