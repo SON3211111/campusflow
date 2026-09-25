@@ -228,6 +228,11 @@ public class TaskService {
 
         TaskStatus prevStatus = task.getStatus();
         task.setStatus(newStatus);
+        // A status-only client (Android) must not leave a stale web column behind.
+        // Web custom-column moves can still set their destination via board-column.
+        if (prevStatus != newStatus) {
+            task.setBoardColumn(null);
+        }
 
         User changedBy = (userId != null && !userId.isBlank())
                 ? userRepository.findById(userId).orElse(null)

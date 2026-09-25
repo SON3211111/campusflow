@@ -1,5 +1,9 @@
 # CampusFlow
 
+## Android 앱 모듈
+
+Kotlin / Jetpack Compose 기반 네이티브 앱은 [`android/`](android/README.md)에 있습니다. Android Studio에서 해당 폴더를 열어 실행할 수 있으며, 웹과 같은 Spring Boot API를 사용합니다. 서버 없이 확인하려면 로그인 화면의 **데모로 먼저 둘러보기**를 선택하세요.
+
 ## 프로젝트 소개
 
 CampusFlow는 대학생 팀 프로젝트에서 발생하는

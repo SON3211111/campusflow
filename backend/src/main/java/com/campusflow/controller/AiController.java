@@ -59,9 +59,16 @@ public class AiController {
     @PostMapping("/generate-tasks")
     public ResponseEntity<ApiResponse<TaskListDto>> generateTasks(
             @RequestParam("description") String description) {
+        String input = description == null ? "" : description.strip();
+        long meaningfulCharacters = input.codePoints().filter(Character::isLetterOrDigit).count();
+        long distinctCharacters = input.codePoints().filter(Character::isLetterOrDigit).distinct().count();
+        if (input.length() < 20 || input.length() > 4000 || meaningfulCharacters < 12 || distinctCharacters < 5) {
+            return ResponseEntity.badRequest().body(ApiResponse.error(400,
+                    "프로젝트 목표와 필요한 기능을 20~4,000자로 구체적으로 입력해 주세요."));
+        }
         try {
             // AiService를 통해 Python AI 서버로부터 태스크 목록을 받아옴
-            TaskListDto result = aiService.generateTasks(description);
+            TaskListDto result = aiService.generateTasks(input);
             // 성공 시 200 OK + ApiResponse 래핑해서 반환
             return ResponseEntity.ok(ApiResponse.success(200, "업무 생성 성공", result));
         } catch (RuntimeException e) {
