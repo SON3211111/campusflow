@@ -11,6 +11,7 @@ import com.campusflow.service.WorkspaceService;
 import com.campusflow.service.EmailVerificationService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
@@ -31,13 +32,21 @@ public class AuthController {
     private final WorkspaceService workspaceService;
     private final EmailVerificationService emailVerificationService;
 
+    @Value("${spring.mail.username:}")
+    private String mailUsername;
+    @Value("${spring.mail.password:}")
+    private String mailPassword;
+
     @PostMapping("/email/send")
     public ResponseEntity<ApiResponse<?>> sendVerificationCode(@RequestBody Map<String, String> body) {
         String email = body.get("email");
         if (email == null || email.isBlank()) return ResponseEntity.badRequest().body(ApiResponse.error(400, "이메일을 입력해주세요."));
         if (userRepository.existsByEmail(email)) return ResponseEntity.status(HttpStatus.CONFLICT).body(ApiResponse.error(409, "이미 존재하는 이메일입니다."));
+        if (mailUsername.isBlank() || mailPassword.isBlank()) {
+            return ResponseEntity.status(HttpStatus.SERVICE_UNAVAILABLE).body(ApiResponse.error(503, "이메일 SMTP 설정이 없습니다. .env에 MAIL_USERNAME과 MAIL_PASSWORD를 설정하고 백엔드를 다시 시작해주세요."));
+        }
         try { emailVerificationService.send(email); return ResponseEntity.ok(ApiResponse.success(200, "인증 코드를 발송했습니다.")); }
-        catch (Exception e) { return ResponseEntity.status(HttpStatus.SERVICE_UNAVAILABLE).body(ApiResponse.error(503, "이메일 발송에 실패했습니다.")); }
+        catch (Exception e) { return ResponseEntity.status(HttpStatus.SERVICE_UNAVAILABLE).body(ApiResponse.error(503, "인증 이메일 발송에 실패했습니다. SMTP 설정과 앱 비밀번호를 확인해주세요.")); }
     }
 
     @PostMapping("/email/verify")

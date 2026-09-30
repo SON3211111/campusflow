@@ -57,8 +57,12 @@ const UserSetup: React.FC = () => {
       const status = err.response?.status;
       if (status === 409) {
         setErrorMsg("이미 존재하는 이메일입니다.");
+      } else if (status === 403) {
+        setErrorMsg(err.response?.data?.message ?? "이메일 인증이 만료되었습니다. 인증 코드를 다시 받아 주세요.");
+      } else if (err.response?.data?.message) {
+        setErrorMsg(err.response.data.message);
       } else {
-        setErrorMsg("서버에 연결할 수 없습니다.");
+        setErrorMsg("서버에 연결할 수 없습니다. 백엔드 실행 상태를 확인해 주세요.");
       }
     } finally {
       setLoading(false);
