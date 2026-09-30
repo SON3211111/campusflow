@@ -11,6 +11,14 @@ export default defineConfig({
       usePolling: true,
     },
     proxy: {
+      '/oauth2': {
+        target: process.env.API_TARGET ?? 'http://localhost:8080',
+        changeOrigin: true,
+      },
+      '/login/oauth2': {
+        target: process.env.API_TARGET ?? 'http://localhost:8080',
+        changeOrigin: true,
+      },
       '/api': {
         target: process.env.API_TARGET ?? 'http://localhost:8080',
         changeOrigin: true,

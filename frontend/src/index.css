@@ -551,3 +551,6 @@ code {
   padding: 4px 8px;
   background: var(--code-bg);
 }
+.social-brand-icon { display: block; width: 24px; height: 24px; object-fit: contain; }
+.naver-brand-crop { display: block; width: 24px; height: 24px; overflow: hidden; }
+.naver-brand-crop img { display: block; height: 24px; width: auto; max-width: none; }
