@@ -1,0 +1,16 @@
+{
+  "expo": {
+    "name": "CampusFlow",
+    "slug": "campusflow-mobile",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "userInterfaceStyle": "light",
+    "ios": {
+      "bundleIdentifier": "com.campusflow.mobile",
+      "supportsTablet": true
+    },
+    "android": {
+      "package": "com.campusflow.mobile"
+    }
+  }
+}
