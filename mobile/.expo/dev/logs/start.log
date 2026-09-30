@@ -370,3 +370,4 @@
 {"_e":"metro:bundling:progress","_t":1790748303609,"id":"1","progress":0.999,"total":707,"current":707}
 {"_e":"metro:bundling:done","_t":1790748303641,"id":"1","total":707,"ms":347.285}
 {"_e":"metro:client_log","_t":1790748304528,"level":"warn","data":["SafeAreaView has been deprecated and will be removed in a future release. Please use 'react-native-safe-area-context' instead. See https://github.com/AppAndFlow/react-native-safe-area-context"]}
+{"_e":"metro:client_log","_t":1790749799678,"level":"error","data":["[ReferenceError: Property 'LoginScreen' doesn't exist]"]}

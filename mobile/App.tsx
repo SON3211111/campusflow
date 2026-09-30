@@ -1,6 +1,7 @@
 import { StatusBar } from 'expo-status-bar';
 import { useMemo, useState } from 'react';
 import {
+  ActivityIndicator,
   Alert,
   Modal,
   Pressable,
@@ -28,6 +29,7 @@ const C = {
 type TaskStatus = '할 일' | '진행 중' | '완료';
 type Task = { id: string; title: string; detail: string; dueDate: string | null; estimatedHours?: number | null; status: TaskStatus; color: string };
 type AiTaskSuggestion = { title: string; description?: string; category?: string; priority?: string; estimatedHours?: number | null };
+type UserSession = { userId: string; name: string; email: string; accessToken: string; role: string };
 
 const API_BASE_URL = (process.env.EXPO_PUBLIC_API_BASE_URL || 'http://10.0.2.2:8080/api').replace(/\/$/, '');
 
@@ -71,6 +73,7 @@ const navItems = [
 ];
 
 export default function App() {
+  const [userSession, setUserSession] = useState<UserSession | null>(null);
   const [activeTab, setActiveTab] = useState('홈');
   const [taskList, setTaskList] = useState(initialTasks);
   const [taskFilter, setTaskFilter] = useState<'전체' | TaskStatus>('전체');
@@ -155,6 +158,18 @@ export default function App() {
     Alert.alert('보드에 추가했어요', 'AI가 제안한 Task를 모바일 보드에 추가했습니다.');
   };
 
+  const logout = () => Alert.alert('로그아웃', '현재 계정에서 로그아웃할까요?', [
+    { text: '취소', style: 'cancel' },
+    { text: '로그아웃', style: 'destructive', onPress: () => {
+      setUserSession(null);
+      setActiveTab('홈');
+      setTaskList(initialTasks);
+      setAiPrompt(''); setAiSuggestions([]); setAiError(''); setAiFallback(false);
+    } },
+  ]);
+
+  if (!userSession) return <LoginScreen onLogin={setUserSession} />;
+
   return (
     <SafeAreaView style={styles.safe}>
       <StatusBar style="dark" />
@@ -174,7 +189,7 @@ export default function App() {
       <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
         {activeTab === '홈' && <>
         <View style={styles.welcome}>
-          <Text style={styles.welcomeTitle}>좋은 아침이에요, 홍태민님 👋</Text>
+          <Text style={styles.welcomeTitle}>좋은 아침이에요, {userSession.name}님 👋</Text>
           <Text style={styles.welcomeSubtitle}>오늘도 팀의 흐름을 함께 만들어봐요</Text>
           <View style={styles.notice}>
             <Text style={styles.noticeIcon}>🔔</Text>
@@ -276,9 +291,9 @@ export default function App() {
 
         {activeTab === '마이페이지' && <>
           <Text style={styles.screenTitle}>마이페이지</Text>
-          <View style={styles.profileCard}><View style={styles.avatar}><Text style={styles.avatarText}>홍</Text></View><View><Text style={styles.profileName}>홍태민</Text><Text style={styles.scheduleDetail}>taemin.hong@school.ac.kr</Text></View></View>
+          <View style={styles.profileCard}><View style={styles.avatar}><Text style={styles.avatarText}>{userSession.name.slice(0, 1)}</Text></View><View><Text style={styles.profileName}>{userSession.name}</Text><Text style={styles.scheduleDetail}>{userSession.email}</Text></View></View>
           <View style={styles.card}><Text style={styles.cardTitle}>내 활동</Text><View style={styles.profileRow}><Text style={styles.scheduleTitle}>담당 Task</Text><Text style={styles.profileValue}>{taskList.length}개</Text></View><View style={styles.profileRow}><Text style={styles.scheduleTitle}>완료한 Task</Text><Text style={styles.profileValue}>{completedCount}개</Text></View><View style={styles.profileRow}><Text style={styles.scheduleTitle}>워크스페이스</Text><Text style={styles.profileValue}>캠스톤 디자인 1조</Text></View></View>
-          <TouchableOpacity style={styles.secondaryButton} onPress={() => Alert.alert('계정 설정', '계정 설정은 서버 연동 후 사용할 수 있어요.')}><Text style={styles.secondaryButtonText}>계정 설정</Text></TouchableOpacity>
+          <TouchableOpacity style={styles.secondaryButton} onPress={logout}><Text style={styles.secondaryButtonText}>로그아웃</Text></TouchableOpacity>
         </>}
       </ScrollView>
 
@@ -303,6 +318,64 @@ export default function App() {
           </Pressable>
         </Pressable>
       </Modal>
+    </SafeAreaView>
+  );
+}
+
+function LoginScreen({ onLogin }: { onLogin: (session: UserSession) => void }) {
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState('');
+
+  const submit = async () => {
+    const normalizedEmail = email.trim();
+    if (!normalizedEmail || !password) { setError('이메일과 비밀번호를 입력해 주세요.'); return; }
+    setLoading(true); setError('');
+    try {
+      const response = await fetch(`${API_BASE_URL}/auth/login`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
+        body: JSON.stringify({ email: normalizedEmail, password }),
+      });
+      const payload = await response.json();
+      if (!response.ok) throw new Error(payload?.message || (response.status === 404 ? '가입된 계정을 찾을 수 없습니다.' : '로그인 정보를 확인해 주세요.'));
+      const data = payload?.data;
+      if (!data?.accessToken || !data?.userId) throw new Error('로그인 응답에 사용자 정보가 없습니다.');
+      onLogin({
+        userId: String(data.userId),
+        name: String(data.name || normalizedEmail.split('@')[0]),
+        email: normalizedEmail,
+        accessToken: String(data.accessToken),
+        role: String(data.role || 'USER'),
+      });
+    } catch (cause) {
+      setError(cause instanceof Error ? `${cause.message}\n백엔드 주소: ${API_BASE_URL}` : `로그인에 실패했습니다.\n백엔드 주소: ${API_BASE_URL}`);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return (
+    <SafeAreaView style={styles.safe}>
+      <StatusBar style="dark" />
+      <ScrollView contentContainerStyle={styles.loginPage} keyboardShouldPersistTaps="handled">
+        <View style={styles.loginLogo}><Text style={styles.logoText}>C</Text></View>
+        <Text style={styles.loginBrand}>C'FLOW</Text>
+        <Text style={styles.loginTitle}>이메일로 시작하기</Text>
+        <Text style={styles.loginSubtitle}>캠퍼스 프로젝트와 팀 워크스페이스에 로그인하세요.</Text>
+        <View style={styles.loginCard}>
+          <Text style={styles.fieldLabel}>이메일</Text>
+          <TextInput value={email} onChangeText={setEmail} inputMode="email" keyboardType="email-address" autoCapitalize="none" autoCorrect={false} placeholder="name@school.ac.kr" placeholderTextColor={C.muted} style={styles.input} editable={!loading} returnKeyType="next" />
+          <Text style={styles.fieldLabel}>비밀번호</Text>
+          <TextInput value={password} onChangeText={setPassword} inputMode="text" autoCapitalize="none" autoCorrect={false} secureTextEntry placeholder="비밀번호" placeholderTextColor={C.muted} style={styles.input} editable={!loading} returnKeyType="go" onSubmitEditing={submit} />
+          {error ? <View style={styles.errorBox}><Text style={styles.errorText}>{error}</Text></View> : null}
+          <TouchableOpacity disabled={loading} style={[styles.primaryButton, styles.loginButton, loading && styles.disabledButton]} onPress={submit}>
+            {loading ? <ActivityIndicator color="#FFFFFF" /> : <Text style={styles.primaryButtonText}>로그인</Text>}
+          </TouchableOpacity>
+        </View>
+        <Text style={styles.loginFooter}>기존 CampusFlow 계정으로 로그인합니다.</Text>
+      </ScrollView>
     </SafeAreaView>
   );
 }
@@ -355,6 +428,14 @@ function ScheduleRow({ time, title, detail, color, last = false }: { time: strin
 
 const styles = StyleSheet.create({
   safe: { flex: 1, backgroundColor: C.page, paddingTop: NativeStatusBar.currentHeight ?? 0 },
+  loginPage: { flexGrow: 1, justifyContent: 'center', paddingHorizontal: 24, paddingVertical: 32 },
+  loginLogo: { width: 48, height: 48, borderRadius: 16, backgroundColor: C.brand, alignItems: 'center', justifyContent: 'center', marginBottom: 10 },
+  loginBrand: { color: C.ink, fontSize: 14, fontWeight: '900', marginBottom: 38 },
+  loginTitle: { color: C.ink, fontSize: 25, fontWeight: '900', marginBottom: 8 },
+  loginSubtitle: { color: C.muted, fontSize: 13, lineHeight: 20, marginBottom: 20 },
+  loginCard: { backgroundColor: '#FFFFFF', borderRadius: 20, padding: 20, elevation: 2 },
+  loginButton: { marginTop: 20 },
+  loginFooter: { color: C.muted, fontSize: 11, textAlign: 'center', marginTop: 18 },
   header: { height: 60, backgroundColor: '#FFFFFF', flexDirection: 'row', alignItems: 'center', paddingHorizontal: 18 },
   logo: { width: 34, height: 34, borderRadius: 11, backgroundColor: C.brand, alignItems: 'center', justifyContent: 'center' },
   logoText: { color: '#FFFFFF', fontWeight: '900', fontSize: 19 },
