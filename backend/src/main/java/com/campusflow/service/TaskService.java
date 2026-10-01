@@ -228,24 +228,36 @@ public class TaskService {
 
         TaskStatus prevStatus = task.getStatus();
         task.setStatus(newStatus);
+        // An explicit status change also moves the card. Custom-column moves use
+        // updateBoardColumn and continue to preserve their chosen column.
+        task.setBoardColumn(switch (newStatus) {
+            case TODO -> "상태 없음";
+            case REVIEW -> "시작하지 않음";
+            case DOING -> "진행 중";
+            case ISSUE -> "보류 중";
+            case DONE -> "완료";
+        });
+        // Retries must not count completion or send notifications twice.
+        if (prevStatus != newStatus) {
 
-        User changedBy = (userId != null && !userId.isBlank())
-                ? userRepository.findById(userId).orElse(null)
-                : null;
+            User changedBy = (userId != null && !userId.isBlank())
+                    ? userRepository.findById(userId).orElse(null)
+                    : null;
 
-        taskStatusHistoryRepository.save(TaskStatusHistory.builder()
-                .task(task)
-                .workspace(task.getWorkspace())
-                .prevStatus(prevStatus)
-                .currStatus(newStatus)
-                .changedBy(changedBy)
-                .build());
+            taskStatusHistoryRepository.save(TaskStatusHistory.builder()
+                    .task(task)
+                    .workspace(task.getWorkspace())
+                    .prevStatus(prevStatus)
+                    .currStatus(newStatus)
+                    .changedBy(changedBy)
+                    .build());
 
-        if (newStatus == TaskStatus.DONE && task.getAssignee() != null && task.getProject() != null) {
-            updateContributionMetrics(task.getProject(), task.getAssignee(), prevStatus == TaskStatus.ISSUE);
+            if (newStatus == TaskStatus.DONE && task.getAssignee() != null && task.getProject() != null) {
+                updateContributionMetrics(task.getProject(), task.getAssignee(), prevStatus == TaskStatus.ISSUE);
+            }
+
+            notificationService.notifyStatusChange(task, prevStatus, newStatus, userId);
         }
-
-        notificationService.notifyStatusChange(task, prevStatus, newStatus, userId);
 
         if (task.getWorkspace() != null) {
             String wsId = task.getWorkspace().getWorkspaceId();

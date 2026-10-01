@@ -92,13 +92,11 @@ export function useWorkspaceSocket(
       ws.onmessage = (event) => {
         try {
           const data: WsMessage = JSON.parse(event.data);
-          const myUserId = localStorage.getItem("userId") ?? "";
 
           switch (data.type) {
             case "STATUS_CHANGE":
-              if (data.changedByUserId !== myUserId) {
-                handlersRef.current.onStatusChange?.(data);
-              }
+              // The same user may be changing a task from another device or tab.
+              handlersRef.current.onStatusChange?.(data);
               break;
             case "TASK_CREATED":
               handlersRef.current.onTaskCreated?.(data);

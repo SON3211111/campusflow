@@ -254,7 +254,7 @@ export default function WorkSpacePage() {
           }
         }
         if (movedCard) {
-          next[targetCol] = [...(next[targetCol] ?? []), movedCard];
+          next[targetCol] = [...(next[targetCol] ?? []), { ...movedCard, boardColumn: targetCol }];
         }
         return next;
       });
@@ -625,7 +625,7 @@ export default function WorkSpacePage() {
     }
   };
 
-  const handleStatusChangeFromModal = async (col: string, id: string, newColName: string) => {
+  const handleStatusChangeFromModal = async (id: string, newColName: string) => {
     const newStatus = COL_TO_STATUS[newColName];
     if (!workspace?.id) return;
     const userId = localStorage.getItem("userId") ?? "";
@@ -636,9 +636,12 @@ export default function WorkSpacePage() {
       await client.patch(`/workspaces/${workspace.id}/tasks/${id}/board-column`, { boardColumn: newColName });
       setCards((prev) => {
         const next = { ...prev };
-        const card = next[col]?.find((c) => c.id === id);
+        const card = Object.values(next).flat().find((c) => c.id === id);
         if (!card) return next;
-        next[col] = next[col].filter((c) => c.id !== id);
+        // A WebSocket echo may already have moved this card before PATCH resolves.
+        for (const column of Object.keys(next)) {
+          next[column] = next[column].filter((c) => c.id !== id);
+        }
         next[newColName] = [...(next[newColName] ?? []), { ...card, boardColumn: newColName }];
         return next;
       });
@@ -991,7 +994,7 @@ export default function WorkSpacePage() {
           onSaveDueDate={(dueDate) => handleSaveDueDate(selectedCard.col, selectedCard.card.id, dueDate)}
           onSaveComments={(comments) => handleSaveComments(selectedCard.col, selectedCard.card.id, comments)}
           onSendSignal={(signal) => handleSendSignal(selectedCard.col, selectedCard.card.id, signal)}
-          onStatusChange={(newColName) => handleStatusChangeFromModal(selectedCard.col, selectedCard.card.id, newColName)}
+          onStatusChange={(newColName) => handleStatusChangeFromModal(selectedCard.card.id, newColName)}
           members={wsMembers}
           onChangeAssignee={(userId, name) => handleChangeAssignee(selectedCard.col, selectedCard.card.id, userId, name)}
           isBottleneck={bottleneckTaskIds.has(selectedCard.card.id)}
