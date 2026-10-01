@@ -228,15 +228,15 @@ public class TaskService {
 
         TaskStatus prevStatus = task.getStatus();
         task.setStatus(newStatus);
-        // An explicit status change also moves the card. Custom-column moves use
-        // updateBoardColumn and continue to preserve their chosen column.
-        task.setBoardColumn(switch (newStatus) {
-            case TODO -> "상태 없음";
-            case REVIEW -> "시작하지 않음";
-            case DOING -> "진행 중";
-            case ISSUE -> "보류 중";
-            case DONE -> "완료";
-        });
+        // Status-only clients use the web's status-to-column fallback. Preserve a
+        // custom column on no-op requests, but repair stale standard columns.
+        String column = task.getBoardColumn();
+        if (prevStatus != newStatus || column == null || column.isBlank()
+                || List.of("상태 없음", "시작하지 않음", "진행 중", "보류 중", "완료").contains(column)) {
+            task.setBoardColumn(null);
+        }
+        // A no-op in a custom column must not move other clients to a default column.
+        if (prevStatus == newStatus && task.getBoardColumn() != null) return;
         // Retries must not count completion or send notifications twice.
         if (prevStatus != newStatus) {
 

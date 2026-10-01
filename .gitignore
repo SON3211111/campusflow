@@ -31,3 +31,11 @@ ai/venv/
 # ─── OS ──────────────────────────────────────────────
 .DS_Store
 Thumbs.db
+
+# Android / local tooling
+android/.gradle/
+android/.kotlin/
+android/**/build/
+android/local.properties
+.android-tools/
+.tmp-hwp-deps/

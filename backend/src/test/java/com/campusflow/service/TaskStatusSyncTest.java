@@ -38,7 +38,7 @@ class TaskStatusSyncTest {
         Task task = existing(status == TaskStatus.DONE ? TaskStatus.DOING : TaskStatus.DONE, "사용자 정의");
         service.updateTaskStatus("task", status, null);
         assertEquals(status, task.getStatus());
-        assertEquals(column, task.getBoardColumn());
+        assertNull(task.getBoardColumn());
         verify(history).save(any());
         verify(socket).broadcast(eq("workspace"), contains("\"newStatus\":\"" + status + "\""));
     }
@@ -47,7 +47,7 @@ class TaskStatusSyncTest {
     void repeatedCompletionRepairsOldColumnWithoutDuplicateSideEffects() {
         Task task = existing(TaskStatus.DONE, "진행 중");
         service.updateTaskStatus("task", TaskStatus.DONE, null);
-        assertEquals("완료", task.getBoardColumn());
+        assertNull(task.getBoardColumn());
         verifyNoInteractions(history, notifications);
         verify(socket).broadcast(eq("workspace"), anyString());
     }
