@@ -51,8 +51,7 @@ fun CampusApp(vm: AppViewModel) {
         snackbarHost = { SnackbarHost(snackbar) },
         topBar = {
             if (state.session != null) TopAppBar(title = {
-                Column { Text("campusflow", fontWeight = FontWeight.ExtraBold)
-                    if (state.demo) Text("데모 · 기기에 임시 저장", style = MaterialTheme.typography.labelSmall) }
+                Text("campusflow", fontWeight = FontWeight.ExtraBold)
             }, actions = {
                 IconButton({ vm.refresh() }, enabled = !state.busy && !state.refreshing) { Icon(Icons.Outlined.Refresh, "새로고침") }
                 IconButton({ sheet = "notifications" }) { BadgedBox(badge = { if (state.notices.any { !it.read }) Badge() }) { Icon(Icons.Outlined.Notifications, "알림") } }
