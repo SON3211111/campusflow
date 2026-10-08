@@ -23,11 +23,16 @@ public record TaskResponse(
         String boardColumn
 ) {
     public static TaskResponse from(Task task) {
+        String boardColumn = task.getBoardColumn();
+        String status = statusFromBoardColumn(boardColumn);
+        if (status == null) {
+            status = task.getStatus().name();
+        }
         return new TaskResponse(
                 task.getTaskId(),
                 task.getTitle(),
                 task.getDescription(),
-                task.getStatus().name(),
+                status,
                 task.getStartDate() != null ? task.getStartDate().toString() : null,
                 task.getDueDate() != null ? task.getDueDate().toString() : null,
                 task.isDeleted(),
@@ -37,7 +42,19 @@ public record TaskResponse(
                 task.getPriority() != null ? task.getPriority().name() : null,
                 task.getEstimatedHours(),
                 task.getQuickSignal(),
-                task.getBoardColumn()
+                boardColumn
         );
+    }
+
+    private static String statusFromBoardColumn(String boardColumn) {
+        if (boardColumn == null) return null;
+        return switch (boardColumn) {
+            case "상태 없음" -> "TODO";
+            case "시작하지 않음" -> "REVIEW";
+            case "진행 중" -> "DOING";
+            case "보류 중" -> "ISSUE";
+            case "완료" -> "DONE";
+            default -> null;
+        };
     }
 }

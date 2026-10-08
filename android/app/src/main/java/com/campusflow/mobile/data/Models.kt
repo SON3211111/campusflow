@@ -22,7 +22,16 @@ data class Task(
     val status: String = "TODO", val startDate: String? = null, val dueDate: String? = null,
     val assigneeId: String? = null, val assigneeName: String? = null,
     val priority: String? = null, val estimatedHours: Int? = null, val quickSignal: String? = null,
+    val boardColumn: String? = null,
 ) {
+    val effectiveStatus: String get() = when (boardColumn) {
+        "상태 없음" -> "TODO"
+        "시작하지 않음" -> "REVIEW"
+        "진행 중" -> "DOING"
+        "보류 중" -> "ISSUE"
+        "완료" -> "DONE"
+        else -> status
+    }
     val deadline: LocalDate? get() = runCatching { LocalDate.parse(dueDate?.take(10)) }.getOrNull()
     fun dDay(today: LocalDate = LocalDate.now()): String? = deadline?.let {
         val days = ChronoUnit.DAYS.between(today, it)

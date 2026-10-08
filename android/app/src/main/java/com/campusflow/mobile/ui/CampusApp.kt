@@ -159,7 +159,7 @@ private fun TaskDetailSheet(
     FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
         TaskStatus.entries.forEach { status ->
             FilterChip(
-                selected = task.status == status.name,
+                selected = task.effectiveStatus == status.name,
                 onClick = { onStatus(status) },
                 label = { Text(status.label) },
                 enabled = !state.busy,

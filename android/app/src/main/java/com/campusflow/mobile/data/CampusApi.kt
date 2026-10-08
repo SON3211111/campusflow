@@ -14,7 +14,7 @@ interface CampusApi {
     @GET("workspaces/{id}/members") suspend fun members(@Path("id") id: String): Envelope<List<Member>>
     @GET("workspaces/{id}/tasks") suspend fun tasks(@Path("id") id: String): Envelope<List<Task>>
     @POST("workspaces/{id}/tasks") suspend fun createTask(@Path("id") id: String, @Body body: TaskInput): Envelope<Task>
-    @PATCH("workspaces/{id}/tasks/{taskId}/status") suspend fun status(@Path("id") id: String, @Path("taskId") taskId: String, @Query("status") status: String, @Query("userId") userId: String): Envelope<Unit>
+    @PATCH("workspaces/{id}/tasks/{taskId}/status") suspend fun status(@Path("id") id: String, @Path("taskId") taskId: String, @Query("status") status: String, @Query("userId") userId: String): Envelope<Task>
     @PATCH("workspaces/{id}/tasks/{taskId}/description") suspend fun description(@Path("id") id: String, @Path("taskId") taskId: String, @Body body: Map<String, String>): Envelope<Unit>
     @PATCH("workspaces/{id}/tasks/{taskId}/start-date") suspend fun startDate(@Path("id") id: String, @Path("taskId") taskId: String, @Query("startDate") startDate: String): Envelope<Unit>
     @PATCH("workspaces/{id}/tasks/{taskId}/due-date") suspend fun dueDate(@Path("id") id: String, @Path("taskId") taskId: String, @Query("dueDate") dueDate: String): Envelope<Unit>

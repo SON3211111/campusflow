@@ -49,12 +49,12 @@ public class WorkspaceTaskController {
     }
 
     @PatchMapping("/{taskId}/status")
-    public ResponseEntity<ApiResponse<Void>> updateStatus(
+    public ResponseEntity<ApiResponse<TaskResponse>> updateStatus(
             @PathVariable String taskId,
             @RequestParam TaskStatus status,
             @RequestParam(required = false) String userId) {
-        taskService.updateTaskStatus(taskId, status, userId);
-        return ResponseEntity.ok(ApiResponse.success(200, "상태 변경 완료"));
+        TaskResponse updated = taskService.updateTaskStatus(taskId, status, userId);
+        return ResponseEntity.ok(ApiResponse.success(200, "상태 변경 완료", updated));
     }
 
     @DeleteMapping("/{taskId}")

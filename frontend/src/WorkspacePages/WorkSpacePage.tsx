@@ -5,7 +5,7 @@
  * - 우측: 칸반 보드(드래그앤드롭, 태스크 CRUD, 소프트 삭제/복원)
  * 마우스 클릭+드래그로 보드 좌우 패닝 지원
  */
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import type { MouseEvent } from "react";
 import { Sparkles, Plus, CalendarDays, AlertCircle, MessageCircle, Calendar, TrendingDown } from "lucide-react";
 import { useLocation } from "react-router-dom";
@@ -72,6 +72,15 @@ const STATUS_TO_COL: Record<string, string> = {
   ISSUE: "보류 중",
   DONE: "완료",
 };
+
+const STATUS_COLUMNS = new Set(Object.values(STATUS_TO_COL));
+
+function resolveTaskColumn(status: string | undefined, boardColumn: string | undefined, columns: string[]) {
+  const statusCol = status ? STATUS_TO_COL[status] : undefined;
+  if (statusCol && (!boardColumn || STATUS_COLUMNS.has(boardColumn))) return statusCol;
+  if (boardColumn && columns.includes(boardColumn)) return boardColumn;
+  return statusCol ?? "상태 없음";
+}
 
 const BSV_KEY_TO_STATUS: Record<string, string> = {
   none: "TODO",
@@ -152,6 +161,60 @@ export default function WorkSpacePage() {
   const columnsRef = useRef<HTMLDivElement>(null);
   const panState = useRef({ active: false, x: 0, scrollLeft: 0, moved: false });
 
+  const moveTaskToStatus = (taskId: string, status: string) => {
+    const targetCol = STATUS_TO_COL[status] ?? "상태 없음";
+    setCards((prev) => {
+      const next = { ...prev };
+      let movedCard: CardItem | undefined;
+      for (const col of Object.keys(next)) {
+        const idx = next[col].findIndex((c) => c.id === taskId);
+        if (idx !== -1) {
+          movedCard = next[col][idx];
+          next[col] = next[col].filter((c) => c.id !== taskId);
+          break;
+        }
+      }
+      if (movedCard) {
+        next[targetCol] = [...(next[targetCol] ?? []), { ...movedCard, boardColumn: targetCol }];
+      }
+      return next;
+    });
+  };
+
+  const syncTasksFromServer = useCallback(async () => {
+    if (!workspace?.id) return;
+    try {
+      const tasksRes = await client.get(`/workspaces/${workspace.id}/tasks`);
+      const newCards: { [col: string]: CardItem[] } = Object.fromEntries(
+        cols.map((c) => [c, [] as CardItem[]])
+      );
+      for (const t of (tasksRes.data.data ?? [])) {
+        const savedCol = typeof t.boardColumn === "string" ? t.boardColumn : "";
+        const col = resolveTaskColumn(t.status, savedCol, cols);
+        if (!newCards[col]) {
+          newCards[col] = [];
+        }
+        newCards[col].push({
+          id: t.taskId,
+          title: t.title,
+          desc: t.description ?? "",
+          startDate: t.startDate ?? "",
+          dueDate: t.dueDate ?? "",
+          assigneeId: t.assigneeId ?? "",
+          assigneeName: t.assigneeName ?? "",
+          priority: t.priority ?? "",
+          quickSignal: t.quickSignal ?? "",
+          boardColumn: col,
+          comments: [],
+        });
+      }
+      setCards(newCards);
+      setShowLanding(Object.values(newCards).flat().length === 0);
+    } catch (err) {
+      console.error("태스크 실시간 동기화 실패:", err);
+    }
+  }, [workspace?.id, cols]);
+
   useEffect(() => {
     if (workspace?.id) {
       client.get(`/workspaces/${workspace.id}/members`)
@@ -216,13 +279,11 @@ export default function WorkSpacePage() {
         );
         for (const t of (tasksRes.data.data ?? [])) {
           const savedCol = typeof t.boardColumn === "string" ? t.boardColumn : "";
-          const col = savedCol && mergedCols.includes(savedCol)
-            ? savedCol
-            : STATUS_TO_COL[t.status] ?? "상태 없음";
+          const col = resolveTaskColumn(t.status, savedCol, mergedCols);
           if (!newCards[col]) {
             newCards[col] = [];
           }
-          newCards[col].push({ id: t.taskId, title: t.title, desc: t.description ?? "", startDate: t.startDate ?? "", dueDate: t.dueDate ?? "", assigneeId: t.assigneeId ?? "", assigneeName: t.assigneeName ?? "", priority: t.priority ?? "", quickSignal: t.quickSignal ?? "", boardColumn: savedCol || col, comments: [] });
+          newCards[col].push({ id: t.taskId, title: t.title, desc: t.description ?? "", startDate: t.startDate ?? "", dueDate: t.dueDate ?? "", assigneeId: t.assigneeId ?? "", assigneeName: t.assigneeName ?? "", priority: t.priority ?? "", quickSignal: t.quickSignal ?? "", boardColumn: col, comments: [] });
         }
         setCards(newCards);
         const hasTasks = Object.values(newCards).flat().length > 0 || basketTasks.length > 0;
@@ -241,26 +302,11 @@ export default function WorkSpacePage() {
   // WebSocket — 다른 팀원의 변경사항 실시간 반영
   useWorkspaceSocket(workspace?.id, {
     onStatusChange: ({ taskId, newStatus }) => {
-      const targetCol = STATUS_TO_COL[newStatus] ?? "상태 없음";
-      setCards((prev) => {
-        const next = { ...prev };
-        let movedCard: CardItem | undefined;
-        for (const col of Object.keys(next)) {
-          const idx = next[col].findIndex((c) => c.id === taskId);
-          if (idx !== -1) {
-            movedCard = next[col][idx];
-            next[col] = next[col].filter((c) => c.id !== taskId);
-            break;
-          }
-        }
-        if (movedCard) {
-          next[targetCol] = [...(next[targetCol] ?? []), { ...movedCard, boardColumn: targetCol }];
-        }
-        return next;
-      });
+      moveTaskToStatus(taskId, newStatus);
+      void syncTasksFromServer();
     },
     onTaskCreated: ({ taskId, title, status, assigneeId, assigneeName, priority, boardColumn }) => {
-      const col = boardColumn && cols.includes(boardColumn) ? boardColumn : STATUS_TO_COL[status] ?? "상태 없음";
+      const col = resolveTaskColumn(status, boardColumn, cols);
       const newCard: CardItem = {
         id: taskId,
         title,
@@ -268,7 +314,7 @@ export default function WorkSpacePage() {
         assigneeId: assigneeId || undefined,
         assigneeName: assigneeName || undefined,
         priority: priority || undefined,
-        boardColumn: boardColumn || col,
+        boardColumn: col,
         comments: [],
       };
       setCards((prev) => ({
@@ -288,7 +334,7 @@ export default function WorkSpacePage() {
       });
     },
     onTaskRestored: ({ taskId, title, status, assigneeId, assigneeName, priority, boardColumn }) => {
-      const col = boardColumn && cols.includes(boardColumn) ? boardColumn : STATUS_TO_COL[status] ?? "상태 없음";
+      const col = resolveTaskColumn(status, boardColumn, cols);
       const restoredCard: CardItem = {
         id: taskId,
         title,
@@ -296,7 +342,7 @@ export default function WorkSpacePage() {
         assigneeId: assigneeId || undefined,
         assigneeName: assigneeName || undefined,
         priority: priority || undefined,
-        boardColumn: boardColumn || col,
+        boardColumn: col,
         comments: [],
       };
       setCards((prev) => ({
@@ -307,6 +353,11 @@ export default function WorkSpacePage() {
       }));
     },
     onTaskUpdated: ({ taskId, field, value }) => {
+      if (field === "status") {
+        moveTaskToStatus(taskId, value);
+        void syncTasksFromServer();
+        return;
+      }
       setCards((prev) => {
         const next = { ...prev };
         if (field === "boardColumn") {
@@ -333,6 +384,7 @@ export default function WorkSpacePage() {
             if (field === "dueDate")      return { ...c, dueDate: value };
             if (field === "assigneeName") return { ...c, assigneeName: value || undefined };
             if (field === "assigneeId")   return { ...c, assigneeId: value || undefined };
+            if (field === "quickSignal")  return { ...c, quickSignal: value || undefined };
             return c;
           });
         }
@@ -500,7 +552,7 @@ export default function WorkSpacePage() {
         comments: [],
       };
       const savedCol = res.data.data.boardColumn ?? "";
-      const col = savedCol && cols.includes(savedCol) ? savedCol : STATUS_TO_COL[res.data.data.status] ?? "상태 없음";
+      const col = resolveTaskColumn(res.data.data.status, savedCol, cols);
       setCards((prev) => ({
         ...prev,
         [col]: (prev[col] ?? []).some((item) => item.id === restored.id)

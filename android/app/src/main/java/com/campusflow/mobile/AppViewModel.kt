@@ -180,12 +180,16 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
     }
     fun changeStatus(task: Task, status: TaskStatus) = execute {
         val s = state.value
+        val boardColumn = boardColumnForStatus(status.name)
+        updateTaskLocal(task.taskId) { it.copy(status = status.name, boardColumn = boardColumn) }
         if (s.demo) {
             val list = demoData.tasks[s.workspaceId]!!
             val index = list.indexOfFirst { it.taskId == task.taskId }
-            list[index] = task.copy(status = status.name)
-        } else api.status(s.workspaceId!!, task.taskId, status.name, s.session!!.userId)
-        load()
+            list[index] = task.copy(status = status.name, boardColumn = boardColumn)
+        } else {
+            val saved = api.status(s.workspaceId!!, task.taskId, status.name, s.session!!.userId).value()
+            updateTaskLocal(task.taskId) { saved }
+        }
     }
 
     fun loadTaskDetails(taskId: String) {
@@ -283,6 +287,15 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
         mutable.update { app -> app.copy(tasks = app.tasks.map { if (it.taskId == taskId) transform(it) else it }) }
     }
 
+    private fun boardColumnForStatus(status: String) = when (status) {
+        "TODO" -> "상태 없음"
+        "REVIEW" -> "시작하지 않음"
+        "DOING" -> "진행 중"
+        "ISSUE" -> "보류 중"
+        "DONE" -> "완료"
+        else -> null
+    }
+
     private fun connectTaskSocket(workspaceId: String?) {
         val s = state.value
         if (workspaceId == null || s.session == null || s.demo) {
@@ -348,11 +361,7 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
             "STATUS_CHANGE" -> {
                 val taskId = json["taskId"]?.asString ?: return
                 val newStatus = json["newStatus"]?.asString ?: return
-                mutable.update { app ->
-                    app.copy(tasks = app.tasks.map { task ->
-                        if (task.taskId == taskId) task.copy(status = newStatus) else task
-                    })
-                }
+                updateTaskLocal(taskId) { it.copy(status = newStatus, boardColumn = boardColumnForStatus(newStatus)) }
             }
             "TASK_UPDATED" -> {
                 val taskId = json["taskId"]?.asString ?: return
@@ -365,6 +374,9 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
                         "dueDate" -> task.copy(dueDate = value.ifBlank { null })
                         "assigneeName" -> task.copy(assigneeName = value.ifBlank { null })
                         "assigneeId" -> task.copy(assigneeId = value.ifBlank { null })
+                        "status" -> task.copy(status = value, boardColumn = boardColumnForStatus(value))
+                        "boardColumn" -> task.copy(boardColumn = value.ifBlank { null })
+                        "quickSignal" -> task.copy(quickSignal = value.ifBlank { null })
                         else -> task
                     }
                 }
