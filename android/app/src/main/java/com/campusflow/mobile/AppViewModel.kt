@@ -39,6 +39,28 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
     private val store = SessionStore(application)
     private val mutable = MutableStateFlow(AppState(session = store.load(), baseUrl = store.baseUrl))
     val state = mutable.asStateFlow()
+    private var verifiedEmail: String? = null
+    private var verificationToken: String? = null
+    fun clearEmailVerification() { verifiedEmail = null; verificationToken = null }
+    fun sendEmailCode(email: String, done: () -> Unit) {
+        if (!Validation.email(email)) { notify("올바른 이메일을 입력하세요."); return }
+        execute {
+            api.sendEmailCode(mapOf("email" to email.trim()))
+            clearEmailVerification()
+            done()
+            notify("인증번호를 보냈습니다. 10분 안에 입력하세요. 재발송은 60초 후 가능합니다.")
+        }
+    }
+    fun verifyEmailCode(email: String, code: String, done: () -> Unit) {
+        if (!code.matches(Regex("[0-9]{6}"))) { notify("6자리 인증번호를 입력하세요."); return }
+        execute {
+            val result = api.verifyEmailCode(mapOf("email" to email.trim(), "code" to code)).value()
+            verificationToken = requireNotNull(result["verificationToken"])
+            verifiedEmail = email.trim().lowercase(java.util.Locale.ROOT)
+            done()
+            notify("이메일 인증이 완료되었습니다.")
+        }
+    }
     private var demoData = DemoData()
     private var epoch = 0
     private var operation: Job? = null
@@ -57,7 +79,7 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
     fun setPrompt(value: String) { mutable.update { it.copy(prompt = value) } }
     fun setBaseUrl(value: String) {
         runCatching { Validation.baseUrl(value, BuildConfig.DEBUG) }
-            .onSuccess { url -> store.baseUrl = url; mutable.update { it.copy(baseUrl = url) }; api = newApi(); closeTaskSocket(); notify("서버 주소를 저장했습니다.") }
+            .onSuccess { url -> store.baseUrl = url; clearEmailVerification(); mutable.update { it.copy(baseUrl = url) }; api = newApi(); closeTaskSocket(); notify("서버 주소를 저장했습니다.") }
             .onFailure { notify(it.message ?: "주소를 확인하세요.") }
     }
 
@@ -96,10 +118,13 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
             load()
         }
     }
-    fun signup(name: String, email: String, password: String) {
+    fun signup(name: String, email: String, password: String, done: () -> Unit = {}) {
         if (name.isBlank() || !Validation.email(email) || password.length < 8) { notify("이름, 이메일 형식, 8자 이상 비밀번호를 확인하세요."); return }
         execute {
-            api.signup(mapOf("name" to name.trim(), "email" to email.trim(), "password" to password, "role" to "STUDENT"))
+            check(verifiedEmail == email.trim().lowercase(java.util.Locale.ROOT) && verificationToken != null) { "이메일 인증을 먼저 완료하세요." }
+            api.signup(mapOf("name" to name.trim(), "email" to email.trim(), "password" to password, "role" to "STUDENT", "verificationToken" to verificationToken!!))
+            clearEmailVerification()
+            done()
             notify("가입이 완료되었습니다. 로그인해 주세요.")
         }
     }

@@ -86,7 +86,7 @@
 .code-input-group {
   display: flex;
   justify-content: center;
-  gap: 15px;
+  gap: 10px;
   margin-bottom: 30px;
 }
 
@@ -114,12 +114,28 @@
   margin-bottom: 20px;
 }
 
+.submit-btn:disabled,
+.resend-link:disabled {
+  cursor: wait;
+  opacity: 0.65;
+}
+
+.mailcode-message {
+  min-height: 20px;
+  margin: -16px 0 16px;
+  color: #4A69FF;
+  font-size: 13px;
+}
+
 .resend-wrapper {
   text-align: left;
   margin-bottom: 80px;
 }
 
 .resend-link {
+  border: 0;
+  background: transparent;
+  padding: 0;
   font-size: 14px;
   color: #4A69FF;
   text-decoration: underline;

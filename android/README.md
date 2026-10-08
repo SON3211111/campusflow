@@ -104,3 +104,7 @@ $env:Path = ($env:Path -split ';' | ForEach-Object { $_.Trim('"') } | Where-Obje
 ## 통합 브랜치 안내
 현재 브랜치는 업무 상세·댓글·첨부파일 목록·알림센터·WebSocket 수신을 추가하고 데모를 유지합니다. 위 과거 검증 기록 및 후속 범위보다 [통합 안내](../docs/mobile-login-integration.md)를 우선 참고하세요.
 
+
+## 이메일 인증 가입
+
+신규 가입 시 인증번호 발송 → 메일의 6자리 번호 확인 → 회원가입 순서로 진행합니다. 서버 SMTP 설정과 새 백엔드 배포가 필요합니다. 기존 계정 로그인 및 데모는 그대로 사용할 수 있습니다. 설정은 `../docs/mobile-login-integration.md`를 참고하세요.

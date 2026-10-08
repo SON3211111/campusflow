@@ -37,6 +37,9 @@ import java.time.format.DateTimeFormatter
 @Composable
 fun LoginScreen(state: AppState, vm: AppViewModel) {
     var signup by rememberSaveable { mutableStateOf(false) }
+    var code by remember { mutableStateOf("") }
+    var sentEmail by remember { mutableStateOf("") }
+    var verified by remember { mutableStateOf(false) }
     var name by rememberSaveable { mutableStateOf("") }
     var email by rememberSaveable { mutableStateOf("") }
     var password by remember { mutableStateOf("") }
@@ -51,12 +54,25 @@ fun LoginScreen(state: AppState, vm: AppViewModel) {
         Text("CampusFlow", color = MaterialTheme.colorScheme.primary, fontWeight = FontWeight.Bold)
         Text(if (signup) "새 계정으로 팀 프로젝트를 시작하세요." else "웹에서 쓰던 계정으로 이어서 시작하세요.", color = MaterialTheme.colorScheme.onSurfaceVariant)
         if (signup) OutlinedTextField(name, { name = it }, label = { Text("이름") }, singleLine = true, modifier = Modifier.fillMaxWidth())
-        OutlinedTextField(email, { email = it }, label = { Text("이메일") }, keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Email), singleLine = true, modifier = Modifier.fillMaxWidth())
-        OutlinedTextField(password, { password = it }, label = { Text("비밀번호") }, visualTransformation = PasswordVisualTransformation(), keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password), singleLine = true, modifier = Modifier.fillMaxWidth())
-        PrimaryButton(if (state.busy) "연결 중…" else if (signup) "회원가입" else "로그인", !state.busy) {
-            if (signup) vm.signup(name, email, password) else vm.login(email, password)
+        OutlinedTextField(email, { email = it; verified = false; sentEmail = ""; code = ""; vm.clearEmailVerification() }, enabled = !state.busy, label = { Text("이메일") }, keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Email), singleLine = true, modifier = Modifier.fillMaxWidth())
+        if (signup) {
+            OutlinedButton({ vm.sendEmailCode(email) { sentEmail = email; verified = false; code = "" } }, enabled = !state.busy && Validation.email(email)) {
+                Text(if (sentEmail == email) "인증번호 재발송" else "인증번호 발송")
+            }
+            if (sentEmail == email && sentEmail.isNotEmpty()) {
+                OutlinedTextField(code, { code = it.filter(Char::isDigit).take(6) }, label = { Text("인증번호 6자리") }, singleLine = true,
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number), enabled = !state.busy && !verified, modifier = Modifier.fillMaxWidth())
+                OutlinedButton({ vm.verifyEmailCode(email, code) { verified = true } }, enabled = !state.busy && !verified && code.length == 6) {
+                    Text(if (verified) "인증 완료" else "인증번호 확인")
+                }
+                Text("10분 안에 가입을 완료하세요. 만료되면 다시 발송해 주세요.", style = MaterialTheme.typography.bodySmall)
+            }
         }
-        TextButton({ signup = !signup }, modifier = Modifier.fillMaxWidth(), enabled = !state.busy) { Text(if (signup) "이미 계정이 있어요 · 로그인" else "처음이신가요? 회원가입") }
+        OutlinedTextField(password, { password = it }, label = { Text("비밀번호") }, visualTransformation = PasswordVisualTransformation(), keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password), singleLine = true, modifier = Modifier.fillMaxWidth())
+        PrimaryButton(if (state.busy) "연결 중…" else if (signup) "회원가입" else "로그인", !state.busy && (!signup || verified)) {
+            if (signup) vm.signup(name, email, password) { signup = false; verified = false; code = ""; sentEmail = "" } else vm.login(email, password)
+        }
+        TextButton({ signup = !signup; verified = false; sentEmail = ""; code = ""; vm.clearEmailVerification() }, modifier = Modifier.fillMaxWidth(), enabled = !state.busy) { Text(if (signup) "이미 계정이 있어요 · 로그인" else "처음이신가요? 회원가입") }
         HorizontalDivider()
         OutlinedButton(vm::enterDemo, modifier = Modifier.fillMaxWidth().heightIn(min = 48.dp), enabled = !state.busy) { Text("데모로 먼저 둘러보기") }
         TextButton({ showServer = !showServer }, modifier = Modifier.align(Alignment.CenterHorizontally), enabled = !state.busy) { Text("서버 연결 설정") }

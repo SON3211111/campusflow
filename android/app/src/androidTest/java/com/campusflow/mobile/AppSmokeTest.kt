@@ -112,20 +112,17 @@ class AppSmokeTest {
         waitFor("함께하는 프로젝트,\n더 가볍게.")
     }
 
-    @Test fun liveBackendSignupLoginAndTaskPersistence() {
+    @Test fun liveBackendLoginAndTaskPersistence() {
         val baseUrl = InstrumentationRegistry.getArguments().getString("qaBaseUrl")
         org.junit.Assume.assumeTrue("Pass qaBaseUrl to run against the isolated QA backend", baseUrl != null)
         click("서버 연결 설정")
         fill("API 주소 (/api/ 포함)", baseUrl!!)
         click("주소 저장")
-        click("처음이신가요? 회원가입")
-        val email = "android-qa-${System.currentTimeMillis()}@example.com"
-        fill("이름", "실제 API 검증")
-        fill("이메일", email)
-        fill("비밀번호", "CampusQa123!")
-        click("회원가입")
-        waitFor("가입이 완료되었습니다. 로그인해 주세요.")
-        click("이미 계정이 있어요 · 로그인")
+        val email = InstrumentationRegistry.getArguments().getString("qaEmail")
+        val password = InstrumentationRegistry.getArguments().getString("qaPassword")
+        org.junit.Assume.assumeTrue("Pass a pre-registered isolated QA account", email != null && password != null)
+        fill("이메일", email!!)
+        fill("비밀번호", password!!)
         click("로그인")
         waitFor("실제 API 검증님, 반가워요 👋")
         tab("워크스페이스")
@@ -144,7 +141,7 @@ class AppSmokeTest {
         click("로그아웃")
         compose.onNodeWithText("확인").performClick()
         fill("이메일", email)
-        fill("비밀번호", "CampusQa123!")
+        fill("비밀번호", password)
         click("로그인")
         waitFor("실제 API 검증님, 반가워요 👋")
         tab("워크스페이스")

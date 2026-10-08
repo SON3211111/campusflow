@@ -28,16 +28,22 @@ public class AuthController {
     private final BCryptPasswordEncoder passwordEncoder;
     private final TokenProvider tokenProvider;
     private final WorkspaceService workspaceService;
+    private final com.campusflow.service.EmailVerificationService emailVerificationService;
 
     // 1-1. 회원가입 (워크스페이스 자동 생성 로직 포함)
+    @org.springframework.transaction.annotation.Transactional
     @PostMapping("/signup")
     public ResponseEntity<ApiResponse<?>> signup(@Valid @RequestBody SignupRequest signupRequest) {
+        signupRequest.setEmail(com.campusflow.service.EmailVerificationService.normalize(signupRequest.getEmail()));
         // 1. 이메일 중복 체크
         if (userRepository.findByEmail(signupRequest.getEmail()).isPresent()) {
             return ResponseEntity.status(HttpStatus.CONFLICT)
                     .body(ApiResponse.error(409, "이미 존재하는 이메일입니다."));
         }
 
+        if (!emailVerificationService.consume(signupRequest.getEmail(), signupRequest.getVerificationToken())) {
+            return ResponseEntity.status(403).body(ApiResponse.error(403, "이메일 인증이 필요하거나 만료되었습니다. 다시 인증해 주세요."));
+        }
         // 2. [수정] DTO -> Entity 변환 및 초기 설정
         User user = User.builder()
                 .userId(java.util.UUID.randomUUID().toString()) // ID 생성 방식에 따라 조정

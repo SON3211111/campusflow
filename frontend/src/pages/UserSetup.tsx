@@ -44,7 +44,10 @@ const UserSetup: React.FC = () => {
 
     setLoading(true);
     try {
-      await signup({ email, password, name, role: "STUDENT" });
+      const proof = JSON.parse(sessionStorage.getItem("signupVerification") ?? "null");
+      if (!proof || proof.email !== email) { navigate("/mailcode"); return; }
+      await signup({ email, password, name, role: "STUDENT", verificationToken: proof.token });
+      sessionStorage.removeItem("signupVerification");
       localStorage.removeItem("signupEmail");
 
       const loginRes = await login({ email, password });
@@ -57,6 +60,9 @@ const UserSetup: React.FC = () => {
       const status = err.response?.status;
       if (status === 409) {
         setErrorMsg("이미 존재하는 이메일입니다.");
+      } else if (status === 403) {
+        sessionStorage.removeItem("signupVerification");
+        navigate("/mailcode");
       } else {
         setErrorMsg("서버에 연결할 수 없습니다.");
       }

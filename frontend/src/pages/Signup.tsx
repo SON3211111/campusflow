@@ -2,14 +2,18 @@ import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { ArrowRight, CheckCircle2, Mail, Sparkles, UsersRound, Zap } from "lucide-react";
 import "./Signup.css";
+import naverIcon from "../assets/naver-login.png";
+import kakaoIcon from "../assets/kakao-login.png";
+import { sendVerificationCode } from "../api/auth";
 
 const Signup: React.FC = () => {
   const navigate = useNavigate();
   const [email, setEmail] = useState("");
+  const [loading, setLoading] = useState(false);
   const [agreed, setAgreed] = useState(false);
   const [errorMsg, setErrorMsg] = useState("");
 
-  const handleSignup = () => {
+  const handleSignup = async () => {
     setErrorMsg("");
 
     if (!email) {
@@ -21,8 +25,11 @@ const Signup: React.FC = () => {
       return;
     }
 
-    localStorage.setItem("signupEmail", email);
-    navigate("/usersetup");
+    setLoading(true);
+    sessionStorage.removeItem("signupVerification");
+    try { await sendVerificationCode(email.trim()); localStorage.setItem("signupEmail", email.trim().toLowerCase()); navigate("/mailcode"); }
+    catch (err: any) { setErrorMsg(err.response?.data?.message ?? "인증 메일을 보낼 수 없습니다."); }
+    finally { setLoading(false); }
   };
 
   return (
@@ -97,7 +104,7 @@ const Signup: React.FC = () => {
 
             {errorMsg && <p className="auth-error">{errorMsg}</p>}
 
-            <button className="auth-submit" onClick={handleSignup}>
+            <button className="auth-submit" disabled={loading} onClick={handleSignup}>
               다음 단계로
               <ArrowRight size={17} />
             </button>
@@ -106,9 +113,8 @@ const Signup: React.FC = () => {
           <div className="auth-social">
             <span>간편 가입</span>
             <div>
-              <button className="google">G</button>
-              <button className="naver">N</button>
-              <button className="microsoft">M</button>
+              <button className="naver" aria-label="네이버 로그인" onClick={() => { window.location.href = "/oauth2/authorization/naver"; }}><span className="naver-brand-crop"><img src={naverIcon} alt="" /></span></button>
+              <button className="kakao" aria-label="카카오 로그인" onClick={() => { window.location.href = "/oauth2/authorization/kakao"; }}><img className="social-brand-icon" src={kakaoIcon} alt="" /></button>
             </div>
           </div>
 

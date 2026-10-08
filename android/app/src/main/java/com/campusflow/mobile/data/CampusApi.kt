@@ -7,6 +7,8 @@ import retrofit2.http.*
 import java.util.concurrent.TimeUnit
 
 interface CampusApi {
+    @POST("auth/email/send") suspend fun sendEmailCode(@Body body: Map<String, String>): Envelope<Unit>
+    @POST("auth/email/verify") suspend fun verifyEmailCode(@Body body: Map<String, String>): Envelope<Map<String, String>>
     @POST("auth/login") suspend fun login(@Body body: Map<String, String>): Envelope<Session>
     @POST("auth/signup") suspend fun signup(@Body body: Map<String, String>): Envelope<Unit>
     @GET("workspaces") suspend fun workspaces(@Query("userId") userId: String): Envelope<List<Workspace>>

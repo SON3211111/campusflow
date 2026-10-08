@@ -26,7 +26,7 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
     private final TokenProvider tokenProvider;
 
     private static final Set<String> PUBLIC_PATHS = Set.of(
-            "/api/auth/login", "/api/auth/signup", "/api/auth/search"
+            "/api/auth/login", "/api/auth/signup", "/api/auth/search", "/api/auth/email/send", "/api/auth/email/verify"
     );
 
     @Override
