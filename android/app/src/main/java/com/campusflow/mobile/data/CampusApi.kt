@@ -14,11 +14,20 @@ interface CampusApi {
     @GET("workspaces/{id}/members") suspend fun members(@Path("id") id: String): Envelope<List<Member>>
     @GET("workspaces/{id}/tasks") suspend fun tasks(@Path("id") id: String): Envelope<List<Task>>
     @POST("workspaces/{id}/tasks") suspend fun createTask(@Path("id") id: String, @Body body: TaskInput): Envelope<Task>
-    @PATCH("workspaces/{id}/tasks/{taskId}/status") suspend fun status(@Path("id") id: String, @Path("taskId") taskId: String, @Query("status") status: String, @Query("userId") userId: String): Envelope<Unit>
+    @PATCH("workspaces/{id}/tasks/{taskId}/status") suspend fun status(@Path("id") id: String, @Path("taskId") taskId: String, @Query("status") status: String, @Query("userId") userId: String): Envelope<Task>
+    @PATCH("workspaces/{id}/tasks/{taskId}/description") suspend fun description(@Path("id") id: String, @Path("taskId") taskId: String, @Body body: Map<String, String>): Envelope<Unit>
+    @PATCH("workspaces/{id}/tasks/{taskId}/start-date") suspend fun startDate(@Path("id") id: String, @Path("taskId") taskId: String, @Query("startDate") startDate: String): Envelope<Unit>
+    @PATCH("workspaces/{id}/tasks/{taskId}/due-date") suspend fun dueDate(@Path("id") id: String, @Path("taskId") taskId: String, @Query("dueDate") dueDate: String): Envelope<Unit>
+    @PATCH("workspaces/{id}/tasks/{taskId}/assignee") suspend fun assignee(@Path("id") id: String, @Path("taskId") taskId: String, @Query("assigneeId") assigneeId: String?): Envelope<Task>
+    @PATCH("workspaces/{id}/tasks/{taskId}/quick-signal") suspend fun quickSignal(@Path("id") id: String, @Path("taskId") taskId: String, @Query("signal") signal: String, @Query("userId") userId: String): Envelope<Unit>
+    @DELETE("workspaces/{id}/tasks/{taskId}/quick-signal") suspend fun clearQuickSignal(@Path("id") id: String, @Path("taskId") taskId: String): Envelope<Unit>
+    @GET("workspaces/{id}/tasks/{taskId}/comments") suspend fun comments(@Path("id") id: String, @Path("taskId") taskId: String): Envelope<List<Comment>>
+    @POST("workspaces/{id}/tasks/{taskId}/comments") suspend fun addComment(@Path("id") id: String, @Path("taskId") taskId: String, @Body body: Map<String, String>): Envelope<Comment>
+    @GET("workspaces/{id}/tasks/{taskId}/attachments") suspend fun attachments(@Path("id") id: String, @Path("taskId") taskId: String): Envelope<List<Attachment>>
     @GET("schedules/{userId}") suspend fun schedules(@Path("userId") userId: String): List<Schedule>
     @POST("schedules") suspend fun addSchedule(@Body body: ScheduleInput): Schedule
     @DELETE("schedules/blocks/{id}") suspend fun deleteSchedule(@Path("id") id: String): retrofit2.Response<Unit>
-    @GET("notifications") suspend fun notices(@Query("userId") userId: String): Envelope<List<Notice>>
+    @GET("notifications") suspend fun notices(@Query("userId") userId: String, @Query("workspaceId") workspaceId: String? = null): Envelope<List<Notice>>
     @POST("notifications/{id}/read") suspend fun readNotice(@Path("id") id: String): Envelope<Unit>
     @POST("ai/generate-tasks") suspend fun generate(@Query("description") description: String): Envelope<AiResult>
     @GET("users/{id}") suspend fun profile(@Path("id") id: String): Envelope<Profile>

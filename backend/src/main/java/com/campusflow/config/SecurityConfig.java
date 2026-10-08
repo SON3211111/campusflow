@@ -22,6 +22,9 @@ import java.util.List;
 public class SecurityConfig {
 
     private final JwtAuthenticationFilter jwtAuthenticationFilter;
+    private final OAuthLoginSuccessHandler oAuthLoginSuccessHandler;
+    private final OAuthLoginFailureHandler oAuthLoginFailureHandler;
+    private final org.springframework.beans.factory.ObjectProvider<org.springframework.security.oauth2.client.registration.ClientRegistrationRepository> registrations;
 
     @Bean
     public BCryptPasswordEncoder passwordEncoder() {
@@ -34,7 +37,7 @@ public class SecurityConfig {
                 .cors(cors -> cors.configurationSource(corsConfigurationSource()))
                 .csrf(AbstractHttpConfigurer::disable)
                 .sessionManagement(session -> session
-                        .sessionCreationPolicy(SessionCreationPolicy.STATELESS))
+                        .sessionCreationPolicy(SessionCreationPolicy.IF_REQUIRED))
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers("/ws/**").permitAll()
                         .requestMatchers("/api/auth/**").permitAll()
@@ -45,6 +48,10 @@ public class SecurityConfig {
                 )
                 .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class);
 
+        if (registrations.getIfAvailable() != null) {
+            http.oauth2Login(oauth -> oauth.successHandler(oAuthLoginSuccessHandler)
+                    .failureHandler(oAuthLoginFailureHandler));
+        }
         return http.build();
     }
 

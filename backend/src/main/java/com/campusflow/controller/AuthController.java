@@ -93,7 +93,7 @@ public class AuthController {
         }
 
         // 3. 비밀번호 일치 여부 확인
-        if (passwordEncoder.matches(loginRequest.getPassword(), user.getPassword())) {
+        if (user.getPassword() != null && passwordEncoder.matches(loginRequest.getPassword(), user.getPassword())) {
 
             // 마지막 로그인 시간 업데이트 로직 추가 가능 (DB 설계의 last_login_at 반영)
             // userService.updateLastLogin(user.getUserId());

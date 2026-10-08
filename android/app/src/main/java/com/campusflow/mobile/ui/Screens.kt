@@ -58,6 +58,7 @@ fun LoginScreen(state: AppState, vm: AppViewModel) {
         }
         TextButton({ signup = !signup }, modifier = Modifier.fillMaxWidth(), enabled = !state.busy) { Text(if (signup) "이미 계정이 있어요 · 로그인" else "처음이신가요? 회원가입") }
         HorizontalDivider()
+        OutlinedButton(vm::enterDemo, modifier = Modifier.fillMaxWidth().heightIn(min = 48.dp), enabled = !state.busy) { Text("데모로 먼저 둘러보기") }
         TextButton({ showServer = !showServer }, modifier = Modifier.align(Alignment.CenterHorizontally), enabled = !state.busy) { Text("서버 연결 설정") }
         if (showServer) {
             OutlinedTextField(server, { server = it }, label = { Text("API 주소 (/api/ 포함)") }, supportingText = { Text("팀 서버 주소가 기본으로 설정되어 있습니다. 다른 서버에 연결할 때만 변경하세요.") }, modifier = Modifier.fillMaxWidth())
@@ -69,7 +70,7 @@ fun LoginScreen(state: AppState, vm: AppViewModel) {
 @Composable
 fun HomeScreen(state: AppState, onTask: (Task) -> Unit, onBoard: () -> Unit, onAi: () -> Unit) {
     val today = LocalDate.now()
-    val mine = state.myTasks.filter { it.status != "DONE" }.sortedBy { it.deadline ?: LocalDate.MAX }
+    val mine = state.myTasks.filter { it.effectiveStatus != "DONE" }.sortedBy { it.deadline ?: LocalDate.MAX }
     val schedules = state.schedules.filter { it.dayOfWeek == Validation.days[today.dayOfWeek.value - 1] }.sortedBy { it.startTime }
     LazyColumn(contentPadding = PaddingValues(20.dp), verticalArrangement = Arrangement.spacedBy(18.dp)) {
         item {
@@ -84,7 +85,7 @@ fun HomeScreen(state: AppState, onTask: (Task) -> Unit, onBoard: () -> Unit, onA
                 Text("오늘의 작은 완료가\n팀의 큰 진전이 되도록", color = Color.White, style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold)
                 Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
                     Metric("${mine.size}", "남은 내 업무")
-                    Metric("${state.tasks.count { it.status == "DONE" }}", "팀 완료 업무")
+                    Metric("${state.tasks.count { it.effectiveStatus == "DONE" }}", "팀 완료 업무")
                     Metric("${schedules.size}", "오늘 일정")
                 }
                 FilledTonalButton(onBoard, colors = ButtonDefaults.filledTonalButtonColors(containerColor = Color.White, contentColor = Color(0xFF4165EE))) { Text("워크스페이스 보기  →") }
@@ -120,7 +121,7 @@ fun HomeScreen(state: AppState, onTask: (Task) -> Unit, onBoard: () -> Unit, onA
 fun WorkspaceScreen(state: AppState, onSwitch: () -> Unit, onAdd: () -> Unit, onMembers: () -> Unit, onTask: (Task) -> Unit) {
     var filter by rememberSaveable { mutableStateOf("ALL") }
     var mine by rememberSaveable { mutableStateOf(false) }
-    val tasks = state.tasks.filter { (!mine || it.assigneeId == state.session?.userId) && (filter == "ALL" || it.status == filter) }
+    val tasks = state.tasks.filter { (!mine || it.assigneeId == state.session?.userId) && (filter == "ALL" || it.effectiveStatus == filter) }
     LazyColumn(contentPadding = PaddingValues(20.dp), verticalArrangement = Arrangement.spacedBy(14.dp)) {
         item { SectionTitle("워크스페이스", "팀의 진행 상황을 한곳에서", action = { IconButton(onSwitch) { Icon(Icons.Outlined.SwapHoriz, "워크스페이스 선택 또는 생성") } }) }
         item { OutlinedButton(onSwitch, modifier = Modifier.fillMaxWidth(), enabled = !state.busy) { Text(state.workspace?.name ?: "워크스페이스 만들기") } }
@@ -128,9 +129,9 @@ fun WorkspaceScreen(state: AppState, onSwitch: () -> Unit, onAdd: () -> Unit, on
             item {
                 Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
                     TextButton(onMembers) { Icon(Icons.Outlined.Group, null); Spacer(Modifier.width(6.dp)); Text("팀원 ${state.members.size}명") }
-                    Text("완료 ${state.tasks.count { it.status == "DONE" }} / ${state.tasks.size}", style = MaterialTheme.typography.labelLarge)
+                    Text("완료 ${state.tasks.count { it.effectiveStatus == "DONE" }} / ${state.tasks.size}", style = MaterialTheme.typography.labelLarge)
                 }
-                LinearProgressIndicator(progress = { if (state.tasks.isEmpty()) 0f else state.tasks.count { it.status == "DONE" }.toFloat() / state.tasks.size }, modifier = Modifier.fillMaxWidth())
+                LinearProgressIndicator(progress = { if (state.tasks.isEmpty()) 0f else state.tasks.count { it.effectiveStatus == "DONE" }.toFloat() / state.tasks.size }, modifier = Modifier.fillMaxWidth())
             }
             item {
                 Row(verticalAlignment = Alignment.CenterVertically) {
@@ -140,7 +141,7 @@ fun WorkspaceScreen(state: AppState, onSwitch: () -> Unit, onAdd: () -> Unit, on
                 }
                 Row(Modifier.horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                     FilterChip(filter == "ALL", { filter = "ALL" }, label = { Text("전체") })
-                    TaskStatus.entries.forEach { status -> FilterChip(filter == status.name, { filter = status.name }, label = { Text("${status.label} ${state.tasks.count { it.status == status.name }}") }) }
+                    TaskStatus.entries.forEach { status -> FilterChip(filter == status.name, { filter = status.name }, label = { Text("${status.label} ${state.tasks.count { it.effectiveStatus == status.name }}") }) }
                 }
             }
             if (tasks.isEmpty()) item { EmptyCard("표시할 업무가 없어요", "업무를 추가하거나 필터를 바꿔보세요.") }
@@ -218,7 +219,7 @@ fun AiScreen(state: AppState, vm: AppViewModel, onWorkspace: () -> Unit) {
         } }
         if (state.drafts.isNotEmpty()) {
             item { SectionTitle("결과 확인 & 선택", "제목을 수정하고 팀에 공유할 업무를 선택하세요.") }
-            if (state.aiFallback) item { Text("AI 서버 대신 서버의 기본 템플릿으로 생성되었습니다.", color = MaterialTheme.colorScheme.secondary) }
+            if (state.aiFallback) item { Text(if (state.demo) "데모용 예시 업무입니다." else "AI 서버 대신 서버의 기본 템플릿으로 생성되었습니다.", color = MaterialTheme.colorScheme.secondary) }
             items(state.drafts, key = { it.id }) { draft ->
                 Card(colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)) {
                     Column(Modifier.padding(14.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -253,9 +254,10 @@ fun ProfileScreen(state: AppState, onEdit: () -> Unit, onLogout: () -> Unit) {
             }
         }
         ListItem(headlineContent = { Text("참여 중인 워크스페이스") }, trailingContent = { Text("${state.workspaces.size}개") })
-        ListItem(headlineContent = { Text("선택한 팀에서 완료한 내 업무") }, trailingContent = { Text("${state.myTasks.count { it.status == "DONE" }}개") })
+        ListItem(headlineContent = { Text("선택한 팀에서 완료한 내 업무") }, trailingContent = { Text("${state.myTasks.count { it.effectiveStatus == "DONE" }}개") })
+        if (state.demo) Text("데모에서 변경한 내용은 서버에 전송되지 않으며, 데모를 다시 시작하면 초기화됩니다.", style = MaterialTheme.typography.bodySmall)
         Text("CampusFlow for Android · 1.0.0", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
-        OutlinedButton({ logout = true }, Modifier.fillMaxWidth(), enabled = !state.busy) { Text("로그아웃") }
+        OutlinedButton({ logout = true }, Modifier.fillMaxWidth(), enabled = !state.busy) { Text(if (state.demo) "데모 종료" else "로그아웃") }
     }
-    if (logout) AlertDialog(onDismissRequest = { logout = false }, title = { Text("로그아웃할까요?") }, text = { Text("등록 전 AI 결과는 사라집니다. 서버에 저장한 업무는 유지됩니다.") }, confirmButton = { TextButton({ logout = false; onLogout() }) { Text("확인") } }, dismissButton = { TextButton({ logout = false }) { Text("취소") } })
+    if (logout) AlertDialog(onDismissRequest = { logout = false }, title = { Text(if (state.demo) "데모를 종료할까요?" else "로그아웃할까요?") }, text = { Text("등록 전 AI 결과는 사라집니다. 서버에 저장한 업무는 유지됩니다.") }, confirmButton = { TextButton({ logout = false; onLogout() }) { Text("확인") } }, dismissButton = { TextButton({ logout = false }) { Text("취소") } })
 }

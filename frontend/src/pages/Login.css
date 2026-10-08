@@ -632,3 +632,5 @@
     flex-direction: column;
   }
 }
+
+.auth-social button.kakao { background: #fee500; color: #191919; }

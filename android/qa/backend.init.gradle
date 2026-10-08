@@ -1,0 +1,18 @@
+// Test-only server: in-memory H2, loopback port, no access to the normal MySQL database.
+allprojects {
+    afterEvaluate { project ->
+        if (project.plugins.hasPlugin('java')) {
+            project.tasks.register('mobileQaServer', JavaExec) {
+                classpath = project.sourceSets.test.runtimeClasspath
+                mainClass = 'com.campusflow.CampusflowApplication'
+                args '--server.port=18080', '--server.address=127.0.0.1',
+                    '--spring.datasource.url=jdbc:h2:mem:campusflow-mobile-qa;MODE=MySQL;DB_CLOSE_DELAY=-1',
+                    '--spring.datasource.driver-class-name=org.h2.Driver',
+                    '--spring.datasource.username=sa', '--spring.datasource.password=',
+                    '--spring.jpa.database-platform=org.hibernate.dialect.H2Dialect',
+                    '--spring.jpa.hibernate.ddl-auto=create-drop', '--spring.jpa.show-sql=false',
+                    '--AI_SERVER_URL=http://127.0.0.1:9'
+            }
+        }
+    }
+}

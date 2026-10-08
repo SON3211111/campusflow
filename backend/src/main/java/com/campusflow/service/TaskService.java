@@ -222,21 +222,13 @@ public class TaskService {
 
     /** 태스크 상태 변경 (칸반 드래그앤드롭) — 히스토리 기록 + DONE 시 기여도 업데이트 */
     @Transactional
-    public void updateTaskStatus(String taskId, TaskStatus newStatus, String userId) {
+    public TaskResponse updateTaskStatus(String taskId, TaskStatus newStatus, String userId) {
         Task task = taskRepository.findById(taskId)
                 .orElseThrow(() -> new IllegalArgumentException("태스크를 찾을 수 없습니다. ID: " + taskId));
 
         TaskStatus prevStatus = task.getStatus();
         task.setStatus(newStatus);
-        // Status-only clients use the web's status-to-column fallback. Preserve a
-        // custom column on no-op requests, but repair stale standard columns.
-        String column = task.getBoardColumn();
-        if (prevStatus != newStatus || column == null || column.isBlank()
-                || List.of("상태 없음", "시작하지 않음", "진행 중", "보류 중", "완료").contains(column)) {
-            task.setBoardColumn(null);
-        }
-        // A no-op in a custom column must not move other clients to a default column.
-        if (prevStatus == newStatus && task.getBoardColumn() != null) return;
+        task.setBoardColumn(defaultBoardColumnForStatus(newStatus));
         // Retries must not count completion or send notifications twice.
         if (prevStatus != newStatus) {
 
@@ -266,7 +258,21 @@ public class TaskService {
                 task.getTaskId(), newStatus.name(), userId != null ? userId : ""
             );
             taskWebSocketHandler.broadcast(wsId, json);
+            broadcastTaskUpdated(task, "status", newStatus.name());
+            broadcastTaskUpdated(task, "boardColumn", task.getBoardColumn());
         }
+        return TaskResponse.from(task);
+    }
+
+    private String defaultBoardColumnForStatus(TaskStatus status) {
+        if (status == null) return "상태 없음";
+        return switch (status) {
+            case TODO -> "상태 없음";
+            case REVIEW -> "시작하지 않음";
+            case DOING -> "진행 중";
+            case ISSUE -> "보류 중";
+            case DONE -> "완료";
+        };
     }
 
     /** 활동 피드 — task_status_history 최근 N건 */
@@ -679,6 +685,7 @@ public class TaskService {
                 .orElseThrow(() -> new IllegalArgumentException("태스크를 찾을 수 없습니다. ID: " + taskId));
         task.setQuickSignal(signal);
         notificationService.notifyQuickSignal(task, signal, requesterId);
+        broadcastTaskUpdated(task, "quickSignal", signal);
     }
 
     /** 퀵 시그널 초기화 */
@@ -687,6 +694,7 @@ public class TaskService {
         Task task = taskRepository.findById(taskId)
                 .orElseThrow(() -> new IllegalArgumentException("태스크를 찾을 수 없습니다. ID: " + taskId));
         task.setQuickSignal(null);
+        broadcastTaskUpdated(task, "quickSignal", "");
     }
 
     // ── 기존: 칸반 맵 조회 (TaskController에서 사용) ─────────

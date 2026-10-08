@@ -41,10 +41,10 @@ fun TaskCard(task: Task, onClick: () -> Unit) {
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)) {
         Column(Modifier.padding(18.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                Text(TaskStatus.entries.find { it.name == task.status }?.label ?: task.status,
+                Text(TaskStatus.entries.find { it.name == task.effectiveStatus }?.label ?: task.effectiveStatus,
                     color = MaterialTheme.colorScheme.primary, style = MaterialTheme.typography.labelMedium)
-                task.dDay()?.let { Text(if (task.status == "DONE") "완료" else it,
-                    color = if (task.deadline?.isBefore(java.time.LocalDate.now()) == true && task.status != "DONE") MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.onSurfaceVariant,
+                task.dDay()?.let { Text(if (task.effectiveStatus == "DONE") "완료" else it,
+                    color = if (task.deadline?.isBefore(java.time.LocalDate.now()) == true && task.effectiveStatus != "DONE") MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.onSurfaceVariant,
                     style = MaterialTheme.typography.labelMedium) }
             }
             Text(task.title, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)

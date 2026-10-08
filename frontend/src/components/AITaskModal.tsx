@@ -41,41 +41,6 @@ function readStoredWorkspace(): WsItem | undefined {
   }
 }
 
-function hasStoredAiTaskPayload(key: string) {
-  try {
-    const session = JSON.parse(localStorage.getItem(key) ?? "null");
-    const resultTaskCount = session?.result?.categories?.reduce(
-      (sum: number, category: { tasks?: unknown[] }) => sum + (category.tasks?.length ?? 0),
-      0
-    ) ?? 0;
-    const basketTaskCount = Object.values(session?.memberBaskets ?? {}).reduce(
-      (sum: number, basket) => sum + (Array.isArray(basket) ? basket.length : 0),
-      0
-    );
-    const objectTaskCount = (value: unknown) => {
-      if (Array.isArray(value)) return value.length;
-      if (value && typeof value === "object") return Object.keys(value).length;
-      return 0;
-    };
-    return (
-      objectTaskCount(session?.categories) > 0 ||
-      objectTaskCount(session?.tasks) > 0 ||
-      objectTaskCount(session?.taskList) > 0 ||
-      objectTaskCount(session?.items) > 0 ||
-      resultTaskCount > 0 ||
-      basketTaskCount > 0
-    );
-  } catch {
-    return false;
-  }
-}
-
-function hasAiTaskSession(workspaceId?: string) {
-  // 현재 워크스페이스 세션만 확인 — 다른 워크스페이스 세션은 무시
-  const key = workspaceId ? `ai_task_session_${workspaceId}` : "ai_task_session_default";
-  return hasStoredAiTaskPayload(key);
-}
-
 export default function AITaskModal({ onClose, workspaces = [], workspace }: Props) {
   const navigate = useNavigate();
   const [screen, setScreen] = useState<Screen>("home");

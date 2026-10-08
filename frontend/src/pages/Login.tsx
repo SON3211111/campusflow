@@ -2,6 +2,8 @@ import React, { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { ArrowRight, Eye, EyeOff, LockKeyhole, Mail, Sparkles } from "lucide-react";
 import { login } from "../api/auth";
+import naverIcon from "../assets/naver-login.png";
+import kakaoIcon from "../assets/kakao-login.png";
 import "./Login.css";
 
 const Login: React.FC = () => {
@@ -13,6 +15,27 @@ const Login: React.FC = () => {
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
+    const params = new URLSearchParams(window.location.hash.slice(1) || window.location.search);
+    const token = params.get("accessToken");
+    if (token) {
+      localStorage.setItem("accessToken", token);
+      localStorage.setItem("userId", params.get("userId") ?? "");
+      localStorage.setItem("userName", params.get("name") ?? "");
+      localStorage.setItem("role", params.get("role") ?? "STUDENT");
+      window.history.replaceState(null, "", window.location.pathname);
+      navigate("/workspace", { replace: true });
+      return;
+    }
+    const oauthError = params.get("oauthError");
+    if (oauthError === "account_exists") {
+      setErrorMsg("같은 이메일의 계정이 이미 있습니다. 기존 이메일과 비밀번호로 로그인해 주세요.");
+    } else if (oauthError === "inactive") {
+      setErrorMsg("비활성화된 계정입니다. 관리자에게 문의하세요.");
+    } else if (oauthError === "email_required") {
+      setErrorMsg("네이버 또는 카카오에서 이메일 제공 동의가 필요합니다.");
+    } else if (oauthError) {
+      setErrorMsg("간편로그인에 실패했습니다. 네이버·카카오 앱의 Redirect URI와 동의 항목을 확인해 주세요.");
+    }
     if (localStorage.getItem("accessToken")) {
       navigate("/workspace", { replace: true });
     }
@@ -138,9 +161,8 @@ const Login: React.FC = () => {
           <div className="auth-social">
             <span>간편 로그인</span>
             <div>
-              <button className="google">G</button>
-              <button className="naver">N</button>
-              <button className="microsoft">M</button>
+              <button className="naver" aria-label="네이버 로그인" onClick={() => { window.location.href = "/oauth2/authorization/naver"; }}><span className="naver-brand-crop"><img src={naverIcon} alt="" /></span></button>
+              <button className="kakao" aria-label="카카오 로그인" onClick={() => { window.location.href = "/oauth2/authorization/kakao"; }}><img className="social-brand-icon" src={kakaoIcon} alt="" /></button>
             </div>
           </div>
 

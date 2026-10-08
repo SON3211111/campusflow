@@ -28,7 +28,7 @@ public class User {
     @Column(unique = true, nullable = false, length = 100)
     private String email;
 
-    @Column(nullable = false) // 비밀번호는 암호화되어 저장되므로 길게 잡힘
+    @Column
     private String password;
 
     @Enumerated(EnumType.STRING) // DB의 ENUM과 매핑 핵심!
@@ -41,6 +41,8 @@ public class User {
     private UserStatus status = UserStatus.ACTIVE;
 
     private String oauthProvider;
+
+    private String oauthProviderId;
 
     private LocalDateTime lastLoginAt;
 
