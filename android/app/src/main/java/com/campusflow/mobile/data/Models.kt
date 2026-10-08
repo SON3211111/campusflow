@@ -19,9 +19,9 @@ enum class TaskStatus(val label: String) {
 }
 data class Task(
     val taskId: String, val title: String, val description: String? = null,
-    val status: String = "TODO", val dueDate: String? = null,
+    val status: String = "TODO", val startDate: String? = null, val dueDate: String? = null,
     val assigneeId: String? = null, val assigneeName: String? = null,
-    val priority: String? = null, val estimatedHours: Int? = null,
+    val priority: String? = null, val estimatedHours: Int? = null, val quickSignal: String? = null,
 ) {
     val deadline: LocalDate? get() = runCatching { LocalDate.parse(dueDate?.take(10)) }.getOrNull()
     fun dDay(today: LocalDate = LocalDate.now()): String? = deadline?.let {
@@ -34,6 +34,8 @@ data class TaskInput(
     val dueDate: String? = null, val assigneeId: String? = null,
     val priority: String = "MEDIUM", val estimatedHours: Int? = null,
 )
+data class Comment(val messageId: String, val senderId: String?, val senderName: String?, val content: String, val createdAt: String?)
+data class Attachment(val attachmentId: String, val originalName: String, val fileType: String?, val fileSize: Long, val uploaderName: String?, val createdAt: String?)
 data class Schedule(
     val blockId: String, val title: String, val category: String,
     val dayOfWeek: String, val startTime: String, val endTime: String,
@@ -42,7 +44,14 @@ data class ScheduleInput(
     val userId: String, val title: String, val category: String,
     val dayOfWeek: String, val startTime: String, val endTime: String,
 )
-data class Notice(val notificationId: String, val message: String, val read: Boolean, val createdAt: String?)
+data class Notice(
+    val notificationId: String,
+    val message: String,
+    val read: Boolean,
+    val createdAt: String?,
+    val type: String = "INFO",
+    val taskId: String? = null,
+)
 data class AiTask(val title: String, val description: String?, val category: String?, val priority: String?, val estimatedHours: Int?)
 data class AiResult(val tasks: List<AiTask>, val fallback: Boolean = false)
 data class Draft(val id: String, val task: AiTask, val selected: Boolean = true)
