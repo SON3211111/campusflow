@@ -18,9 +18,7 @@
 
 HTTP는 debug 빌드에만 허용됩니다. Release는 HTTPS를 사용합니다. 서버 주소를 바꾸려면 로그아웃 후 연결 설정을 변경합니다. 키보드가 입력창을 가리지 않도록 입력 폼에는 스크롤과 IME inset을 적용했습니다.
 
-### 서버 없이 둘러보기
-
-**데모로 먼저 둘러보기**를 선택하세요. 5개 탭, 업무 등록/상태 변경, 일정 등록/삭제, AI 예시 결과 편집/선택/등록, 프로필 이름 변경을 사용할 수 있습니다. 데모 배너가 표시되고 서버 요청은 보내지 않습니다. 데모 데이터는 메모리에만 있으며 앱 프로세스를 종료하거나 데모를 다시 시작하면 초기화됩니다. 서버 오류가 나도 자동으로 데모 데이터로 대체하지 않습니다.
+로그인 및 데이터 저장에는 실제 서버 연결이 필요합니다. 서버 연결 실패 시 오류가 표시됩니다.
 
 ## 구현한 기능
 
@@ -49,7 +47,6 @@ app/src/main/java/com/campusflow/mobile/
     Models.kt                  기존 DTO 대응 모델과 입력 검증
     CampusApi.kt               Retrofit 엔드포인트와 Bearer 인증
     SessionStore.kt            Android Keystore AES-GCM 세션 저장
-    DemoData.kt                명시적인 로컬 체험 데이터
   ui/
     CampusApp.kt               5단 탭, Bottom Sheet, 알림, 업무 상세
     Screens.kt                 로그인/홈/시간표/AI/보드/프로필
@@ -64,27 +61,16 @@ app/src/main/java/com/campusflow/mobile/
 Windows PowerShell (`android` 폴더):
 
 ```powershell
-.\gradlew.bat :app:assembleDebug :app:testDebugUnitTest :app:lintDebug
+.\gradlew.bat :app:assembleDebug :app:lintDebug
 ```
 
 macOS/Linux:
 
 ```sh
-sh gradlew :app:assembleDebug :app:testDebugUnitTest :app:lintDebug
+sh gradlew :app:assembleDebug :app:lintDebug
 ```
 
 APK: `app/build/outputs/apk/debug/app-debug.apk`
-
-Windows에서 테스트 JVM이 `Could not find or load main class Files\\Java...`로 종료되면 PATH 항목에 따옴표가 들어 있는지 확인하세요. 시스템 설정을 바꾸지 않고 현재 터미널에서만 정리하려면 다음 명령을 사용합니다.
-
-```powershell
-$env:Path = ($env:Path -split ';' | ForEach-Object { $_.Trim('"') } | Where-Object { $_ }) -join ';'
-.\gradlew.bat :app:assembleDebug :app:testDebugUnitTest :app:lintDebug --no-daemon --max-workers=2
-```
-
-단위 테스트는 이메일/날짜/시간/AI 입력 검증과 MockWebServer 기반 API 계약(인증, 시간표 배열, PATCH 상태 변경, AI 쿼리 인코딩, 생성 DTO, 서버 오류)을 확인합니다.
-
-검증: Android 단위 테스트 12개, 백엔드 전체 테스트 5개, Android 15 에뮬레이터 UI 테스트 2개 통과. SDK 35 / JDK 21로 debug APK 생성 및 Android Lint 검증. UI 테스트는 데모 주요 흐름과 기존 Spring Boot + 격리된 H2 테스트 DB의 회원가입·로그인·업무 저장·재로그인·로그인 세션 복원을 확인합니다. 물리 휴대폰, 운영 MySQL, 실제 Ollama AI 모델은 별도 검증 범위입니다. [실행 검증 기록](qa/README.md)을 참고하세요.
 
 ## 참고 계획서 대비 후속 범위
 
@@ -96,15 +82,27 @@ $env:Path = ($env:Path -split ';' | ForEach-Object { $_.Trim('"') } | Where-Obje
 - 날짜별 단발 일정, 날짜 범위 Drag & Drop, 팀 일정 생성: 기존 시간표 API는 `dayOfWeek/startTime/endTime`만 제공하여 우선 반복 시간표와 Task 마감일을 연결했습니다.
 - 태그 편집, 푸시 알림, 첨부파일/댓글/채팅, 오프라인 편집 동기화.
 
-서버 변경은 `AiController`의 20~4,000자 및 단순 반복/기호 입력 차단, `TaskService`의 상태 변경 시 옛 `boardColumn` 초기화, 각각의 회귀 테스트입니다. 명시적인 상태 변경 요청은 같은 상태라도 해당 기본 칸으로 이동합니다. 기존 웹 클라이언트에도 동일한 입력 검증이 적용되므로 백엔드를 다시 빌드/시작해야 합니다.
+서버 변경은 `AiController`의 20~4,000자 및 단순 반복/기호 입력 차단, `TaskService`의 상태 변경 시 옛 `boardColumn` 초기화가 적용되어 있습니다. 명시적인 상태 변경 요청은 같은 상태라도 해당 기본 칸으로 이동합니다. 기존 웹 클라이언트에도 동일한 입력 검증이 적용되므로 백엔드를 다시 빌드/시작해야 합니다.
 
 기술 설정 참고: [Android Gradle Plugin 8.9 호환성](https://developer.android.com/build/releases/agp-8-9-0-release-notes), [Compose Compiler 플러그인 설정](https://developer.android.com/develop/ui/compose/setup-compose-dependencies-and-compiler).
 
 
 ## 통합 브랜치 안내
-현재 브랜치는 업무 상세·댓글·첨부파일 목록·알림센터·WebSocket 수신을 추가하고 데모를 유지합니다. 위 과거 검증 기록 및 후속 범위보다 [통합 안내](../docs/mobile-login-integration.md)를 우선 참고하세요.
+현재 브랜치는 업무 상세·댓글·첨부파일 목록·알림센터·WebSocket 수신을 추가했습니다. 데모 모드와 테스트 소스·의존성은 제거했습니다. 위 과거 검증 기록 및 후속 범위보다 [통합 안내](../docs/mobile-login-integration.md)를 우선 참고하세요.
 
 
 ## 이메일 인증 가입
 
-신규 가입 시 인증번호 발송 → 메일의 6자리 번호 확인 → 회원가입 순서로 진행합니다. 서버 SMTP 설정과 새 백엔드 배포가 필요합니다. 기존 계정 로그인 및 데모는 그대로 사용할 수 있습니다. 설정은 `../docs/mobile-login-integration.md`를 참고하세요.
+신규 가입 시 인증번호 발송 → 메일의 6자리 번호 확인 → 회원가입 순서로 진행합니다. 서버 SMTP 설정과 새 백엔드 배포가 필요합니다. 기존 계정 로그인은 그대로 사용할 수 있습니다. 설정은 `../docs/mobile-login-integration.md`를 참고하세요.
+
+
+## 모바일 협업 기능 추가
+
+- 알림 아이콘 → **병목 리포트**: 웹과 같은 `/tasks/bottleneck-report?days=3` 결과로 정체 일수, 최대 예상 지연, 기준/예상 마감, 직접·간접 후속 영향을 표시합니다. 펼친 카드에서 업무 상세로 이동할 수 있습니다. 병목 알림 개수와 리포트 업무 개수는 별도입니다.
+- 알림센터 또는 워크스페이스 선택창 → **팀 초대·참여**: 이메일 초대, 받은 초대 수락·거절, 워크스페이스 ID/웹 초대 링크로 참여 요청, 관리자 참여 승인·거절을 지원합니다.
+- 업무 상세 → **첨부파일**: 시스템 파일 선택기로 최대 50MB 파일을 업로드합니다. 저장 위치 선택 후 인증 API로 다운로드하고, 확인창을 거쳐 첨부파일을 삭제합니다.
+- 업무 상세 → **제목 저장 / 업무 삭제**: 제목을 수정하거나 업무를 휴지통으로 이동합니다. 워크스페이스 선택창 → **현재 팀 휴지통**에서 복원합니다. 앱에서 업무 영구 삭제는 제공하지 않습니다.
+
+새 기능은 실제 계정과 서버 데이터를 사용합니다. 현재 서버 API를 재사용하며 서버 코드 변경은 없습니다.
+
+검증: Android `assembleDebug` 및 `lintDebug` 통과. 실제 운영 서버에서 두 계정의 초대·승인, 파일 업로드/저장/삭제, 웹과 앱의 업무 수정·삭제·복원 결과는 별도 실기기 확인이 필요합니다.

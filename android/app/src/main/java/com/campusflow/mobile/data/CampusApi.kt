@@ -7,6 +7,24 @@ import retrofit2.http.*
 import java.util.concurrent.TimeUnit
 
 interface CampusApi {
+    @Multipart @POST("workspaces/{id}/tasks/{taskId}/attachments") suspend fun uploadAttachment(@Path("id") id: String, @Path("taskId") taskId: String, @Part file: okhttp3.MultipartBody.Part, @Part("uploaderId") userId: okhttp3.RequestBody, @Part("uploaderName") name: okhttp3.RequestBody): Envelope<Attachment>
+    @Streaming @GET("workspaces/{id}/tasks/{taskId}/attachments/{fileId}/download") suspend fun downloadAttachment(@Path("id") id: String, @Path("taskId") taskId: String, @Path("fileId") fileId: String): okhttp3.ResponseBody
+    @DELETE("workspaces/{id}/tasks/{taskId}/attachments/{fileId}") suspend fun deleteAttachment(@Path("id") id: String, @Path("taskId") taskId: String, @Path("fileId") fileId: String): Envelope<Unit>
+    @PATCH("workspaces/{id}/tasks/{taskId}/title") suspend fun title(@Path("id") id: String, @Path("taskId") taskId: String, @Body body: Map<String, String>): Envelope<Unit>
+    @DELETE("workspaces/{id}/tasks/{taskId}") suspend fun deleteTask(@Path("id") id: String, @Path("taskId") taskId: String): Envelope<Unit>
+    @GET("workspaces/{id}/tasks/trash") suspend fun trash(@Path("id") id: String): Envelope<List<Task>>
+    @PATCH("workspaces/{id}/tasks/{taskId}/restore") suspend fun restoreTask(@Path("id") id: String, @Path("taskId") taskId: String): Envelope<Task>
+
+    @GET("auth/search") suspend fun findUser(@Query("email") email: String): Envelope<Profile>
+    @POST("invitations") suspend fun invite(@Query("inviterId") inviterId: String, @Query("inviteeId") inviteeId: String, @Query("workspaceId") workspaceId: String): Envelope<Unit>
+    @GET("invitations") suspend fun invitations(@Query("userId") userId: String): Envelope<List<Invitation>>
+    @POST("invitations/{id}/accept") suspend fun acceptInvitation(@Path("id") id: String): Envelope<Unit>
+    @POST("invitations/{id}/reject") suspend fun rejectInvitation(@Path("id") id: String): Envelope<Unit>
+    @POST("workspaces/{id}/request-join") suspend fun requestJoin(@Path("id") id: String, @Query("userId") userId: String): Envelope<Unit>
+    @POST("workspaces/join-requests/{id}/accept") suspend fun acceptJoin(@Path("id") id: String): Envelope<Unit>
+    @POST("workspaces/join-requests/{id}/reject") suspend fun rejectJoin(@Path("id") id: String): Envelope<Unit>
+
+    @GET("workspaces/{id}/tasks/bottleneck-report") suspend fun bottleneckReport(@Path("id") id: String, @Query("days") days: Int = 3): Envelope<BottleneckReport>
     @POST("auth/email/send") suspend fun sendEmailCode(@Body body: Map<String, String>): Envelope<Unit>
     @POST("auth/email/verify") suspend fun verifyEmailCode(@Body body: Map<String, String>): Envelope<Map<String, String>>
     @POST("auth/login") suspend fun login(@Body body: Map<String, String>): Envelope<Session>

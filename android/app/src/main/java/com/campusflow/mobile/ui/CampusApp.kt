@@ -54,8 +54,7 @@ fun CampusApp(vm: AppViewModel) {
         snackbarHost = { SnackbarHost(snackbar) },
         topBar = {
             if (state.session != null) TopAppBar(title = {
-                Column { Text("campusflow", fontWeight = FontWeight.ExtraBold)
-                    if (state.demo) Text("데모 · 기기에 임시 저장", style = MaterialTheme.typography.labelSmall) }
+                Text("campusflow", fontWeight = FontWeight.ExtraBold)
             }, actions = {
                 IconButton({ vm.refresh() }, enabled = !state.busy && !state.refreshing) { Icon(Icons.Outlined.Refresh, "새로고침") }
                 IconButton({ sheet = "notifications" }) { BadgedBox(badge = { if (state.notices.any { !it.read }) Badge() }) { Icon(Icons.Outlined.Notifications, "알림") } }
@@ -94,9 +93,14 @@ fun CampusApp(vm: AppViewModel) {
                                 Text((if (workspace.workspaceId == state.workspaceId) "✓  " else "") + workspace.name)
                             }
                         }
+                        OutlinedButton({ sheet = "team" }, modifier = Modifier.fillMaxWidth()) { Text("팀 초대·참여") }
+                        OutlinedButton({ sheet = "trash" }, enabled = state.workspaceId != null, modifier = Modifier.fillMaxWidth()) { Text("현재 팀 휴지통") }
                         WorkspaceForm(state.busy) { name -> vm.createWorkspace(name, dismiss) }
                     }
+                    "team" -> TeamPanel(state, vm)
+                    "trash" -> TrashPanel(state, vm)
                     "members" -> {
+                        OutlinedButton({ sheet = "team" }, modifier = Modifier.fillMaxWidth()) { Text("팀 초대·참여") }
                         SectionTitle("함께하는 팀원", "${state.members.size}명 · 관리자/멤버 구분")
                         state.members.forEach { member -> ListItem(headlineContent = { Text(member.name) }, supportingContent = { Text(member.email.orEmpty()) }, trailingContent = { Text(if (member.role == "OWNER") "관리자" else "멤버") }) }
                         if (state.members.isEmpty()) Text("등록된 팀원이 없습니다.")
@@ -106,8 +110,14 @@ fun CampusApp(vm: AppViewModel) {
                     "profile" -> NameForm(state.profile?.name ?: state.session!!.name, state.busy) { vm.updateName(it, dismiss) }
                     "notifications" -> NotificationCenterSheet(
                         state = state,
+                        onTeam = { sheet = "team" },
                         onRead = vm::readNotice,
                         onReadAll = vm::readAllNotices,
+                        loadReport = vm::loadBottleneckReport,
+                        onOpenReportTask = { id ->
+                            if (state.tasks.any { it.taskId == id }) { taskId = id; sheet = null }
+                            else vm.notify("업무를 찾을 수 없습니다. 새로고침 후 다시 확인하세요.")
+                        },
                         onOpenTask = { notice ->
                             if (!notice.read) vm.readNotice(notice)
                             notice.taskId?.let { taskId = it; sheet = null }
@@ -115,6 +125,8 @@ fun CampusApp(vm: AppViewModel) {
                     )
                     else -> state.tasks.find { it.taskId == taskId }?.let { task ->
                         TaskDetailSheet(
+                            vm = vm,
+                            onDelete = { vm.removeTask(task, dismiss) },
                             state = state,
                             task = task,
                             comments = state.taskComments[task.taskId].orEmpty(),
@@ -136,6 +148,8 @@ fun CampusApp(vm: AppViewModel) {
 
 @Composable
 private fun TaskDetailSheet(
+    vm: AppViewModel,
+    onDelete: () -> Unit,
     state: AppState,
     task: Task,
     comments: List<Comment>,
@@ -148,12 +162,22 @@ private fun TaskDetailSheet(
     onSignal: (String?) -> Unit,
     onComment: (String) -> Unit,
 ) {
+    var title by rememberSaveable(task.taskId, task.title) { mutableStateOf(task.title) }
+    var confirmDelete by rememberSaveable(task.taskId) { mutableStateOf(false) }
     var description by rememberSaveable(task.taskId, task.description) { mutableStateOf(task.description.orEmpty()) }
     var startDate by rememberSaveable(task.taskId, task.startDate) { mutableStateOf(task.startDate?.take(10).orEmpty()) }
     var dueDate by rememberSaveable(task.taskId, task.dueDate) { mutableStateOf(task.dueDate?.take(10).orEmpty()) }
     var comment by rememberSaveable(task.taskId) { mutableStateOf("") }
 
     SectionTitle(task.title, "${task.assigneeName ?: "담당자 미정"} · ${task.dueDate?.take(10) ?: "마감일 없음"}")
+
+    OutlinedTextField(title, { title = it }, label = { Text("업무 제목") }, enabled = !state.busy, modifier = Modifier.fillMaxWidth())
+    OutlinedButton({ vm.renameTask(task, title) }, enabled = !state.busy && title.isNotBlank() && title.trim() != task.title) { Text("제목 저장") }
+    TextButton({ confirmDelete = true }, enabled = !state.busy) { Text("업무 삭제", color = MaterialTheme.colorScheme.error) }
+    if (confirmDelete) AlertDialog(onDismissRequest = { confirmDelete = false },
+        title = { Text("업무를 삭제할까요?") }, text = { Text("이 업무는 휴지통으로 이동하며 나중에 복원할 수 있습니다.") },
+        confirmButton = { TextButton({ confirmDelete = false; onDelete() }) { Text("휴지통으로 이동") } },
+        dismissButton = { TextButton({ confirmDelete = false }) { Text("취소") } })
 
     Text("업무 상태", fontWeight = FontWeight.Bold)
     FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -230,19 +254,7 @@ private fun TaskDetailSheet(
         )
     }
 
-    Text("첨부파일", fontWeight = FontWeight.Bold)
-    if (attachments.isEmpty()) {
-        Text("첨부파일이 없습니다. 모바일 업로드는 다음 단계에서 지원할 예정입니다.", color = MaterialTheme.colorScheme.onSurfaceVariant)
-    } else {
-        attachments.forEach { file ->
-            ListItem(
-                headlineContent = { Text(file.originalName) },
-                supportingContent = { Text("${formatFileSize(file.fileSize)} · ${file.uploaderName ?: "업로더 미상"}") },
-                leadingContent = { Icon(Icons.Outlined.AttachFile, null) },
-            )
-        }
-        Text("다운로드와 업로드는 현재 웹에서 이용해 주세요.", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
-    }
+    AttachmentPanel(state, task, attachments, vm)
 
     Text("댓글", fontWeight = FontWeight.Bold)
     OutlinedTextField(
@@ -270,17 +282,14 @@ private fun TaskDetailSheet(
     }
 }
 
-private fun formatFileSize(bytes: Long): String = when {
-    bytes < 1024 -> "${bytes}B"
-    bytes < 1024 * 1024 -> "${bytes / 1024}KB"
-    else -> "${bytes / (1024 * 1024)}MB"
-}
-
 @Composable
 private fun NotificationCenterSheet(
     state: AppState,
+    onTeam: () -> Unit,
     onRead: (Notice) -> Unit,
     onReadAll: () -> Unit,
+    loadReport: suspend (String) -> BottleneckReport,
+    onOpenReportTask: (String) -> Unit,
     onOpenTask: (Notice) -> Unit,
 ) {
     var filter by rememberSaveable { mutableStateOf("ALL") }
@@ -301,6 +310,7 @@ private fun NotificationCenterSheet(
     }
 
     SectionTitle("알림 센터", "팀 프로젝트에서 놓치면 안 되는 소식을 확인하세요")
+    OutlinedButton(onTeam, modifier = Modifier.fillMaxWidth()) { Text("받은 초대·참여 요청 확인") }
     Surface(
         color = MaterialTheme.colorScheme.primaryContainer,
         shape = androidx.compose.foundation.shape.RoundedCornerShape(22.dp),
@@ -322,7 +332,7 @@ private fun NotificationCenterSheet(
     }
 
     Row(horizontalArrangement = Arrangement.spacedBy(10.dp), modifier = Modifier.fillMaxWidth()) {
-        NotificationMetric("병목", bottlenecks, Icons.Outlined.WarningAmber, Modifier.weight(1f))
+        NotificationMetric("병목 알림", bottlenecks, Icons.Outlined.WarningAmber, Modifier.weight(1f))
         NotificationMetric("마감", dueDates, Icons.Outlined.Event, Modifier.weight(1f))
         NotificationMetric("요청", requests, Icons.Outlined.HelpOutline, Modifier.weight(1f))
     }
@@ -331,7 +341,8 @@ private fun NotificationCenterSheet(
         listOf(
             "ALL" to "전체",
             "UNREAD" to "미읽음",
-            "BOTTLENECK" to "병목",
+            "REPORT" to "병목 리포트",
+            "BOTTLENECK" to "병목 알림",
             "TASK" to "업무",
             "REQUEST" to "요청",
         ).forEach { (key, label) ->
@@ -339,6 +350,10 @@ private fun NotificationCenterSheet(
         }
     }
 
+    if (filter == "REPORT") {
+        BottleneckReportPanel(state, loadReport, onOpenReportTask)
+        return
+    }
     if (filtered.isEmpty()) {
         EmptyCard("표시할 알림이 없어요", "필터를 바꾸거나 새 알림을 기다려 주세요.")
     } else {

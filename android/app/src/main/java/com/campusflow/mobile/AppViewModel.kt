@@ -1,6 +1,13 @@
 package com.campusflow.mobile
 
 import android.app.Application
+import android.net.Uri
+import android.provider.OpenableColumns
+import okhttp3.MediaType.Companion.toMediaTypeOrNull
+import okhttp3.RequestBody.Companion.asRequestBody
+import okhttp3.RequestBody.Companion.toRequestBody
+import okhttp3.MultipartBody
+import java.io.File
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.campusflow.mobile.data.*
@@ -21,7 +28,7 @@ import java.util.concurrent.TimeUnit
 import java.util.UUID
 
 data class AppState(
-    val session: Session? = null, val demo: Boolean = false, val baseUrl: String = "",
+    val session: Session? = null, val baseUrl: String = "",
     val busy: Boolean = false, val refreshing: Boolean = false, val message: String? = null,
     val workspaces: List<Workspace> = emptyList(), val workspaceId: String? = null,
     val tasks: List<Task> = emptyList(), val members: List<Member> = emptyList(),
@@ -61,7 +68,6 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
             notify("이메일 인증이 완료되었습니다.")
         }
     }
-    private var demoData = DemoData()
     private var epoch = 0
     private var operation: Job? = null
     private var refreshJob: Job? = null
@@ -70,9 +76,146 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
     private var taskSocket: WebSocket? = null
     private var taskSocketWorkspaceId: String? = null
     private var socketReconnectJob: Job? = null
-    private fun newApi() = CampusApi.create(mutable.value.baseUrl) { mutable.value.session?.takeUnless { mutable.value.demo }?.accessToken }
+    private fun newApi() = CampusApi.create(mutable.value.baseUrl) { mutable.value.session?.accessToken }
 
     init { if (state.value.session != null) refresh() }
+
+    fun uploadFile(task: Task, uri: Uri) = execute {
+        val user = requireLiveSession()
+        val workspace = requireNotNull(state.value.workspaceId)
+        val resolver = getApplication<Application>().contentResolver
+        val cache = getApplication<Application>().cacheDir
+        val file = withContext(Dispatchers.IO) { File.createTempFile("upload-", ".tmp", cache) }
+        try {
+            val info = withContext(Dispatchers.IO) {
+                val name = resolver.query(uri, arrayOf(OpenableColumns.DISPLAY_NAME), null, null, null)?.use {
+                    if (it.moveToFirst()) it.getString(0) else null
+                } ?: "attachment"
+                val safeName = name.substringAfterLast('/').substringAfterLast('\\').replace("\r", "").replace("\n", "").ifBlank { "attachment" }
+                val mime = resolver.getType(uri) ?: "application/octet-stream"
+                requireNotNull(resolver.openInputStream(uri)) { "파일을 열 수 없습니다." }.use { input ->
+                    file.outputStream().use { output ->
+                        val buffer = ByteArray(8192)
+                        var total = 0L
+                        while (true) {
+                            ensureActive()
+                            val read = input.read(buffer)
+                            if (read < 0) break
+                            total += read
+                            require(total <= 50L * 1024 * 1024) { "50MB 이하 파일만 첨부할 수 있습니다." }
+                            output.write(buffer, 0, read)
+                        }
+                    }
+                }
+                safeName to mime
+            }
+            val part = MultipartBody.Part.createFormData("file", info.first, file.asRequestBody(info.second.toMediaTypeOrNull()))
+            val saved = api.uploadAttachment(workspace, task.taskId, part, user.userId.toRequestBody(), user.name.toRequestBody()).value()
+            mutable.update { it.copy(taskAttachments = it.taskAttachments + (task.taskId to (it.taskAttachments[task.taskId].orEmpty() + saved))) }
+            notify("파일을 첨부했습니다.")
+        } finally { withContext(NonCancellable + Dispatchers.IO) { file.delete() } }
+    }
+    fun downloadFile(task: Task, attachment: Attachment, uri: Uri) = execute {
+        requireLiveSession()
+        val workspace = requireNotNull(state.value.workspaceId)
+        val resolver = getApplication<Application>().contentResolver
+        withContext(Dispatchers.IO) {
+            api.downloadAttachment(workspace, task.taskId, attachment.attachmentId).use { body ->
+                requireNotNull(resolver.openOutputStream(uri, "wt")) { "저장 위치를 열 수 없습니다." }.use { output ->
+                    body.byteStream().use { input ->
+                        val buffer = ByteArray(8192)
+                        while (true) {
+                            ensureActive()
+                            val read = input.read(buffer)
+                            if (read < 0) break
+                            output.write(buffer, 0, read)
+                        }
+                    }
+                }
+            }
+        }
+        notify("선택한 위치에 파일을 저장했습니다.")
+    }
+    fun deleteFile(task: Task, file: Attachment) = execute {
+        requireLiveSession()
+        api.deleteAttachment(requireNotNull(state.value.workspaceId), task.taskId, file.attachmentId).checkSuccess()
+        mutable.update { it.copy(taskAttachments = it.taskAttachments + (task.taskId to it.taskAttachments[task.taskId].orEmpty().filterNot { a -> a.attachmentId == file.attachmentId })) }
+        notify("첨부파일을 삭제했습니다.")
+    }
+    fun renameTask(task: Task, title: String) = execute {
+        requireLiveSession()
+        require(title.isNotBlank()) { "업무 제목을 입력하세요." }
+        api.title(requireNotNull(state.value.workspaceId), task.taskId, mapOf("title" to title.trim())).checkSuccess()
+        updateTaskLocal(task.taskId) { it.copy(title = title.trim()) }
+        notify("업무 제목을 저장했습니다.")
+    }
+    fun removeTask(task: Task, done: () -> Unit) = execute {
+        requireLiveSession()
+        api.deleteTask(requireNotNull(state.value.workspaceId), task.taskId).checkSuccess()
+        mutable.update { it.copy(tasks = it.tasks.filterNot { t -> t.taskId == task.taskId }, taskComments = it.taskComments - task.taskId, taskAttachments = it.taskAttachments - task.taskId) }
+        done(); notify("업무를 휴지통으로 이동했습니다.")
+    }
+    suspend fun loadTrash(workspaceId: String): List<Task> {
+        requireLiveSession()
+        return api.trash(workspaceId).value()
+    }
+    suspend fun restoreDeletedTask(workspaceId: String, task: Task) {
+        requireLiveSession()
+        val saved = api.restoreTask(workspaceId, task.taskId).value()
+        mutable.update { if (it.workspaceId == workspaceId) it.copy(tasks = it.tasks.filterNot { t -> t.taskId == saved.taskId } + saved) else it }
+    }
+
+    private fun requireLiveSession(): Session {
+        return requireNotNull(state.value.session) { "로그인이 필요합니다." }
+    }
+    suspend fun teamInbox(): Pair<List<Invitation>, List<JoinRequest>> {
+        val user = requireLiveSession()
+        return coroutineScope {
+            val invites = async { api.invitations(user.userId).value() }
+            val notices = api.notices(user.userId).value()
+            val requests = notices.filter { !it.read }.mapNotNull { notice -> runCatching {
+                val json = JsonParser.parseString(notice.message).asJsonObject
+                if (json["type"]?.asString != "JOIN_REQUEST") null else JoinRequest(notice.notificationId,
+                    json["workspaceId"].asString, json["requesterName"].asString, json["workspaceName"].asString)
+            }.getOrNull() }
+            invites.await() to requests
+        }
+    }
+    suspend fun sendTeamInvitation(workspaceId: String, email: String) {
+        val user = requireLiveSession()
+        require(Validation.email(email)) { "올바른 이메일을 입력하세요." }
+        val recipient = api.findUser(email.trim()).value()
+        check(recipient.userId != user.userId) { "자신을 초대할 수 없습니다." }
+        check(api.members(workspaceId).value().none { it.userId == recipient.userId }) { "이미 참여한 팀원입니다." }
+        api.invite(user.userId, recipient.userId, workspaceId).checkSuccess()
+    }
+    suspend fun answerInvitation(invitation: Invitation, accept: Boolean) {
+        requireLiveSession()
+        if (accept) api.acceptInvitation(invitation.invitationId).checkSuccess()
+        else api.rejectInvitation(invitation.invitationId).checkSuccess()
+        refresh()
+    }
+    suspend fun requestTeamJoin(input: String) {
+        val user = requireLiveSession()
+        val value = input.trim()
+        val id = if (value.contains("://")) {
+            val uri = android.net.Uri.parse(value)
+            uri.getQueryParameter("workspaceId") ?: uri.getQueryParameter("id") ?: uri.lastPathSegment.orEmpty()
+        } else value
+        require(id.isNotBlank() && id != "join" && !id.contains("/")) { "워크스페이스 ID 또는 초대 링크를 확인하세요." }
+        api.requestJoin(id, user.userId).checkSuccess()
+    }
+    suspend fun answerJoinRequest(request: JoinRequest, accept: Boolean) {
+        val user = requireLiveSession()
+        val members = api.members(request.workspaceId).value()
+        check(members.any { it.userId == user.userId && it.role == "OWNER" }) { "관리자만 참여 요청을 처리할 수 있습니다." }
+        if (accept) api.acceptJoin(request.notificationId).checkSuccess() else api.rejectJoin(request.notificationId).checkSuccess()
+        refresh()
+    }
+
+    suspend fun loadBottleneckReport(workspaceId: String): BottleneckReport {
+        return withTimeout(30_000) { api.bottleneckReport(workspaceId).value() }
+    }
 
     fun dismissMessage() { mutable.update { it.copy(message = null) } }
     fun notify(message: String) { mutable.update { it.copy(message = message) } }
@@ -114,7 +257,7 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
         execute {
             val session = api.login(mapOf("email" to email.trim(), "password" to password)).value()
             store.save(session)
-            mutable.update { it.copy(session = session, demo = false) }
+            mutable.update { it.copy(session = session) }
             load()
         }
     }
@@ -127,11 +270,6 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
             done()
             notify("가입이 완료되었습니다. 로그인해 주세요.")
         }
-    }
-    fun enterDemo() {
-        epoch++; operation?.cancel(); refreshJob?.cancel(); closeTaskSocket(); demoData = DemoData()
-        mutable.value = AppState(session = demoData.session, demo = true, baseUrl = store.baseUrl)
-        refresh()
     }
     fun logout() {
         epoch++; operation?.cancel(); refreshJob?.cancel(); closeTaskSocket(); store.clear()
@@ -158,13 +296,6 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
     private suspend fun load() {
         val snapshot = state.value
         val user = snapshot.session ?: return
-        if (snapshot.demo) {
-            val id = snapshot.workspaceId?.takeIf { target -> demoData.workspaces.any { it.workspaceId == target } } ?: demoData.workspaces.firstOrNull()?.workspaceId
-            mutable.update { it.copy(workspaces = demoData.workspaces.toList(), workspaceId = id,
-                tasks = demoData.tasks[id]?.toList() ?: emptyList(), members = demoData.members,
-                schedules = demoData.schedules.toList(), notices = demoData.notices.toList(), profile = demoData.profile) }
-            return
-        }
         coroutineScope {
             val workspaces = async { api.workspaces(user.userId).value() }
             val schedules = async { api.schedules(user.userId) }
@@ -185,19 +316,14 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
         if (name.isBlank()) { notify("워크스페이스 이름을 입력하세요."); return }
         execute {
             val user = state.value.session ?: return@execute
-            val workspace = if (state.value.demo) Workspace(UUID.randomUUID().toString(), name.trim(), "TEAM", user.userId).also {
-                demoData.workspaces.add(it); demoData.tasks[it.workspaceId] = mutableListOf()
-            } else api.createWorkspace(user.userId, mapOf("name" to name.trim(), "type" to "TEAM")).value()
+            val workspace = api.createWorkspace(user.userId, mapOf("name" to name.trim(), "type" to "TEAM")).value()
             mutable.update { it.copy(workspaceId = workspace.workspaceId) }; done(); load()
         }
     }
     private suspend fun saveTask(input: TaskInput): Task {
         val s = state.value
         val id = requireNotNull(s.workspaceId) { "워크스페이스를 먼저 선택하세요." }
-        return if (s.demo) Task(UUID.randomUUID().toString(), input.title, input.description, input.status, dueDate = input.dueDate,
-            assigneeId = input.assigneeId, assigneeName = s.members.find { it.userId == input.assigneeId }?.name, priority = input.priority, estimatedHours = input.estimatedHours).also {
-            demoData.tasks.getOrPut(id) { mutableListOf() }.add(it)
-        } else api.createTask(id, input).value()
+        return api.createTask(id, input).value()
     }
     fun createTask(input: TaskInput, done: () -> Unit) {
         if (input.title.isBlank() || !Validation.date(input.dueDate.orEmpty())) { notify("업무 제목과 마감일(YYYY-MM-DD)을 확인하세요."); return }
@@ -207,19 +333,13 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
         val s = state.value
         val boardColumn = boardColumnForStatus(status.name)
         updateTaskLocal(task.taskId) { it.copy(status = status.name, boardColumn = boardColumn) }
-        if (s.demo) {
-            val list = demoData.tasks[s.workspaceId]!!
-            val index = list.indexOfFirst { it.taskId == task.taskId }
-            list[index] = task.copy(status = status.name, boardColumn = boardColumn)
-        } else {
-            val saved = api.status(s.workspaceId!!, task.taskId, status.name, s.session!!.userId).value()
-            updateTaskLocal(task.taskId) { saved }
-        }
+        val saved = api.status(s.workspaceId!!, task.taskId, status.name, s.session!!.userId).value()
+        updateTaskLocal(task.taskId) { saved }
     }
 
     fun loadTaskDetails(taskId: String) {
         val s = state.value
-        if (s.session == null || s.demo || s.workspaceId == null) return
+        if (s.session == null || s.workspaceId == null) return
         viewModelScope.launch {
             runCatching {
                 val comments = async { api.comments(s.workspaceId, taskId).value() }
@@ -236,12 +356,8 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
 
     fun saveTaskDescription(task: Task, description: String) = execute {
         val s = state.value
-        if (s.demo) {
-            updateTaskLocal(task.taskId) { it.copy(description = description) }
-        } else {
-            api.description(s.workspaceId!!, task.taskId, mapOf("description" to description))
-            updateTaskLocal(task.taskId) { it.copy(description = description) }
-        }
+        api.description(s.workspaceId!!, task.taskId, mapOf("description" to description))
+        updateTaskLocal(task.taskId) { it.copy(description = description) }
     }
 
     fun saveTaskStartDate(task: Task, startDate: String) = execute {
@@ -251,12 +367,8 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
         }
         val s = state.value
         val value = startDate.trim()
-        if (s.demo) {
-            updateTaskLocal(task.taskId) { it.copy(startDate = value.ifBlank { null }) }
-        } else {
-            api.startDate(s.workspaceId!!, task.taskId, value)
-            updateTaskLocal(task.taskId) { it.copy(startDate = value.ifBlank { null }) }
-        }
+        api.startDate(s.workspaceId!!, task.taskId, value)
+        updateTaskLocal(task.taskId) { it.copy(startDate = value.ifBlank { null }) }
     }
 
     fun saveTaskDueDate(task: Task, dueDate: String) = execute {
@@ -266,46 +378,28 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
         }
         val s = state.value
         val value = dueDate.trim()
-        if (s.demo) {
-            updateTaskLocal(task.taskId) { it.copy(dueDate = value) }
-        } else {
-            api.dueDate(s.workspaceId!!, task.taskId, value)
-            updateTaskLocal(task.taskId) { it.copy(dueDate = value) }
-        }
+        api.dueDate(s.workspaceId!!, task.taskId, value)
+        updateTaskLocal(task.taskId) { it.copy(dueDate = value) }
     }
 
     fun changeAssignee(task: Task, assigneeId: String?) = execute {
         val s = state.value
-        val member = s.members.find { it.userId == assigneeId }
-        if (s.demo) {
-            updateTaskLocal(task.taskId) { it.copy(assigneeId = assigneeId, assigneeName = member?.name) }
-        } else {
-            val updated = api.assignee(s.workspaceId!!, task.taskId, assigneeId).value()
-            updateTaskLocal(task.taskId) { it.copy(assigneeId = updated.assigneeId, assigneeName = updated.assigneeName) }
-        }
+        val updated = api.assignee(s.workspaceId!!, task.taskId, assigneeId).value()
+        updateTaskLocal(task.taskId) { it.copy(assigneeId = updated.assigneeId, assigneeName = updated.assigneeName) }
     }
 
     fun sendQuickSignal(task: Task, signal: String?) = execute {
         val s = state.value
-        if (s.demo) {
-            updateTaskLocal(task.taskId) { it.copy(quickSignal = signal) }
-        } else {
-            if (signal == null) api.clearQuickSignal(s.workspaceId!!, task.taskId)
-            else api.quickSignal(s.workspaceId!!, task.taskId, signal, s.session!!.userId)
-            updateTaskLocal(task.taskId) { it.copy(quickSignal = signal) }
-        }
+        if (signal == null) api.clearQuickSignal(s.workspaceId!!, task.taskId)
+        else api.quickSignal(s.workspaceId!!, task.taskId, signal, s.session!!.userId)
+        updateTaskLocal(task.taskId) { it.copy(quickSignal = signal) }
     }
 
     fun addTaskComment(task: Task, content: String) = execute {
         if (content.isBlank()) return@execute
         val s = state.value
-        if (s.demo) {
-            val comment = Comment(UUID.randomUUID().toString(), s.session?.userId, s.session?.name, content.trim(), null)
-            mutable.update { it.copy(taskComments = it.taskComments + (task.taskId to ((it.taskComments[task.taskId] ?: emptyList()) + comment))) }
-        } else {
-            val saved = api.addComment(s.workspaceId!!, task.taskId, mapOf("senderId" to s.session!!.userId, "content" to content.trim())).value()
-            mutable.update { it.copy(taskComments = it.taskComments + (task.taskId to ((it.taskComments[task.taskId] ?: emptyList()) + saved))) }
-        }
+        val saved = api.addComment(s.workspaceId!!, task.taskId, mapOf("senderId" to s.session!!.userId, "content" to content.trim())).value()
+        mutable.update { it.copy(taskComments = it.taskComments + (task.taskId to ((it.taskComments[task.taskId] ?: emptyList()) + saved))) }
     }
 
     private fun updateTaskLocal(taskId: String, transform: (Task) -> Task) {
@@ -323,7 +417,7 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
 
     private fun connectTaskSocket(workspaceId: String?) {
         val s = state.value
-        if (workspaceId == null || s.session == null || s.demo) {
+        if (workspaceId == null || s.session == null) {
             closeTaskSocket()
             return
         }
@@ -365,7 +459,7 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
         if (socketReconnectJob?.isActive == true) return
         socketReconnectJob = viewModelScope.launch {
             delay(3_000)
-            if (state.value.workspaceId == workspaceId && state.value.session != null && !state.value.demo) {
+            if (state.value.workspaceId == workspaceId && state.value.session != null) {
                 taskSocket = null
                 connectTaskSocket(workspaceId)
             }
@@ -418,47 +512,36 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
         if (title.isBlank() || day !in Validation.days || !Validation.times(start, end)) { notify("일정 이름과 시간(HH:mm)을 확인하세요. 종료 시간은 시작 이후여야 합니다."); return }
         execute {
             val s = state.value
-            if (s.demo) demoData.schedules.add(Schedule(UUID.randomUUID().toString(), title.trim(), category, day, start, end))
-            else api.addSchedule(ScheduleInput(s.session!!.userId, title.trim(), category, day, start, end))
+            api.addSchedule(ScheduleInput(s.session!!.userId, title.trim(), category, day, start, end))
             done(); load()
         }
     }
     fun deleteSchedule(id: String) = execute {
-        if (state.value.demo) demoData.schedules.removeAll { it.blockId == id }
-        else { val response = api.deleteSchedule(id); if (!response.isSuccessful) throw HttpException(response) }
+        val response = api.deleteSchedule(id)
+        if (!response.isSuccessful) throw HttpException(response)
         load()
     }
     fun readNotice(notice: Notice) = execute {
-        if (state.value.demo) { val index = demoData.notices.indexOfFirst { it.notificationId == notice.notificationId }; demoData.notices[index] = notice.copy(read = true) }
-        else api.readNotice(notice.notificationId)
+        api.readNotice(notice.notificationId)
         load()
     }
     fun readAllNotices() = execute {
         val unread = state.value.notices.filterNot { it.read }
-        if (state.value.demo) {
-            demoData.notices.replaceAll { it.copy(read = true) }
-        } else {
-            unread.forEach { api.readNotice(it.notificationId) }
-        }
+        unread.forEach { api.readNotice(it.notificationId) }
         mutable.update { app -> app.copy(notices = app.notices.map { it.copy(read = true) }) }
     }
     fun updateName(name: String, done: () -> Unit) {
         if (name.isBlank()) { notify("이름을 입력하세요."); return }
         execute {
             val s = state.value
-            if (s.demo) demoData.profile = demoData.profile.copy(name = name.trim())
-            else api.updateProfile(s.session!!.userId, mapOf("name" to name.trim()))
+            api.updateProfile(s.session!!.userId, mapOf("name" to name.trim()))
             done(); load()
         }
     }
     fun generate() {
         if (!Validation.description(state.value.prompt)) { notify("목표와 필요한 기능을 20~4,000자로 구체적으로 입력하세요."); return }
         execute {
-            val result = if (state.value.demo) AiResult(listOf(
-                AiTask("요구사항 정리", "프로젝트의 사용자, 목표, 핵심 기능을 정리합니다.", "기획", "HIGH", 2),
-                AiTask("모바일 화면 구현", "핵심 사용자 흐름과 모바일 화면을 구현합니다.", "개발", "HIGH", 8),
-                AiTask("통합 테스트", "로그인부터 업무 완료까지 검증합니다.", "테스트", "MEDIUM", 4)), true)
-            else api.generate(state.value.prompt.trim()).value()
+            val result = api.generate(state.value.prompt.trim()).value()
             mutable.update { it.copy(drafts = result.tasks.map { task -> Draft(UUID.randomUUID().toString(), task) }, aiFallback = result.fallback) }
             if (result.tasks.isEmpty()) notify("생성된 업무가 없습니다. 설명을 보완해 다시 시도하세요.")
         }

@@ -74,7 +74,6 @@ fun LoginScreen(state: AppState, vm: AppViewModel) {
         }
         TextButton({ signup = !signup; verified = false; sentEmail = ""; code = ""; vm.clearEmailVerification() }, modifier = Modifier.fillMaxWidth(), enabled = !state.busy) { Text(if (signup) "이미 계정이 있어요 · 로그인" else "처음이신가요? 회원가입") }
         HorizontalDivider()
-        OutlinedButton(vm::enterDemo, modifier = Modifier.fillMaxWidth().heightIn(min = 48.dp), enabled = !state.busy) { Text("데모로 먼저 둘러보기") }
         TextButton({ showServer = !showServer }, modifier = Modifier.align(Alignment.CenterHorizontally), enabled = !state.busy) { Text("서버 연결 설정") }
         if (showServer) {
             OutlinedTextField(server, { server = it }, label = { Text("API 주소 (/api/ 포함)") }, supportingText = { Text("팀 서버 주소가 기본으로 설정되어 있습니다. 다른 서버에 연결할 때만 변경하세요.") }, modifier = Modifier.fillMaxWidth())
@@ -235,7 +234,7 @@ fun AiScreen(state: AppState, vm: AppViewModel, onWorkspace: () -> Unit) {
         } }
         if (state.drafts.isNotEmpty()) {
             item { SectionTitle("결과 확인 & 선택", "제목을 수정하고 팀에 공유할 업무를 선택하세요.") }
-            if (state.aiFallback) item { Text(if (state.demo) "데모용 예시 업무입니다." else "AI 서버 대신 서버의 기본 템플릿으로 생성되었습니다.", color = MaterialTheme.colorScheme.secondary) }
+            if (state.aiFallback) item { Text("AI 서버 대신 서버의 기본 템플릿으로 생성되었습니다.", color = MaterialTheme.colorScheme.secondary) }
             items(state.drafts, key = { it.id }) { draft ->
                 Card(colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)) {
                     Column(Modifier.padding(14.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -271,9 +270,8 @@ fun ProfileScreen(state: AppState, onEdit: () -> Unit, onLogout: () -> Unit) {
         }
         ListItem(headlineContent = { Text("참여 중인 워크스페이스") }, trailingContent = { Text("${state.workspaces.size}개") })
         ListItem(headlineContent = { Text("선택한 팀에서 완료한 내 업무") }, trailingContent = { Text("${state.myTasks.count { it.effectiveStatus == "DONE" }}개") })
-        if (state.demo) Text("데모에서 변경한 내용은 서버에 전송되지 않으며, 데모를 다시 시작하면 초기화됩니다.", style = MaterialTheme.typography.bodySmall)
         Text("CampusFlow for Android · 1.0.0", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
-        OutlinedButton({ logout = true }, Modifier.fillMaxWidth(), enabled = !state.busy) { Text(if (state.demo) "데모 종료" else "로그아웃") }
+        OutlinedButton({ logout = true }, Modifier.fillMaxWidth(), enabled = !state.busy) { Text("로그아웃") }
     }
-    if (logout) AlertDialog(onDismissRequest = { logout = false }, title = { Text(if (state.demo) "데모를 종료할까요?" else "로그아웃할까요?") }, text = { Text("등록 전 AI 결과는 사라집니다. 서버에 저장한 업무는 유지됩니다.") }, confirmButton = { TextButton({ logout = false; onLogout() }) { Text("확인") } }, dismissButton = { TextButton({ logout = false }) { Text("취소") } })
+    if (logout) AlertDialog(onDismissRequest = { logout = false }, title = { Text("로그아웃할까요?") }, text = { Text("등록 전 AI 결과는 사라집니다. 서버에 저장한 업무는 유지됩니다.") }, confirmButton = { TextButton({ logout = false; onLogout() }) { Text("확인") } }, dismissButton = { TextButton({ logout = false }) { Text("취소") } })
 }

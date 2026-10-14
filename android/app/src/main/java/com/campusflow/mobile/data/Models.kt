@@ -84,3 +84,23 @@ object Validation {
         return value.trim().trimEnd('/') + "/"
     }
 }
+
+// Shared with the web bottleneck-report response. Delay values are server estimates.
+data class BottleneckReport(
+    val bottlenecks: List<BottleneckItem>, val totalDelayDays: Int,
+    val projectDeadline: String?, val estimatedNewDeadline: String?,
+)
+data class BottleneckItem(
+    val taskId: String, val title: String, val status: String,
+    val daysStuck: Int, val delayDays: Int, val assigneeName: String?,
+    val dueDate: String?, val affectedTaskCount: Int, val affectedTasks: List<AffectedTask>,
+)
+data class AffectedTask(
+    val taskId: String, val title: String, val dueDate: String?, val status: String,
+    val assigneeName: String?, val estimatedDelayDays: Int, val depth: Int,
+)
+
+data class Invitation(val invitationId: String, val workspaceId: String, val workspaceName: String, val inviterName: String)
+data class JoinRequest(val notificationId: String, val workspaceId: String, val requesterName: String, val workspaceName: String)
+
+fun Envelope<*>.checkSuccess() { check(status in 200..299) { message ?: "요청을 처리하지 못했습니다." } }
