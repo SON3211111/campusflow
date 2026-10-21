@@ -83,8 +83,18 @@ export default function AITaskModal({ onClose, workspaces = [], workspace }: Pro
     return parts.join(" / ");
   };
 
+  const promptLength = prompt.trim().length;
+  const meaningfulCharacters = prompt.trim().match(/[\p{L}\p{Nd}]/gu) ?? [];
+  const promptError = promptLength < 20
+    ? `프로젝트 내용을 20자 이상 입력해 주세요. (${promptLength}/20자)`
+    : buildStructuredPrompt().length > 4000
+      ? "팀 인원·마감을 포함한 전체 내용을 4,000자 이내로 줄여 주세요."
+      : meaningfulCharacters.length < 12 || new Set(meaningfulCharacters).size < 5
+        ? "반복 문자나 기호 대신 프로젝트 목표와 필요한 기능을 구체적으로 입력해 주세요."
+        : "";
+
   const handleNewBreakdown = () => {
-    if (!prompt.trim()) return;
+    if (promptError) return;
     onClose();
     navigate("/task-breakdown", {
       state: {
@@ -99,7 +109,7 @@ export default function AITaskModal({ onClose, workspaces = [], workspace }: Pro
   };
 
   const handleAppendBreakdown = async () => {
-    if (!prompt.trim()) return;
+    if (promptError) return;
     // DB에서 세션 데이터를 가져와 append 버퍼 구성
     try {
       const res = await client.get(`/workspaces/${activeWs!.id}/ai-session`);
@@ -208,13 +218,19 @@ export default function AITaskModal({ onClose, workspaces = [], workspace }: Pro
 
             <label className="ai-prompt-label">과제 / 프로젝트 내용 <span className="ai-required">*</span></label>
             <textarea
+              id="ai-project-prompt"
               className="ai-prompt-textarea"
+              aria-describedby="ai-prompt-feedback"
+              aria-invalid={promptLength > 0 && Boolean(promptError)}
               value={prompt}
               onChange={(e) => setPrompt(e.target.value)}
               placeholder={"예: 경영학원론 팀 레포트 — MZ세대 소비 트렌드 분析\n예: React + Spring Boot 쇼핑몰 웹사이트 제작\n예: 캡스톤디자인 — AI 일정 관리 앱 개발"}
               autoFocus
               rows={3}
             />
+            <p id="ai-prompt-feedback" className="ai-prompt-feedback" aria-live="polite">
+              {promptError || `${promptLength}자 입력됨 · AI 업무 분해를 시작할 수 있습니다.`}
+            </p>
 
             <div className="ai-form-row">
               <div className="ai-form-field">
@@ -254,7 +270,7 @@ export default function AITaskModal({ onClose, workspaces = [], workspace }: Pro
 
             <button
               className="ai-generate-btn"
-              disabled={!prompt.trim()}
+              disabled={Boolean(promptError)}
               onClick={screen === "new-prompt" ? handleNewBreakdown : handleAppendBreakdown}
             >
               {screen === "new-prompt" ? <Bot size={17} /> : <Sparkles size={17} />}

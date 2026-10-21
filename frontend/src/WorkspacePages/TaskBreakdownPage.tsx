@@ -222,7 +222,7 @@ export default function TaskBreakdownPage() {
       const res = await client.post(`/ai/generate-tasks?${params}`, body, { timeout: 300000 });
       setResult(convertToBreakdownResult(res.data.data, prompt));
     } catch (err: any) {
-      const detail = err?.response?.data?.detail ?? err?.message ?? String(err);
+      const detail = err?.response?.data?.message ?? err?.response?.data?.detail ?? err?.message ?? String(err);
       setError(`AI 오류: ${detail}`);
       console.error("[AI] error:", err);
     } finally {
